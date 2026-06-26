@@ -1,0 +1,26 @@
+# Node / frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+coverage/
+frontend/coverage/
+frontend/.vite/
+frontend/playwright-report/
+frontend/test-results/
+
+# Environment
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+
+# Logs and editor files
+*.log
+*.log.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.tmp
