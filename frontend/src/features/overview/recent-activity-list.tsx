@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/formatters/dates";
-import { formatEventType } from "@/lib/formatters/email";
+import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import type { EmailEvent } from "@/lib/supabase/types";
 
@@ -78,7 +78,7 @@ export function RecentActivityList({
                 <TableRow key={event.id}>
                   <TableCell className="whitespace-nowrap">{formatDateTime(event.occurredAt)}</TableCell>
                   <TableCell>
-                    <Badge tone={event.eventType === "delivered" ? "success" : "muted"}>
+                    <Badge tone={toneForEventType(event.eventType)}>
                       {formatEventType(event.eventType)}
                     </Badge>
                   </TableCell>

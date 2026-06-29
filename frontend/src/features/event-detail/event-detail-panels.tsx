@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters/dates";
-import { formatEventType, isProblemEventType } from "@/lib/formatters/email";
+import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import type { EmailEvent } from "@/lib/supabase/types";
 
@@ -41,7 +41,7 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone={isProblemEventType(event.eventType) ? "warning" : "success"}>
+            <Badge tone={toneForEventType(event.eventType)}>
               {formatEventType(event.eventType)}
             </Badge>
             <span className="text-sm text-slate-500">{formatDateTime(event.occurredAt)}</span>

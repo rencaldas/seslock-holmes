@@ -28,3 +28,21 @@ export function formatEventType(value: EmailEventType) {
 export function isProblemEventType(value: EmailEventType) {
   return value !== "sent" && value !== "delivered";
 }
+
+export function toneForEventType(value: EmailEventType): "default" | "success" | "warning" | "destructive" | "muted" {
+  switch (value) {
+    case "sent":
+      return "muted";
+    case "delivered":
+      return "success";
+    case "bounced":
+    case "rejected":
+    case "rendering_failure":
+      return "destructive";
+    case "complained":
+    case "delayed":
+      return "warning";
+    default:
+      return "muted";
+  }
+}

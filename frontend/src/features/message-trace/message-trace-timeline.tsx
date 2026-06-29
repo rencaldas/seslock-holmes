@@ -1,29 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters/dates";
-import { formatEventType } from "@/lib/formatters/email";
+import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { summarizeEvent } from "@/lib/formatters/event";
 import type { EmailEvent } from "@/lib/supabase/types";
-
-function toneForEventType(eventType: EmailEvent["eventType"]) {
-  switch (eventType) {
-    case "delivered":
-      return "success";
-    case "sent":
-      return "muted";
-    case "bounced":
-      return "destructive";
-    case "complained":
-      return "warning";
-    case "rejected":
-    case "rendering_failure":
-      return "destructive";
-    case "delayed":
-      return "warning";
-    default:
-      return "muted";
-  }
-}
 
 function dotColor(eventType: EmailEvent["eventType"]) {
   switch (eventType) {

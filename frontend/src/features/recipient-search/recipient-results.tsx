@@ -4,25 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/states/empty-state";
 import { formatDateTime } from "@/lib/formatters/dates";
-import { formatEventType, isProblemEventType } from "@/lib/formatters/email";
+import { formatEventType, isProblemEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import type { RecipientInvestigationResult } from "@/lib/supabase/types";
-
-function toneForStatus(status: string): "default" | "success" | "warning" | "destructive" | "muted" {
-  switch (status) {
-    case "delivered":
-      return "success";
-    case "sent":
-      return "muted";
-    case "bounced":
-    case "complained":
-    case "rejected":
-    case "rendering_failure":
-      return "destructive";
-    default:
-      return "warning";
-  }
-}
 
 export function RecipientResults({
   data,
@@ -43,7 +27,7 @@ export function RecipientResults({
       <CardContent className="p-0">
         <div className="border-b border-slate-100 px-6 py-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone={data.hasProblemActivity ? "warning" : "success"}>
+            <Badge tone={data.hasProblemActivity ? "destructive" : "success"}>
               {data.totalCount} eventos correspondentes
             </Badge>
             <span className="text-sm text-slate-500">Atividade mais recente: {formatDateTime(data.latestEventAt)}</span>
@@ -64,7 +48,7 @@ export function RecipientResults({
                 <TableRow key={event.id}>
                   <TableCell className="whitespace-nowrap">{formatDateTime(event.occurredAt)}</TableCell>
                   <TableCell>
-                    <Badge tone={toneForStatus(event.eventType)}>{formatEventType(event.eventType)}</Badge>
+                    <Badge tone={toneForEventType(event.eventType)}>{formatEventType(event.eventType)}</Badge>
                     {isProblemEventType(event.eventType) && event.failureReason ? (
                       <p className="mt-2 max-w-md text-xs text-slate-500">{event.failureReason}</p>
                     ) : null}
