@@ -13,11 +13,13 @@ O foco é apoiar times de suporte, operação e análise na leitura de eventos, 
 <br>
 
 <p align="center">
-  
-  <img src="https://github.com/user-attachments/assets/37812d9a-8e63-42fc-afe8-abfdc7ef11c8" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/e0ea06bd-e915-4e1c-8ff8-0a775a0dc9ac" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/e518e8fd-646d-4d52-b7ef-42e144863a46" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/7aa2445e-c5b9-4401-a4b6-44028839a2a8" width="800">
+
+  <img src="![Uploading image.png…]()
+"><br><br>
+  <img src="https://github.com/user-attachments/assets/2fe17c4b-ebaf-4571-b4a7-e9e5c89bd46c" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/714bdf86-00aa-43b2-acda-5783b948d12d" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/955c6a90-f44e-4c21-89e0-48e3317fbaf4" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/5141ee87-f0a2-4e8f-b076-eb67ecc2c2dc" width="800">
 </p>
 
 </details>
