@@ -4,7 +4,7 @@ Seslock Holmes é um painel web de investigação para eventos de email do AWS S
 O foco é apoiar times de suporte, operação e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f4f44189-6190-4477-adaa-a13e790995e0" width="900" alt="Dashboard">
+  <img src="https://github.com/user-attachments/assets/856a70fa-1b22-41e1-8263-711b240b4a07" width="900" alt="Dashboard">
 </p>
 
 <details>
