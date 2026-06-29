@@ -13,9 +13,10 @@ O foco é apoiar times de suporte, operação e análise na leitura de eventos, 
 <br>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/22e5dd9f-82e0-4aad-ae3c-e88ddfb42242" width="800"><br><br>
+  
   <img src="https://github.com/user-attachments/assets/37812d9a-8e63-42fc-afe8-abfdc7ef11c8" width="800"><br><br>
   <img src="https://github.com/user-attachments/assets/e0ea06bd-e915-4e1c-8ff8-0a775a0dc9ac" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/e518e8fd-646d-4d52-b7ef-42e144863a46" width="800"><br><br>
   <img src="https://github.com/user-attachments/assets/7aa2445e-c5b9-4401-a4b6-44028839a2a8" width="800">
 </p>
 
