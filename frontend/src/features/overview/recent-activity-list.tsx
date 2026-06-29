@@ -86,7 +86,12 @@ export function RecentActivityList({
                   <TableCell>{getOriginLabel(event)}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
-                      <Link className="text-sm font-medium text-slate-950 underline" to={`/events/${event.id}`}>
+                      <Link
+                        className="text-sm font-medium text-slate-950 underline"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        to={`/events/${event.id}`}
+                      >
                         Detalhes
                       </Link>
                       <button
@@ -105,6 +110,8 @@ export function RecentActivityList({
                       </button>
                       <Link
                         className="text-sm font-medium text-slate-950 underline"
+                        target="_blank"
+                        rel="noreferrer noopener"
                         to={`/events/${event.id}#raw-payload`}
                       >
                         Payload bruto
