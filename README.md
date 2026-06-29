@@ -3,11 +3,20 @@
 Seslock Holmes é um painel web de investigação para eventos de email do AWS SES armazenados no Supabase/PostgreSQL.
 O foco é apoiar times de suporte, operação e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
-<img width="1363" height="1929" alt="image" src="https://github.com/user-attachments/assets/f4f44189-6190-4477-adaa-a13e790995e0" />
-<img width="1363" height="1929" alt="image" src="https://github.com/user-attachments/assets/22e5dd9f-82e0-4aad-ae3c-e88ddfb42242" />
-<img width="1363" height="1929" alt="image" src="https://github.com/user-attachments/assets/37812d9a-8e63-42fc-afe8-abfdc7ef11c8" />
-<img width="1363" height="1929" alt="image" src="https://github.com/user-attachments/assets/e0ea06bd-e915-4e1c-8ff8-0a775a0dc9ac" />
-<img width="1363" height="1929" alt="image" src="https://github.com/user-attachments/assets/7aa2445e-c5b9-4401-a4b6-44028839a2a8" />
+## Screenshots
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/22e5dd9f-82e0-4aad-ae3c-e88ddfb42242" width="800" alt="Investigação">
+  <br><br>
+
+  <img src="https://github.com/user-attachments/assets/37812d9a-8e63-42fc-afe8-abfdc7ef11c8" width="800" alt="Detalhes do Evento">
+  <br><br>
+
+  <img src="https://github.com/user-attachments/assets/e0ea06bd-e915-4e1c-8ff8-0a775a0dc9ac" width="800" alt="Timeline da Mensagem">
+  <br><br>
+
+  <img src="https://github.com/user-attachments/assets/7aa2445e-c5b9-4401-a4b6-44028839a2a8" width="800" alt="Sugestões de Pesquisa">
+</p>
 
 O projeto é somente leitura:
 
