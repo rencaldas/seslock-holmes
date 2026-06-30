@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OverviewFilters } from "@/features/overview/overview-filters";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType, RecipientSearchMode } from "@/lib/supabase/types";
 
 export interface RecipientSearchFilters {
@@ -22,6 +23,7 @@ export function RecipientSearchForm({
   onChange: (next: RecipientSearchFilters) => void;
   onSubmit: () => void;
 }) {
+  const t = useI18n();
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
 
   return (
@@ -33,23 +35,23 @@ export function RecipientSearchForm({
       }}
     >
       <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
-        <Label htmlFor="search-text" className="sr-only">Email ou termo</Label>
+        <Label htmlFor="search-text" className="sr-only">{t.investigation.searchLabel}</Label>
         <Input
           id="search-text"
-          placeholder={value.searchMode === "origin" ? "application-name" : "maria@exemplo.com"}
+          placeholder={value.searchMode === "origin" ? t.investigation.searchPlaceholderOrigin : t.investigation.searchPlaceholderRecipient}
           value={value.searchText}
           onChange={(event) => onChange({ ...value, searchText: event.target.value })}
-          className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 text-slate-100 px-4 text-sm outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
+          className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
         />
         <div className="flex items-center gap-2">
           <Button
             type="submit"
-            className="w-full lg:w-auto border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
+            className="w-full border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900 lg:w-auto"
           >
-            Buscar
+            {t.investigation.searchButton}
           </Button>
           <Button type="button" variant="secondary" onClick={toggleFilters}>
-            {filtersOpen ? "Ocultar filtros" : "Mostrar filtros"}
+            {filtersOpen ? t.investigation.hideFilters : t.investigation.showFilters}
           </Button>
         </div>
       </div>
@@ -60,8 +62,8 @@ export function RecipientSearchForm({
           onChange={(next) => onChange({ ...value, ...next })}
           onApply={onSubmit}
           className="bg-slate-950/95 border-slate-700"
-          inputClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-          selectClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
+          inputClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
+          selectClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
           labelClassName="text-slate-300"
         />
       </div>

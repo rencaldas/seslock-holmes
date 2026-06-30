@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEvent } from "@/lib/supabase/types";
 
 function DetailField({
@@ -20,24 +21,26 @@ function DetailField({
   );
 }
 
-function formatJson(value: unknown) {
+function formatJson(value: unknown, fallback: string) {
   if (!value || (typeof value === "object" && value !== null && Object.keys(value as Record<string, unknown>).length === 0)) {
-    return "Não disponível";
+    return fallback;
   }
 
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return "Não disponível";
+    return fallback;
   }
 }
 
 export function EventDetailPanels({ event }: { event: EmailEvent }) {
+  const t = useI18n();
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Informações gerais</CardTitle>
+          <CardTitle>{t.eventDetail.generalInfo}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -46,17 +49,17 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
             </Badge>
             <span className="text-sm text-slate-500">{formatDateTime(event.occurredAt)}</span>
           </div>
-          <DetailField label="Assunto" value={event.subject || "Não disponível"} />
-          <DetailField label="ID do evento" value={event.id} />
-          <DetailField label="Message ID" value={event.messageId} />
-          <DetailField label="SNS Message ID" value={event.snsMessageId || "Não disponível"} />
-          <DetailField label="Status de entrega" value={event.deliveryStatus} />
+          <DetailField label={t.eventDetail.subject} value={event.subject || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.eventId} value={event.id} />
+          <DetailField label={t.eventDetail.messageId} value={event.messageId} />
+          <DetailField label={t.eventDetail.snsMessageId} value={event.snsMessageId || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.deliveryStatus} value={event.deliveryStatus} />
           <DetailField
-            label="Tempo de processamento da entrega"
+            label={t.eventDetail.processingTime}
             value={
               event.deliveryProcessingTimeMillis !== null
                 ? `${event.deliveryProcessingTimeMillis} ms`
-                : "Não disponível"
+                : t.eventDetail.notAvailable
             }
           />
         </CardContent>
@@ -64,53 +67,53 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Origem e atribuição</CardTitle>
+          <CardTitle>{t.eventDetail.originInfo}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <DetailField label="Aplicação de origem" value={event.originApp || "Não disponível"} />
-          <DetailField label="Identidade SMTP" value={event.smtpIdentity || "Não disponível"} />
-          <DetailField label="From address" value={event.fromAddress || "Não disponível"} />
-          <DetailField label="Email do remetente" value={event.senderEmail || "Não disponível"} />
-          <DetailField label="Source IP" value={event.sourceIp || "Não disponível"} />
-          <DetailField label="Caller identity" value={event.callerIdentity || "Não disponível"} />
-          <DetailField label="Configuration set" value={event.configurationSet || "Não disponível"} />
-          <DetailField label="Project tag" value={event.projectTag || "Não disponível"} />
-          <DetailField label="Origem do rastreamento" value={getOriginLabel(event)} />
+          <DetailField label={t.eventDetail.appOrigin} value={event.originApp || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.smtpIdentity} value={event.smtpIdentity || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.fromAddress} value={event.fromAddress || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.senderEmail} value={event.senderEmail || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.sourceIp} value={event.sourceIp || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.callerIdentity} value={event.callerIdentity || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.configurationSet} value={event.configurationSet || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.projectTag} value={event.projectTag || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.originTrace} value={getOriginLabel(event)} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Destino</CardTitle>
+          <CardTitle>{t.eventDetail.destination}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <DetailField label="Destinatário principal" value={event.recipientEmail} />
-          <DetailField label="Destinatários" value={formatJson(event.recipientInfo.destination ?? event.recipientInfo.destinations)} />
+          <DetailField label={t.eventDetail.primaryRecipient} value={event.recipientEmail} />
+          <DetailField
+            label={t.eventDetail.recipients}
+            value={formatJson(event.recipientInfo.destination ?? event.recipientInfo.destinations, t.eventDetail.notAvailable)}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Bounce, complaint e entrega</CardTitle>
+          <CardTitle>{t.eventDetail.routing}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <DetailField label="Motivo da falha" value={event.failureReason || "Não disponível"} />
-          <DetailField label="Bounce type" value={String(event.bounceDetails.bounceType ?? "Não disponível")} />
-          <DetailField label="Bounce subtype" value={String(event.bounceDetails.bounceSubType ?? "Não disponível")} />
-          <DetailField label="Diagnostic code" value={String(event.bounceDetails.diagnosticCode ?? "Não disponível")} />
-          <DetailField label="SMTP response" value={String(event.deliveryDetails.smtpResponse ?? "Não disponível")} />
-          <DetailField label="Remote MTA IP" value={String(event.deliveryDetails.remoteMtaIp ?? "Não disponível")} />
-          <DetailField label="Reporting MTA" value={String(event.deliveryDetails.reportingMta ?? "Não disponível")} />
-          <DetailField
-            label="Complaint feedback"
-            value={String(event.complaintDetails.complaintFeedbackType ?? "Não disponível")}
-          />
+          <DetailField label={t.eventDetail.failureReason} value={event.failureReason || t.eventDetail.notAvailable} />
+          <DetailField label={t.eventDetail.bounceType} value={String(event.bounceDetails.bounceType ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.bounceSubtype} value={String(event.bounceDetails.bounceSubType ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.diagnosticCode} value={String(event.bounceDetails.diagnosticCode ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.smtpResponse} value={String(event.deliveryDetails.smtpResponse ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.remoteMtaIp} value={String(event.deliveryDetails.remoteMtaIp ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.reportingMta} value={String(event.deliveryDetails.reportingMta ?? t.eventDetail.notAvailable)} />
+          <DetailField label={t.eventDetail.complaintFeedback} value={String(event.complaintDetails.complaintFeedbackType ?? t.eventDetail.notAvailable)} />
         </CardContent>
       </Card>
 
       <Card className="lg:col-span-2" id="raw-payload">
         <CardHeader>
-          <CardTitle>Payload bruto</CardTitle>
+          <CardTitle>{t.eventDetail.rawPayload}</CardTitle>
         </CardHeader>
         <CardContent>
           <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">

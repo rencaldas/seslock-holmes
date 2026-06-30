@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType } from "@/lib/supabase/types";
 
 export interface OverviewFilterValues {
@@ -28,13 +29,15 @@ export function OverviewFilters({
   selectClassName?: string;
   labelClassName?: string;
 }) {
+  const t = useI18n();
+
   return (
     <div className={cn(
       "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft md:grid-cols-[1fr_1fr_1fr_auto]",
       className,
     )}>
       <div className="space-y-2">
-        <Label htmlFor="overview-window" className={cn("text-slate-300", labelClassName)}>Tempo</Label>
+        <Label htmlFor="overview-window" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.time}</Label>
         <Select
           id="overview-window"
           value={String(value.windowDays)}
@@ -45,15 +48,15 @@ export function OverviewFilters({
             selectClassName,
           )}
           options={[
-            { label: "Últimas 24 horas", value: "1" },
-            { label: "Últimos 7 dias", value: "7" },
-            { label: "Últimos 30 dias", value: "30" },
-            { label: "Últimos 90 dias", value: "90" },
+          { label: t.overview.filters.timeOptions.d1, value: "1" },
+          { label: t.overview.filters.timeOptions.d7, value: "7" },
+          { label: t.overview.filters.timeOptions.d30, value: "30" },
+          { label: t.overview.filters.timeOptions.d90, value: "90" },
           ]}
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="overview-status" className={cn("text-slate-300", labelClassName)}>Status</Label>
+        <Label htmlFor="overview-status" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.status}</Label>
         <Select
           id="overview-status"
           value={value.status}
@@ -64,22 +67,22 @@ export function OverviewFilters({
             selectClassName,
           )}
           options={[
-            { label: "Todos", value: "all" },
-            { label: "Enviado", value: "sent" },
-            { label: "Entregue", value: "delivered" },
-            { label: "Bounce", value: "bounced" },
-            { label: "Reclamação", value: "complained" },
-            { label: "Atrasado", value: "delayed" },
-            { label: "Rejeitado", value: "rejected" },
-            { label: "Falha de renderização", value: "rendering_failure" },
+            { label: t.overview.filters.options.all, value: "all" },
+            { label: t.overview.filters.options.sent, value: "sent" },
+            { label: t.overview.filters.options.delivered, value: "delivered" },
+            { label: t.overview.filters.options.bounced, value: "bounced" },
+            { label: t.overview.filters.options.complained, value: "complained" },
+            { label: t.overview.filters.options.delayed, value: "delayed" },
+            { label: t.overview.filters.options.rejected, value: "rejected" },
+            { label: t.overview.filters.options.rendering_failure, value: "rendering_failure" },
           ]}
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="overview-origin" className={cn("text-slate-300", labelClassName)}>Filtro de origem</Label>
+        <Label htmlFor="overview-origin" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.origin}</Label>
         <Input
           id="overview-origin"
-          placeholder="Aplicação ou identidade SMTP"
+          placeholder={t.overview.originPlaceholder}
           value={value.origin}
           onChange={(event) => onChange({ ...value, origin: event.target.value })}
           className={cn(
@@ -95,7 +98,7 @@ export function OverviewFilters({
           className="w-full md:w-auto border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
           onClick={onApply}
         >
-          Aplicar filtros
+          {t.overview.filters.apply}
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, isProblemEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { RecipientInvestigationResult } from "@/lib/supabase/types";
 
 export function RecipientResults({
@@ -13,11 +14,13 @@ export function RecipientResults({
 }: {
   data: RecipientInvestigationResult;
 }) {
+  const t = useI18n();
+
   if (!data.events.length) {
     return (
       <EmptyState
-        title="Nenhum evento encontrado"
-        description="Este destinatário não tem atividade correspondente do SES na janela selecionada."
+        title={t.investigation.noResultsTitle}
+        description={t.investigation.noResultsDescription}
       />
     );
   }
@@ -28,19 +31,21 @@ export function RecipientResults({
         <div className="border-b border-slate-100 px-6 py-4">
           <div className="flex flex-wrap items-center gap-3">
             <Badge tone={data.hasProblemActivity ? "destructive" : "success"}>
-              {data.totalCount} eventos correspondentes
+              {data.totalCount} {t.investigation.resultCount}
             </Badge>
-            <span className="text-sm text-slate-500">Atividade mais recente: {formatDateTime(data.latestEventAt)}</span>
+            <span className="text-sm text-slate-500">
+              {t.investigation.latestActivity}: {formatDateTime(data.latestEventAt)}
+            </span>
           </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Hora</TableHead>
-                <TableHead>Resultado</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Mensagem</TableHead>
+                <TableHead>{t.investigation.tableHour}</TableHead>
+                <TableHead>{t.investigation.tableResult}</TableHead>
+                <TableHead>{t.investigation.tableOrigin}</TableHead>
+                <TableHead>{t.investigation.tableMessage}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -68,7 +73,7 @@ export function RecipientResults({
                         className="text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-950"
                         to={`/events/${event.id}`}
                       >
-                        Inspecionar evento
+                        {t.investigation.inspectEvent}
                       </Link>
                     </div>
                   </TableCell>

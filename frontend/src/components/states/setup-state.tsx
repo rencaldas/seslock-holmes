@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { saveEventsTableOverride } from "@/lib/supabase/table-resolution";
 
 export function SetupState({
-  title = "Configurar origem dos dados",
+  title,
   description,
   triedTables,
 }: {
@@ -15,21 +16,22 @@ export function SetupState({
   triedTables: string[];
 }) {
   const [value, setValue] = useState("");
+  const t = useI18n();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{title ?? t.common.setupTitle}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="events-table">Nome da tabela ou view de eventos</Label>
+          <Label htmlFor="events-table">{t.common.setupTableLabel}</Label>
           <Input
             id="events-table"
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder="por exemplo: email_events ou ses_events_view"
+            placeholder={t.common.setupTablePlaceholder}
           />
         </div>
         <Button
@@ -42,11 +44,11 @@ export function SetupState({
             window.location.reload();
           }}
         >
-          Salvar e recarregar
+          {t.common.setupButton}
         </Button>
         {triedTables.length ? (
           <p className="text-sm text-slate-500">
-            Tentativas: {triedTables.join(", ")}
+            {t.common.setupTried}: {triedTables.join(", ")}
           </p>
         ) : null}
       </CardContent>

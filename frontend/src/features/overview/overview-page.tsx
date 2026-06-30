@@ -9,11 +9,12 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { SetupState } from "@/components/states/setup-state";
+import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-panel";
 import { OverviewFilters } from "@/features/overview/overview-filters";
-import { OverviewSummary } from "@/features/overview/overview-summary";
 import { RecentActivityList } from "@/features/overview/recent-activity-list";
 import { normalizeEmail } from "@/lib/formatters/email";
 import { parsePositiveNumber } from "@/lib/utils";
+import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchOverview } from "@/lib/supabase/queries/overview";
 import { useDisclosure } from "@/lib/hooks/use-disclosure";
@@ -37,6 +38,8 @@ function buildSearchParams(current: URLSearchParams, next: Record<string, string
 }
 
 export function OverviewPage() {
+  const t = useI18n();
+  const language = useAppLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const supabase = useSupabase();
@@ -78,7 +81,7 @@ export function OverviewPage() {
   }, [searchParams]);
 
   const overviewQuery = useQuery({
-    queryKey: ["overview", page, filters.windowDays, filters.status, filters.origin, supabase.eventsTable],
+    queryKey: ["overview", language, page, filters.windowDays, filters.status, filters.origin, supabase.eventsTable],
     enabled: Boolean(supabase.client && supabase.eventsTable),
     queryFn: () =>
       fetchOverview(supabase.client!, supabase.eventsTable!, {
@@ -91,7 +94,7 @@ export function OverviewPage() {
   });
 
   if (!supabase.ready) {
-    return <LoadingState title="Conectando ao Supabase" description="Resolvendo a origem dos dados." />;
+    return <LoadingState title={t.common.loadingSupabase} description={t.common.loadingDescription} />;
   }
 
   if (!supabase.eventsTable) {
@@ -99,7 +102,7 @@ export function OverviewPage() {
       <SetupState
         description={
           supabase.error ??
-          "O painel não conseguiu descobrir automaticamente a tabela ou view de eventos do SES. Informe o nome da relação para continuar."
+          t.common.setupDescription
         }
         triedTables={supabase.triedTables}
       />
@@ -141,27 +144,25 @@ export function OverviewPage() {
 
         <div className="relative grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
           <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Visão operacional</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.overview.kicker}</p>
             <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950">
-              Comece pela atividade recente de email e vá direto à investigação por destinatário.
+              {t.overview.title}
             </h2>
             <p className="max-w-2xl text-base leading-7 text-slate-600">
-              Este painel é somente leitura e ajuda times de suporte a diagnosticar problemas de
-              entrega do SES rapidamente, sem precisar de acesso direto à AWS.
+              {t.overview.description}
             </p>
-
           </div>
 
           <Card className="relative border-slate-200/80 bg-white/75 backdrop-blur">
             <CardHeader>
-              <CardTitle>O que este painel responde?</CardTitle>
-              <CardDescription>Triagem rápida para times de suporte e operações.</CardDescription>
+              <CardTitle>{t.overview.panelTitle}</CardTitle>
+              <CardDescription>{t.overview.panelDescription}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>• A mensagem foi entregue?</p>
-              <p>• Se não, por que falhou?</p>
-              <p>• Qual origem, remetente ou identidade a produziu?</p>
-              <p>• Quais eventos relacionados pertencem ao mesmo rastreamento da mensagem?</p>
+              <p>• {t.overview.bullet1}</p>
+              <p>• {t.overview.bullet2}</p>
+              <p>• {t.overview.bullet3}</p>
+              <p>• {t.overview.bullet4}</p>
             </CardContent>
           </Card>
         </div>
@@ -173,7 +174,7 @@ export function OverviewPage() {
             <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
               <Input
                 value={recipientEmail}
-                placeholder="Busque um endereço de email do destinatário"
+                placeholder={t.overview.searchPlaceholder}
                 onChange={(event) => setRecipientEmail(event.target.value)}
                 className="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
               />
@@ -200,14 +201,10 @@ export function OverviewPage() {
                   }}
                 >
                   <Search className="mr-2 h-4 w-4" />
-                  Investigar destinatário
+                  {t.overview.investigateRecipient}
                 </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={toggleFilters}
-                >
-                  {filtersOpen ? "Ocultar filtros" : "Mostrar filtros"}
+                <Button type="button" variant="secondary" onClick={toggleFilters}>
+                  {filtersOpen ? t.overview.hideFilters : t.overview.showFilters}
                 </Button>
               </div>
             </div>
@@ -241,13 +238,13 @@ export function OverviewPage() {
         </div>
       </div>
 
-      {overviewQuery.isLoading ? <LoadingState title="Carregando visão geral" /> : null}
+      {overviewQuery.isLoading ? <LoadingState title={t.overview.recentActivityTitle} /> : null}
       {overviewQuery.isError ? (
         <ErrorState
           description={
             overviewQuery.error instanceof Error
               ? overviewQuery.error.message
-              : "Não foi possível carregar a atividade recente."
+              : t.common.noAvailableData
           }
           onRetry={() => overviewQuery.refetch()}
         />
@@ -255,7 +252,7 @@ export function OverviewPage() {
 
       {overviewQuery.data ? (
         <div className="space-y-5">
-          <OverviewSummary data={overviewQuery.data} />
+          <OverviewAnalyticsPanel data={overviewQuery.data} />
           {overviewQuery.data.recentEvents.length ? (
             <RecentActivityList
               events={overviewQuery.data.recentEvents}
@@ -280,8 +277,8 @@ export function OverviewPage() {
             />
           ) : (
             <EmptyState
-              title="Nenhuma atividade nesta janela"
-              description="Tente ampliar a janela de tempo ou ajustar os filtros para exibir eventos recentes do SES."
+              title={t.overview.noActivityTitle}
+              description={t.overview.noActivityDescription}
             />
           )}
         </div>

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEvent } from "@/lib/supabase/types";
 
 async function copyToClipboard(value: string) {
@@ -43,21 +44,23 @@ export function RecentActivityList({
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
+  const t = useI18n();
+
   return (
     <Card>
       <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <CardTitle>Atividade recente</CardTitle>
+          <CardTitle>{t.overview.recentActivityTitle}</CardTitle>
           <p className="text-sm text-slate-500">
-            Página {page} de {totalPages}
+            {t.overview.pageLabel} {page} de {totalPages}
           </p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="secondary" disabled={!hasPreviousPage} onClick={onPreviousPage}>
-            Anterior
+            {t.overview.previous}
           </Button>
           <Button type="button" variant="secondary" disabled={!hasNextPage} onClick={onNextPage}>
-            Próxima
+            {t.overview.next}
           </Button>
         </div>
       </CardHeader>
@@ -66,11 +69,11 @@ export function RecentActivityList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Hora</TableHead>
-                <TableHead>Resultado</TableHead>
-                <TableHead>Destinatário</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Ações</TableHead>
+                <TableHead>{t.overview.tableHour}</TableHead>
+                <TableHead>{t.overview.tableResult}</TableHead>
+                <TableHead>{t.overview.tableRecipient}</TableHead>
+                <TableHead>{t.overview.tableOrigin}</TableHead>
+                <TableHead>{t.overview.tableActions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,21 +95,21 @@ export function RecentActivityList({
                         rel="noreferrer noopener"
                         to={`/events/${event.id}`}
                       >
-                        Detalhes
+                        {t.overview.details}
                       </Link>
                       <button
                         className="text-sm font-medium text-slate-950 underline"
                         type="button"
                         onClick={() => copyToClipboard(event.messageId)}
                       >
-                        Copiar ID
+                        {t.overview.copyId}
                       </button>
                       <button
                         className="text-sm font-medium text-slate-950 underline"
                         type="button"
                         onClick={() => copyToClipboard(event.recipientEmail)}
                       >
-                        Copiar destinatário
+                        {t.overview.copyRecipient}
                       </button>
                       <Link
                         className="text-sm font-medium text-slate-950 underline"
@@ -114,7 +117,7 @@ export function RecentActivityList({
                         rel="noreferrer noopener"
                         to={`/events/${event.id}#raw-payload`}
                       >
-                        Payload bruto
+                        {t.overview.rawPayload}
                       </Link>
                     </div>
                   </TableCell>

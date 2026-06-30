@@ -1,3 +1,5 @@
+import { getSupabaseLanguage } from "@/lib/supabase/settings";
+
 export function formatDateTime(value: string | null | undefined) {
   if (!value) {
     return "Não disponível";
@@ -8,7 +10,7 @@ export function formatDateTime(value: string | null | undefined) {
     return "Não disponível";
   }
 
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat(getSupabaseLanguage(), {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
