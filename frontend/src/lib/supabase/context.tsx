@@ -2,7 +2,6 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/env";
-import { loadEventsTableOverride } from "@/lib/supabase/table-resolution";
 
 type SupabaseState = {
   client: SupabaseClient | null;
@@ -17,17 +16,14 @@ const SupabaseContext = createContext<SupabaseState | null>(null);
 export function SupabaseProvider({ children }: { children: ReactNode }) {
   const env = getSupabaseEnv();
   const client = getSupabaseClient();
-  const storedEventsTable = loadEventsTableOverride();
   const state: SupabaseState = {
     client,
     ready: Boolean(env),
     error: env
-      ? storedEventsTable
-        ? null
-        : "Nenhuma tabela ou view de eventos foi configurada ainda. Informe o nome da relação para continuar."
+      ? null
       : "As variáveis de ambiente do Supabase estão ausentes. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY, ou o equivalente NEXT_PUBLIC_*.",
-    eventsTable: storedEventsTable,
-    triedTables: storedEventsTable ? [storedEventsTable] : [],
+    eventsTable: env?.eventsTable ?? null,
+    triedTables: env?.eventsTable ? [env.eventsTable] : [],
   };
 
   return <SupabaseContext.Provider value={state}>{children}</SupabaseContext.Provider>;

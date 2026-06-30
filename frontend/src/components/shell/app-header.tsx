@@ -1,6 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
-import { Search, ShieldCheck, Activity } from "lucide-react";
+import { Search, Activity, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import overviewLogo from "@/assets/overview-logo.png";
+import pkg from "../../../package.json";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -10,19 +12,23 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AppHeader() {
   return (
-    <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 min-h-[7.5rem] bg-transparent text-slate-100">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-b-[1.5rem] border border-slate-800/70 bg-slate-950/95 px-4 py-4 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.85)] backdrop-blur-sm transition sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-soft">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
+          <img src={overviewLogo} alt="Seslock Holmes logo" className="h-20 w-20 object-contain" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">
               Seslock Holmes
             </p>
-            <h1 className="text-lg font-semibold text-slate-950">Painel de Investigação</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold text-slate-50">Painel de Investigação</h1>
+              <span className="rounded-full bg-slate-800 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-300">
+                v{pkg.version}
+              </span>
+            </div>
           </div>
         </Link>
+
 
         <nav className="hidden items-center gap-2 md:flex">
           <NavLink to="/" className={navClass} end>
@@ -32,6 +38,10 @@ export function AppHeader() {
           <NavLink to="/investigate" className={navClass}>
             <Search className="h-4 w-4" />
             Investigar
+          </NavLink>
+          <NavLink to="/faq" className={navClass}>
+            <BookOpen className="h-4 w-4" />
+            FAQ
           </NavLink>
         </nav>
 
