@@ -11,6 +11,7 @@ import { RecipientSearchForm } from "@/features/recipient-search/recipient-searc
 import { RecipientResults } from "@/features/recipient-search/recipient-results";
 import { RelatedEmailSuggestions } from "@/features/recipient-search/related-email-suggestions";
 import { normalizeEmail } from "@/lib/formatters/email";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchRecipientInvestigation } from "@/lib/supabase/queries/recipient-investigation";
 import type { RecipientSearchMode } from "@/lib/supabase/types";
@@ -30,6 +31,7 @@ function parseSearchMode(value: string | null): RecipientSearchMode {
 }
 
 export function RecipientInvestigationPage() {
+  const t = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const supabase = useSupabase();
@@ -87,7 +89,7 @@ export function RecipientInvestigationPage() {
   });
 
   if (!supabase.ready) {
-    return <LoadingState title="Conectando ao Supabase" description="Resolvendo a origem dos dados." />;
+    return <LoadingState title={t.common.loadingSupabase} description={t.common.loadingDescription} />;
   }
 
   if (!supabase.eventsTable) {
@@ -95,7 +97,7 @@ export function RecipientInvestigationPage() {
       <SetupState
         description={
           supabase.error ??
-          "O painel não conseguiu descobrir automaticamente a tabela ou view de eventos do SES. Informe o nome da relação para continuar."
+          t.common.setupDescription
         }
         triedTables={supabase.triedTables}
       />
@@ -122,14 +124,14 @@ export function RecipientInvestigationPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Investigação</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.investigation.kicker}</p>
           <h2 className="text-3xl font-semibold text-slate-950">
-            Diagnostique um endereço desde o primeiro envio até o resultado final.
+            {t.investigation.title}
           </h2>
         </div>
         <Button variant="secondary" onClick={() => navigate("/")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para a visão geral
+          {t.investigation.backToOverview}
         </Button>
       </div>
 
@@ -141,18 +143,18 @@ export function RecipientInvestigationPage() {
 
       {!searchText ? (
         <EmptyState
-          title="Busque um endereço"
-          description="Escolha se deseja procurar um destinatário, um remetente ou uma origem e informe o valor desejado."
+          title={t.investigation.noSearchTitle}
+          description={t.investigation.noSearchDescription}
         />
       ) : null}
 
-      {investigationQuery.isLoading ? <LoadingState title="Carregando atividade" /> : null}
+      {investigationQuery.isLoading ? <LoadingState title={t.investigation.loadingTitle} /> : null}
       {investigationQuery.isError ? (
         <ErrorState
           description={
             investigationQuery.error instanceof Error
               ? investigationQuery.error.message
-              : "Não foi possível carregar os eventos."
+              : t.common.noAvailableData
           }
           onRetry={() => investigationQuery.refetch()}
         />
@@ -165,7 +167,7 @@ export function RecipientInvestigationPage() {
               <RecipientResults data={investigationQuery.data} />
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-slate-500">
-                  Página {investigationQuery.data.page} de{" "}
+                  {t.investigation.pageLabel} {investigationQuery.data.page} de{" "}
                   {Math.max(1, Math.ceil(investigationQuery.data.totalCount / investigationQuery.data.pageSize))}
                 </p>
                 <div className="flex gap-2">
@@ -184,7 +186,7 @@ export function RecipientInvestigationPage() {
                       })
                     }
                   >
-                    Anterior
+                    {t.investigation.previous}
                   </Button>
                   <Button
                     type="button"
@@ -201,7 +203,7 @@ export function RecipientInvestigationPage() {
                       })
                     }
                   >
-                    Próxima
+                    {t.investigation.next}
                   </Button>
                 </div>
               </div>
@@ -222,8 +224,8 @@ export function RecipientInvestigationPage() {
             />
           ) : (
             <EmptyState
-              title="Nenhum resultado encontrado"
-              description="Não encontramos correspondência exata para a busca atual."
+              title={t.investigation.noResultsTitle}
+              description={t.investigation.noResultsWithSuggestionsDescription}
             />
           )}
         </div>

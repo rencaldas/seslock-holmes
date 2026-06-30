@@ -1,3 +1,5 @@
+import type { OverviewAnalytics } from "@/lib/overview/analytics";
+
 export type EmailEventType =
   | "sent"
   | "delivered"
@@ -93,12 +95,14 @@ export interface OverviewResult {
   recentEvents: EmailEvent[];
   recentEventsCount: number;
   uniqueMessagesCount: number;
+  uniqueRecipientsCount: number;
   deliveredCount: number;
   bouncedCount: number;
   complaintCount: number;
   problemEventsCount: number;
   bounceRate: number;
   topOrigins: Array<{ name: string; count: number }>;
+  analytics: OverviewAnalytics;
   windowDays: number;
   page: number;
   pageSize: number;

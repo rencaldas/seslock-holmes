@@ -4,6 +4,7 @@ import { OverviewPage } from "@/features/overview/overview-page";
 import { RecipientInvestigationPage } from "@/features/recipient-search/recipient-investigation-page";
 import { EventDetailPage } from "@/features/event-detail/event-detail-page";
 import { FaqPage } from "@/features/faq/faq-page";
+import { SettingsPage } from "@/features/settings/settings-page";
 
 export const router = createBrowserRouter([
   {
@@ -13,6 +14,7 @@ export const router = createBrowserRouter([
       { path: "investigate", element: <RecipientInvestigationPage /> },
       { path: "events/:eventId", element: <EventDetailPage /> },
       { path: "faq", element: <FaqPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
 ]);

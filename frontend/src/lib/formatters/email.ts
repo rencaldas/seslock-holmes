@@ -1,25 +1,28 @@
 import type { EmailEventType } from "@/lib/supabase/types";
+import { getSupabaseLanguage } from "@/lib/supabase/settings";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-export function formatEventType(value: EmailEventType) {
+export function formatEventType(value: EmailEventType, language = getSupabaseLanguage()) {
+  const isEnglish = language === "en-US";
+
   switch (value) {
     case "sent":
-      return "Enviado";
+      return isEnglish ? "Sent" : "Enviado";
     case "delivered":
-      return "Entregue";
+      return isEnglish ? "Delivered" : "Entregue";
     case "bounced":
-      return "Bounce";
+      return isEnglish ? "Bounced" : "Bounce";
     case "complained":
-      return "Reclamação";
+      return isEnglish ? "Complaint" : "Reclamação";
     case "delayed":
-      return "Atrasado";
+      return isEnglish ? "Delayed" : "Atrasado";
     case "rejected":
-      return "Rejeitado";
+      return isEnglish ? "Rejected" : "Rejeitado";
     case "rendering_failure":
-      return "Falha de renderização";
+      return isEnglish ? "Rendering failure" : "Falha de renderização";
     default:
       return value;
   }

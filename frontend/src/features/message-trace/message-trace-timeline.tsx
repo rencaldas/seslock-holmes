@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { summarizeEvent } from "@/lib/formatters/event";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEvent } from "@/lib/supabase/types";
 
 function dotColor(eventType: EmailEvent["eventType"]) {
@@ -26,10 +27,12 @@ function dotColor(eventType: EmailEvent["eventType"]) {
 }
 
 export function MessageTraceTimeline({ events }: { events: EmailEvent[] }) {
+  const t = useI18n();
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Rastreamento da mensagem</CardTitle>
+        <CardTitle>{t.eventDetail.trace}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {events.map((event, index) => (

@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { getSupabaseLanguage } from "@/lib/supabase/settings";
 import type { OverviewResult } from "@/lib/supabase/types";
 
 function SummaryCard({
@@ -28,55 +30,24 @@ function SummaryCard({
 }
 
 export function OverviewSummary({ data }: { data: OverviewResult }) {
+  const t = useI18n();
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          title="Total de eventos"
-          description="Eventos na janela filtrada."
-          value={data.recentEventsCount}
-        />
-        <SummaryCard
-          title="Mensagens únicas"
-          description="Total de messageId distintos."
-          value={data.uniqueMessagesCount}
-        />
-        <SummaryCard
-          title="Entregues"
-          description="Eventos marcados como delivered."
-          value={data.deliveredCount}
-          tone="success"
-        />
-        <SummaryCard
-          title="Bounces"
-          description="Eventos marcados como bounced."
-          value={data.bouncedCount}
-          tone="destructive"
-        />
-        <SummaryCard
-          title="Complaints"
-          description="Eventos marcados como complained."
-          value={data.complaintCount}
-          tone="warning"
-        />
-        <SummaryCard
-          title="Eventos problemáticos"
-          description="delayed, rejected e rendering_failure."
-          value={data.problemEventsCount}
-          tone="warning"
-        />
-        <SummaryCard
-          title="Taxa de bounce"
-          description="Percentual de bounces no período."
-          value={`${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(data.bounceRate)}%`}
-          tone="warning"
-        />
+        <SummaryCard title={t.overview.summary.totalEvents} description={t.overview.summary.totalEventsDescription} value={data.recentEventsCount} />
+        <SummaryCard title={t.overview.summary.uniqueMessages} description={t.overview.summary.uniqueMessagesDescription} value={data.uniqueMessagesCount} />
+        <SummaryCard title={t.overview.summary.delivered} description={t.overview.summary.deliveredDescription} value={data.deliveredCount} tone="success" />
+        <SummaryCard title={t.overview.summary.bounced} description={t.overview.summary.bouncedDescription} value={data.bouncedCount} tone="destructive" />
+        <SummaryCard title={t.overview.summary.complaints} description={t.overview.summary.complaintsDescription} value={data.complaintCount} tone="warning" />
+        <SummaryCard title={t.overview.summary.problemEvents} description={t.overview.summary.problemEventsDescription} value={data.problemEventsCount} tone="warning" />
+        <SummaryCard title={t.overview.summary.bounceRate} description={t.overview.summary.bounceRateDescription} value={`${new Intl.NumberFormat(getSupabaseLanguage(), { maximumFractionDigits: 1 }).format(data.bounceRate)}%`} tone="warning" />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Principais origens</CardTitle>
-          <CardDescription>As origens de envio mais ativas na visualização atual.</CardDescription>
+          <CardTitle>{t.overview.summary.topOrigins}</CardTitle>
+          <CardDescription>{t.overview.summary.topOriginsDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {data.topOrigins.length ? (
@@ -87,7 +58,7 @@ export function OverviewSummary({ data }: { data: OverviewResult }) {
               </div>
             ))
           ) : (
-            <p className="text-sm text-slate-500">Ainda não há dados de origem disponíveis.</p>
+            <p className="text-sm text-slate-500">{t.overview.summary.noOrigins}</p>
           )}
         </CardContent>
       </Card>
