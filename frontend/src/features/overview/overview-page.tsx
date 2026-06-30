@@ -109,8 +109,8 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white/75 p-8 shadow-soft backdrop-blur-sm lg:p-10">
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white/75 p-6 shadow-soft backdrop-blur-sm lg:p-8">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <svg
             className="absolute -right-12 top-2 h-[460px] w-[460px] text-slate-900 opacity-[0.09]"
@@ -141,25 +141,47 @@ export function OverviewPage() {
           <div className="absolute right-12 top-6 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
         </div>
 
-        <div className="relative grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="space-y-4">
+        <div className="relative grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Visão operacional</p>
             <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950">
-              Comece pela atividade recente de email e vá direto para a investigação por destinatário.
+              Comece pela atividade recente de email e vá direto à investigação por destinatário.
             </h2>
             <p className="max-w-2xl text-base leading-7 text-slate-600">
               Este painel é somente leitura e ajuda times de suporte a diagnosticar problemas de
               entrega do SES rapidamente, sem precisar de acesso direto à AWS.
             </p>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          </div>
+
+          <Card className="relative border-slate-200/80 bg-white/75 backdrop-blur">
+            <CardHeader>
+              <CardTitle>O que este painel responde?</CardTitle>
+              <CardDescription>Triagem rápida para times de suporte e operações.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-slate-600">
+              <p>• A mensagem foi entregue?</p>
+              <p>• Se não, por que falhou?</p>
+              <p>• Qual origem, remetente ou identidade a produziu?</p>
+              <p>• Quais eventos relacionados pertencem ao mesmo rastreamento da mensagem?</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <div className="sticky top-[7rem] z-20">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="group overflow-hidden rounded-[1.5rem] border border-slate-800/80 bg-slate-950/95 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.85)] backdrop-blur transition-all duration-200">
+            <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
               <Input
                 value={recipientEmail}
                 placeholder="Busque um endereço de email do destinatário"
                 onChange={(event) => setRecipientEmail(event.target.value)}
+                className="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
               />
               <Button
                 type="button"
+                className="border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
                 onClick={() => {
                   const normalized = normalizeEmail(recipientEmail);
                   if (!normalized) {
@@ -182,40 +204,33 @@ export function OverviewPage() {
                 Investigar destinatário
               </Button>
             </div>
+
+              <div className="overflow-hidden max-h-0 opacity-0 transition-all duration-200 ease-out group-hover:max-h-[1200px] group-hover:opacity-100">
+              <OverviewFilters
+                value={filters}
+                onChange={setFilters}
+                onApply={() => {
+                  setSearchParams(
+                    buildSearchParams(
+                      searchParams,
+                      {
+                        windowDays: String(filters.windowDays),
+                        status: filters.status,
+                        origin: filters.origin,
+                      },
+                      true,
+                    ),
+                  );
+                }}
+                className="bg-slate-950/95 border-slate-700"
+                inputClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
+                selectClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
+                labelClassName="text-slate-300"
+              />
+            </div>
           </div>
-
-          <Card className="relative border-slate-200/80 bg-white/75 backdrop-blur">
-            <CardHeader>
-              <CardTitle>O que esta visualização responde</CardTitle>
-              <CardDescription>Triagem rápida para times de suporte e operações.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>- A mensagem foi entregue?</p>
-              <p>- Se não, por que falhou?</p>
-              <p>- Qual origem, remetente ou identidade a produziu?</p>
-              <p>- Quais eventos relacionados pertencem ao mesmo rastreamento da mensagem?</p>
-            </CardContent>
-          </Card>
         </div>
-      </section>
-
-      <OverviewFilters
-        value={filters}
-        onChange={setFilters}
-        onApply={() => {
-          setSearchParams(
-            buildSearchParams(
-              searchParams,
-              {
-                windowDays: String(filters.windowDays),
-                status: filters.status,
-                origin: filters.origin,
-              },
-              true,
-            ),
-          );
-        }}
-      />
+      </div>
 
       {overviewQuery.isLoading ? <LoadingState title="Carregando visão geral" /> : null}
       {overviewQuery.isError ? (
@@ -230,7 +245,7 @@ export function OverviewPage() {
       ) : null}
 
       {overviewQuery.data ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <OverviewSummary data={overviewQuery.data} />
           {overviewQuery.data.recentEvents.length ? (
             <RecentActivityList

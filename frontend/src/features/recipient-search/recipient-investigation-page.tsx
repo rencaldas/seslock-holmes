@@ -133,7 +133,11 @@ export function RecipientInvestigationPage() {
         </Button>
       </div>
 
-      <RecipientSearchForm value={form} onChange={setForm} onSubmit={submitSearch} />
+      <div className="sticky top-[7rem] z-20">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <RecipientSearchForm value={form} onChange={setForm} onSubmit={submitSearch} />
+        </div>
+      </div>
 
       {!searchText ? (
         <EmptyState
