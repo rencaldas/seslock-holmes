@@ -85,7 +85,7 @@ export function RecentActivityList({
                   <TableCell className="font-medium text-slate-950">{event.recipientEmail}</TableCell>
                   <TableCell>{getOriginLabel(event)}</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       <Link
                         className="text-sm font-medium text-slate-950 underline"
                         target="_blank"

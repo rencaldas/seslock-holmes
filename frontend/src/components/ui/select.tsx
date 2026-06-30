@@ -14,7 +14,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none",
+        "h-11 w-full rounded-xl border border-slate-200 bg-white px-4 pr-8 text-sm outline-none",
         "focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10",
         className,
       )}

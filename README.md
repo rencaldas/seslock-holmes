@@ -38,6 +38,7 @@ O projeto é somente leitura:
 - Exibe rastreamento cronológico da mensagem para entender o ciclo completo.
 - Oferece paginação na atividade recente e também na investigação por pesquisa.
 - Quando não há correspondência exata, sugere emails parecidos para facilitar a análise.
+- Inclui melhorias de usabilidade na interface de filtros e espaçamento das ações na lista de atividade.
 
 ## Tecnologias
 
@@ -260,4 +261,4 @@ A pasta `specs/001-ses-investigation/` contém os artefatos de especificação e
 
 ## Licença
 
-Este repositório não inclui uma licença explícita. Se necessário, adicione uma antes de distribuir o projeto.
+Este repositório não inclui uma licença explícita.

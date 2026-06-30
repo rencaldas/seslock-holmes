@@ -13,15 +13,12 @@ import { OverviewFilters } from "@/features/overview/overview-filters";
 import { OverviewSummary } from "@/features/overview/overview-summary";
 import { RecentActivityList } from "@/features/overview/recent-activity-list";
 import { normalizeEmail } from "@/lib/formatters/email";
+import { parsePositiveNumber } from "@/lib/utils";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchOverview } from "@/lib/supabase/queries/overview";
+import { useDisclosure } from "@/lib/hooks/use-disclosure";
 
 const RECENT_ACTIVITY_PAGE_SIZE = 50;
-
-function parseWindowDays(value: string | null) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
@@ -46,7 +43,7 @@ export function OverviewPage() {
   const [recipientEmail, setRecipientEmail] = useState(searchParams.get("recipient") ?? "");
   const page = parsePage(searchParams.get("page"));
   const [filters, setFilters] = useState({
-    windowDays: parseWindowDays(searchParams.get("windowDays")),
+    windowDays: parsePositiveNumber(searchParams.get("windowDays")),
     status: (searchParams.get("status") ?? "all") as
       | "all"
       | "sent"
@@ -58,6 +55,7 @@ export function OverviewPage() {
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
   });
+  const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
 
   useEffect(() => {
     setRecipientEmail(searchParams.get("recipient") ?? "");
@@ -65,7 +63,7 @@ export function OverviewPage() {
 
   useEffect(() => {
     setFilters({
-      windowDays: parseWindowDays(searchParams.get("windowDays")),
+      windowDays: parsePositiveNumber(searchParams.get("windowDays")),
       status: (searchParams.get("status") ?? "all") as
         | "all"
         | "sent"
@@ -171,7 +169,7 @@ export function OverviewPage() {
 
       <div className="sticky top-[7rem] z-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="group overflow-hidden rounded-[1.5rem] border border-slate-800/80 bg-slate-950/95 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.85)] backdrop-blur transition-all duration-200">
+          <div className="overflow-hidden rounded-[1.5rem] border border-slate-800/80 bg-slate-950/95 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.85)] backdrop-blur transition-all duration-200">
             <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
               <Input
                 value={recipientEmail}
@@ -179,33 +177,44 @@ export function OverviewPage() {
                 onChange={(event) => setRecipientEmail(event.target.value)}
                 className="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
               />
-              <Button
-                type="button"
-                className="border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
-                onClick={() => {
-                  const normalized = normalizeEmail(recipientEmail);
-                  if (!normalized) {
-                    return;
-                  }
-                  setSearchParams(
-                    buildSearchParams(searchParams, {
-                      recipient: normalized,
-                      windowDays: String(filters.windowDays),
-                      status: filters.status,
-                      origin: filters.origin,
-                    }),
-                  );
-                  navigate(
-                    `/investigate?query=${encodeURIComponent(normalized)}&mode=recipient&windowDays=${filters.windowDays}&status=${filters.status}&origin=${encodeURIComponent(filters.origin)}`,
-                  );
-                }}
-              >
-                <Search className="mr-2 h-4 w-4" />
-                Investigar destinatário
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  className="border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
+                  onClick={() => {
+                    const normalized = normalizeEmail(recipientEmail);
+                    if (!normalized) {
+                      return;
+                    }
+                    setSearchParams(
+                      buildSearchParams(searchParams, {
+                        recipient: normalized,
+                        windowDays: String(filters.windowDays),
+                        status: filters.status,
+                        origin: filters.origin,
+                      }),
+                    );
+                    navigate(
+                      `/investigate?query=${encodeURIComponent(normalized)}&mode=recipient&windowDays=${filters.windowDays}&status=${filters.status}&origin=${encodeURIComponent(filters.origin)}`,
+                    );
+                  }}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  Investigar destinatário
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={toggleFilters}
+                >
+                  {filtersOpen ? "Ocultar filtros" : "Mostrar filtros"}
+                </Button>
+              </div>
             </div>
 
-              <div className="overflow-hidden max-h-0 opacity-0 transition-all duration-200 ease-out group-hover:max-h-[1200px] group-hover:opacity-100">
+            <div
+              className={`overflow-hidden transition-all duration-200 ease-out ${filtersOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"}`}
+            >
               <OverviewFilters
                 value={filters}
                 onChange={setFilters}
