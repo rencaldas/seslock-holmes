@@ -39,15 +39,15 @@ function makeRow(destination: unknown): EmailEventRow {
 
 describe("rowMatchesRecipientDomain", () => {
   it("matches a provider domain with or without the leading at sign", () => {
-    const row = makeRow(["guest@ramada.com.br"]);
+    const row = makeRow(["guest@example.com"]);
 
-    expect(rowMatchesRecipientDomain(row, "@ramada.com.br")).toBe(true);
-    expect(rowMatchesRecipientDomain(row, "ramada.com.br")).toBe(true);
+    expect(rowMatchesRecipientDomain(row, "@example.com")).toBe(true);
+    expect(rowMatchesRecipientDomain(row, "example.com")).toBe(true);
   });
 
   it("does not match other domains", () => {
-    const row = makeRow(["guest@ramada.com.br"]);
+    const row = makeRow(["guest@example.com"]);
 
-    expect(rowMatchesRecipientDomain(row, "@other.com.br")).toBe(false);
+    expect(rowMatchesRecipientDomain(row, "@other.com")).toBe(false);
   });
 });

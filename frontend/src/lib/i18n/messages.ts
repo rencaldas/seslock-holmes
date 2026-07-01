@@ -144,7 +144,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         status: "Status",
         origin: "Filtro de origem",
         provider: "Provedor",
-        providerPlaceholder: "@ramada.com.br ou ramada.com.br",
+        providerPlaceholder: "@example.com ou example.com",
         apply: "Aplicar filtros",
         options: {
           all: "Todos",
@@ -463,7 +463,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         status: "Status",
         origin: "Origin filter",
         provider: "Provider",
-        providerPlaceholder: "@ramada.com.br or ramada.com.br",
+        providerPlaceholder: "@example.com or example.com",
         apply: "Apply filters",
         options: {
           all: "All",

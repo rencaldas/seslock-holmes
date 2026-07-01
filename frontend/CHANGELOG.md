@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-07-01
+### Fixed
+- Replaced non-generic provider examples with neutral `example.com` placeholders so the project stays safe to share publicly.
+
 ## [0.6.0] - 2026-07-01
 ### Added
 - Overview provider filter with `Todos` support, allowing the dashboard to narrow metrics and tables to a specific recipient domain.
