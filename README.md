@@ -4,7 +4,7 @@ Seslock Holmes é um painel web de investigação para eventos de email do AWS S
 O foco é apoiar times de suporte, operação e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
 <p align="center">
-  [Seslock Holmes v0.6.1.pdf](https://github.com/user-attachments/files/29576034/Seslock.Holmes.v0.6.1.pdf)
+  <img width="1025" height="907" alt="Captura de tela 2026-07-01 175645" src="https://github.com/user-attachments/assets/205441d5-3bd4-4139-9c72-f93554b82483" />
 </p>
 
 <details>
@@ -15,9 +15,9 @@ O foco é apoiar times de suporte, operação e análise na leitura de eventos, 
 <p align="center">
 
 "><br><br>
-  <img src="https://github.com/user-attachments/assets/68bada74-5b58-45df-b868-2add5b4dcf5c" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/46d49000-bb0e-4b23-9056-bb3ecfe555e9" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/f8b5b177-63bd-4a37-bf5f-786ff0ac92b1" width="800">
+  <img src="https://github.com/user-attachments/assets/f560df86-309c-4140-bd63-ce5586d41ae2" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/c9b0dba8-0f67-409b-bf5a-2ca4938f986e" width="800"><br><br>
+  <img src="https://github.com/user-attachments/assets/e6649aab-542f-4bac-9937-042db17ec17d" width="800">
 </p>
 
 </details>
