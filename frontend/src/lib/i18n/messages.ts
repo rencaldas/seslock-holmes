@@ -133,6 +133,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         share: "Participação",
         rate: "Taxa",
         reason: "Motivo",
+        detail: "Detalhe",
         noData: "Sem dados disponíveis",
         notAvailable: "Não disponível",
         exactTime: "Horário exato",
@@ -142,6 +143,8 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         time: "Tempo",
         status: "Status",
         origin: "Filtro de origem",
+        provider: "Provedor",
+        providerPlaceholder: "@ramada.com.br ou ramada.com.br",
         apply: "Aplicar filtros",
         options: {
           all: "Todos",
@@ -449,6 +452,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         share: "Share",
         rate: "Rate",
         reason: "Reason",
+        detail: "Detail",
         noData: "No data available",
         notAvailable: "Not available",
         exactTime: "Exact time",
@@ -458,6 +462,8 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         time: "Time",
         status: "Status",
         origin: "Origin filter",
+        provider: "Provider",
+        providerPlaceholder: "@ramada.com.br or ramada.com.br",
         apply: "Apply filters",
         options: {
           all: "All",

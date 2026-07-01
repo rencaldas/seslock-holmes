@@ -57,6 +57,7 @@ export function OverviewPage() {
       | "rejected"
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
+    provider: searchParams.get("provider") ?? "",
   });
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
 
@@ -73,15 +74,16 @@ export function OverviewPage() {
         | "delivered"
         | "bounced"
         | "complained"
-        | "delayed"
-        | "rejected"
-        | "rendering_failure",
+      | "delayed"
+      | "rejected"
+      | "rendering_failure",
       origin: searchParams.get("origin") ?? "",
+      provider: searchParams.get("provider") ?? "",
     });
   }, [searchParams]);
 
   const overviewQuery = useQuery({
-    queryKey: ["overview", language, page, filters.windowDays, filters.status, filters.origin, supabase.eventsTable],
+    queryKey: ["overview", language, page, filters.windowDays, filters.status, filters.origin, filters.provider, supabase.eventsTable],
     enabled: Boolean(supabase.client && supabase.eventsTable),
     queryFn: () =>
       fetchOverview(supabase.client!, supabase.eventsTable!, {
@@ -90,6 +92,7 @@ export function OverviewPage() {
         windowDays: filters.windowDays,
         status: filters.status,
         origin: filters.origin,
+        provider: filters.provider ?? "",
       }),
   });
 
@@ -193,10 +196,11 @@ export function OverviewPage() {
                         windowDays: String(filters.windowDays),
                         status: filters.status,
                         origin: filters.origin,
+                        provider: filters.provider ?? "",
                       }),
                     );
                     navigate(
-                      `/investigate?query=${encodeURIComponent(normalized)}&mode=recipient&windowDays=${filters.windowDays}&status=${filters.status}&origin=${encodeURIComponent(filters.origin)}`,
+                      `/investigate?query=${encodeURIComponent(normalized)}&mode=recipient&windowDays=${filters.windowDays}&status=${filters.status}&origin=${encodeURIComponent(filters.origin)}&provider=${encodeURIComponent(filters.provider ?? "")}`,
                     );
                   }}
                 >
@@ -214,7 +218,7 @@ export function OverviewPage() {
             >
               <OverviewFilters
                 value={filters}
-                onChange={setFilters}
+                onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
                 onApply={() => {
                   setSearchParams(
                     buildSearchParams(
@@ -223,11 +227,13 @@ export function OverviewPage() {
                         windowDays: String(filters.windowDays),
                         status: filters.status,
                         origin: filters.origin,
+                        provider: filters.provider ?? "",
                       },
                       true,
                     ),
                   );
                 }}
+                showProviderFilter
                 className="bg-slate-950/95 border-slate-700"
                 inputClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
                 selectClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"

@@ -3,7 +3,13 @@ import { buildOverviewAnalytics } from "@/lib/overview/analytics";
 import { getEventTable } from "@/lib/supabase/schema";
 import { getSupabaseLanguage } from "@/lib/supabase/settings";
 import { PROBLEM_EVENT_TYPES, type OverviewQueryInput, type OverviewResult } from "@/lib/supabase/types";
-import { getAwsSnsOccurredAt, rowMatchesOrigin, rowMatchesStatus, rowToEmailEvent } from "@/lib/supabase/aws-sns";
+import {
+  getAwsSnsOccurredAt,
+  rowMatchesOrigin,
+  rowMatchesRecipientDomain,
+  rowMatchesStatus,
+  rowToEmailEvent,
+} from "@/lib/supabase/aws-sns";
 import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
 
 export async function fetchOverview(
@@ -17,12 +23,14 @@ export async function fetchOverview(
   const from = (input.page - 1) * input.pageSize;
   const to = from + input.pageSize - 1;
   const origin = input.origin.trim();
+  const provider = input.provider.trim();
 
   const rows = await fetchEventRowsWithTimeFallback(client, eventTable, cutoff.toISOString());
   const events = rows
     .filter((row) => getAwsSnsOccurredAt(row) >= cutoff.toISOString())
     .filter((row) => rowMatchesStatus(row, input.status))
     .filter((row) => rowMatchesOrigin(row, origin))
+    .filter((row) => rowMatchesRecipientDomain(row, provider))
     .sort((a, b) => getAwsSnsOccurredAt(b).localeCompare(getAwsSnsOccurredAt(a)))
     .map((row) => rowToEmailEvent(row));
   const recentEvents = events.slice(from, to + 1);

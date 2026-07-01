@@ -13,6 +13,7 @@ export interface OverviewTopProvider {
 
 export interface OverviewBounceReason {
   label: string;
+  detail: string;
   count: number;
   percentage: number;
 }
@@ -130,6 +131,90 @@ function getBounceReason(event: EmailEvent) {
     event.bounceDetails?.diagnosticCode as string | undefined,
     event.failureReason,
   ]);
+}
+
+function getBounceReasonDetail(reason: string, language: AppLanguage) {
+  const isEnglish = language === "en-US";
+  const normalized = normalizeText(reason).replace(/[\s_-]+/g, "");
+
+  const detailMap: Record<string, { "pt-BR": string; "en-US": string }> = {
+    permanent: {
+      "pt-BR": "Falha permanente",
+      "en-US": "Permanent failure",
+    },
+    transient: {
+      "pt-BR": "Falha temporária",
+      "en-US": "Temporary failure",
+    },
+    undetermined: {
+      "pt-BR": "Indeterminado",
+      "en-US": "Undetermined",
+    },
+    general: {
+      "pt-BR": "Falha geral",
+      "en-US": "General failure",
+    },
+    mailboxfull: {
+      "pt-BR": "Caixa do email cheia",
+      "en-US": "Mailbox full",
+    },
+    messagecontentrejected: {
+      "pt-BR": "Conteúdo rejeitado",
+      "en-US": "Content rejected",
+    },
+    contentrejected: {
+      "pt-BR": "Conteúdo rejeitado",
+      "en-US": "Content rejected",
+    },
+    messagetoolarge: {
+      "pt-BR": "Mensagem grande demais",
+      "en-US": "Message too large",
+    },
+    spamcontent: {
+      "pt-BR": "Conteúdo com aparência de spam",
+      "en-US": "Spam content",
+    },
+    attachmentrejected: {
+      "pt-BR": "Anexo rejeitado",
+      "en-US": "Attachment rejected",
+    },
+    mailfromdomainnotverified: {
+      "pt-BR": "Domínio do remetente não verificado",
+      "en-US": "Sender domain not verified",
+    },
+    onaccountsuppressionlist: {
+      "pt-BR": "Destinatário em lista de supressão",
+      "en-US": "Recipient on suppression list",
+    },
+    userunknown: {
+      "pt-BR": "Destinatário desconhecido",
+      "en-US": "Unknown recipient",
+    },
+    bounced: {
+      "pt-BR": "Bounce",
+      "en-US": "Bounce",
+    },
+    delivery: {
+      "pt-BR": "Entrega",
+      "en-US": "Delivery",
+    },
+  };
+
+  const matched = detailMap[normalized];
+  if (matched) {
+    return matched[language];
+  }
+
+  if (!normalized) {
+    return isEnglish ? "Reason not available" : "Motivo não disponível";
+  }
+
+  const humanized = reason
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+
+  return humanized || (isEnglish ? "Reason not available" : "Motivo não disponível");
 }
 
 function countBy<T>(items: T[], keySelector: (item: T) => string) {
@@ -272,6 +357,7 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
   const topBounceReasons = Array.from(bounceReasonCounts.entries())
     .map(([label, count]) => ({
       label,
+      detail: getBounceReasonDetail(label, language),
       count,
       percentage: (count / bouncedTotal) * 100,
     }))

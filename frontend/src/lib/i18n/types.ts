@@ -134,6 +134,7 @@ export type TranslationBundle = {
       share: string;
       rate: string;
       reason: string;
+      detail: string;
       noData: string;
       notAvailable: string;
       exactTime: string;
@@ -143,6 +144,8 @@ export type TranslationBundle = {
       time: string;
       status: string;
       origin: string;
+      provider: string;
+      providerPlaceholder: string;
       apply: string;
       options: {
         all: string;

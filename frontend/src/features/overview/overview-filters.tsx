@@ -10,12 +10,14 @@ export interface OverviewFilterValues {
   windowDays: number;
   status: "all" | EmailEventType;
   origin: string;
+  provider?: string;
 }
 
 export function OverviewFilters({
   value,
   onChange,
   onApply,
+  showProviderFilter = false,
   className,
   inputClassName,
   selectClassName,
@@ -24,16 +26,19 @@ export function OverviewFilters({
   value: OverviewFilterValues;
   onChange: (next: OverviewFilterValues) => void;
   onApply: () => void;
+  showProviderFilter?: boolean;
   className?: string;
   inputClassName?: string;
   selectClassName?: string;
   labelClassName?: string;
 }) {
   const t = useI18n();
+  const gridColumns = showProviderFilter ? "md:grid-cols-[1fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr_1fr_auto]";
 
   return (
     <div className={cn(
-      "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft md:grid-cols-[1fr_1fr_1fr_auto]",
+      "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft",
+      gridColumns,
       className,
     )}>
       <div className="space-y-2">
@@ -92,6 +97,22 @@ export function OverviewFilters({
           )}
         />
       </div>
+      {showProviderFilter ? (
+        <div className="space-y-2">
+          <Label htmlFor="overview-provider" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.provider}</Label>
+          <Input
+            id="overview-provider"
+            placeholder={t.overview.filters.providerPlaceholder}
+            value={value.provider ?? ""}
+            onChange={(event) => onChange({ ...value, provider: event.target.value })}
+            className={cn(
+              "h-11 w-full rounded-xl border border-slate-700 bg-slate-950 text-slate-100 px-4 text-sm outline-none",
+              "placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20",
+              inputClassName,
+            )}
+          />
+        </div>
+      ) : null}
       <div className="flex items-end">
         <Button
           type="button"

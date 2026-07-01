@@ -120,6 +120,7 @@ export interface OverviewQueryInput {
   windowDays: number;
   status: "all" | EmailEventType;
   origin: string;
+  provider: string;
   page: number;
   pageSize: number;
 }

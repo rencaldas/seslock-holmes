@@ -128,12 +128,14 @@ function SectionCard({
   children,
   compact = false,
   centeredContent = false,
+  contentClassName = "",
 }: {
   title: string;
   description: string;
   children: ReactNode;
   compact?: boolean;
   centeredContent?: boolean;
+  contentClassName?: string;
 }) {
   return (
     <Card className={`flex h-full flex-col overflow-hidden ${compact ? "min-h-[170px]" : ""}`}>
@@ -141,7 +143,9 @@ function SectionCard({
         <CardTitle className={compact ? "text-base font-semibold tracking-tight text-slate-950" : ""}>{title}</CardTitle>
         <CardDescription className={compact ? "text-sm text-slate-500" : ""}>{description}</CardDescription>
       </CardHeader>
-      <CardContent className={`flex h-full w-full flex-1 flex-col px-4 pb-4 pt-0 ${centeredContent ? "items-center justify-center text-center" : "items-start justify-start text-left"}`}>
+      <CardContent
+        className={`flex h-full w-full min-w-0 flex-1 flex-col px-4 pb-4 pt-0 ${centeredContent ? "items-center justify-center text-center" : "items-start justify-start text-left"} ${contentClassName}`}
+      >
         {children}
       </CardContent>
     </Card>
@@ -345,10 +349,15 @@ export function OverviewAnalyticsPanel({ data }: { data: OverviewResult }) {
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <OverviewDistributionChart analytics={analytics} t={t} />
 
-        <SectionCard title={t.overview.analytics.topProvidersTitle} description={t.overview.analytics.topProvidersDescription} centeredContent={false}>
+        <SectionCard
+          title={t.overview.analytics.topProvidersTitle}
+          description={t.overview.analytics.topProvidersDescription}
+          centeredContent={false}
+          contentClassName="px-0"
+        >
           {hasTopProviders ? (
-            <div className="w-full flex-1 overflow-x-auto">
-              <Table>
+            <div className="w-full flex-1 min-w-0 overflow-x-auto">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t.overview.analytics.domain}</TableHead>
@@ -384,15 +393,17 @@ export function OverviewAnalyticsPanel({ data }: { data: OverviewResult }) {
         <SectionCard
           title={t.overview.analytics.topBounceReasonsTitle}
           description={t.overview.analytics.topBounceReasonsDescription}
+          contentClassName="px-0"
         >
           {hasBounceReasons ? (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="w-full min-w-0 overflow-x-auto">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t.overview.analytics.count}</TableHead>
                     <TableHead>{t.overview.analytics.share}</TableHead>
                     <TableHead>{t.overview.analytics.reason}</TableHead>
+                    <TableHead>{t.overview.analytics.detail}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -400,7 +411,8 @@ export function OverviewAnalyticsPanel({ data }: { data: OverviewResult }) {
                     <TableRow key={reason.label}>
                       <TableCell className="w-24 font-medium text-slate-950">{formatCount(reason.count)}</TableCell>
                       <TableCell className="w-32">{formatPercent(reason.percentage)}</TableCell>
-                      <TableCell>{reason.label}</TableCell>
+                      <TableCell className="font-medium text-slate-950">{reason.label}</TableCell>
+                      <TableCell className="text-slate-500">{reason.detail}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -414,10 +426,11 @@ export function OverviewAnalyticsPanel({ data }: { data: OverviewResult }) {
         <SectionCard
           title={t.overview.analytics.originApplicationsTitle}
           description={t.overview.analytics.originApplicationsDescription}
+          contentClassName="px-0"
         >
           {hasOriginApplications ? (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="w-full min-w-0 overflow-x-auto">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t.overview.analytics.domain}</TableHead>

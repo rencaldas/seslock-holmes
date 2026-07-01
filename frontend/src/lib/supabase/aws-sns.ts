@@ -154,6 +154,32 @@ export function rowMatchesRecipient(row: EmailEventRow, recipientEmail: string) 
   });
 }
 
+function normalizeDomainQuery(value: string) {
+  return normalizeText(value).replace(/^@+/, "");
+}
+
+function getEmailDomain(value: string) {
+  const normalized = normalizeText(value);
+  const domain = normalized.split("@")[1] ?? "";
+  return domain.trim();
+}
+
+export function rowMatchesRecipientDomain(row: EmailEventRow, provider: string) {
+  const query = normalizeDomainQuery(provider);
+  if (!query) {
+    return true;
+  }
+
+  return getAwsSnsRecipients(row).some((candidate) => {
+    const domain = getEmailDomain(candidate);
+    if (!domain) {
+      return false;
+    }
+
+    return domain === query || domain.endsWith(`.${query}`) || query.endsWith(`.${domain}`);
+  });
+}
+
 export function rowMatchesSender(row: EmailEventRow, sender: string) {
   const query = normalizeText(sender);
   if (!query) {
