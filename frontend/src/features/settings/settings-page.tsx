@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { getSupabaseEnv } from "@/lib/env";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import type { AppLanguage } from "@/lib/i18n/types";
+import type { AppClockFormat, AppLanguage, AppUpdateInterval } from "@/lib/i18n/types";
 import {
   clearSupabaseSettings,
+  DEFAULT_CLOCK_FORMAT,
+  DEFAULT_TIME_ZONE,
+  DEFAULT_UPDATE_INTERVAL,
   downloadSupabaseEnvFile,
   loadSupabaseSettings,
   saveSupabaseSettings,
@@ -25,6 +28,9 @@ function getInitialValues() {
     anonKey: savedSettings?.anonKey ?? envSettings?.anonKey ?? "",
     eventsTable: savedSettings?.eventsTable ?? envSettings?.eventsTable ?? "aws_sns",
     language: savedSettings?.language ?? "pt-BR",
+    timeZone: savedSettings?.timeZone ?? DEFAULT_TIME_ZONE,
+    clockFormat: savedSettings?.clockFormat ?? DEFAULT_CLOCK_FORMAT,
+    updateInterval: savedSettings?.updateInterval ?? DEFAULT_UPDATE_INTERVAL,
   };
 }
 
@@ -35,6 +41,9 @@ export function SettingsPage() {
   const [anonKey, setAnonKey] = useState(initialValues.anonKey);
   const [eventsTable, setEventsTable] = useState(initialValues.eventsTable);
   const [language, setLanguage] = useState<AppLanguage>(initialValues.language);
+  const [timeZone, setTimeZone] = useState(initialValues.timeZone);
+  const [clockFormat, setClockFormat] = useState<AppClockFormat>(initialValues.clockFormat);
+  const [updateInterval, setUpdateInterval] = useState<AppUpdateInterval>(initialValues.updateInterval);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +58,9 @@ export function SettingsPage() {
       anonKey: anonKey.trim(),
       eventsTable: eventsTable.trim() || "aws_sns",
       language,
+      timeZone,
+      clockFormat,
+      updateInterval,
     };
 
     try {
@@ -76,20 +88,16 @@ export function SettingsPage() {
 
   function clearLocalSettings() {
     clearSupabaseSettings();
+    setLanguage("pt-BR");
+    setTimeZone(DEFAULT_TIME_ZONE);
+    setClockFormat(DEFAULT_CLOCK_FORMAT);
+    setUpdateInterval(DEFAULT_UPDATE_INTERVAL);
     setFeedback(t.settings.localCleared);
     setError(null);
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white/80 p-6 shadow-soft backdrop-blur-sm lg:p-8">
-        <div className="max-w-3xl space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.settings.title}</p>
-          <h2 className="text-4xl font-semibold tracking-tight text-slate-950">{t.settings.introTitle}</h2>
-          <p className="text-base leading-7 text-slate-600">{t.settings.introDescription}</p>
-        </div>
-      </section>
-
       <Card className="border-slate-200/80 bg-white/90">
         <CardHeader>
           <CardTitle>{t.settings.languageTitle}</CardTitle>
@@ -105,6 +113,63 @@ export function SettingsPage() {
               options={[
                 { value: "pt-BR", label: t.settings.languageOptions.pt },
                 { value: "en-US", label: t.settings.languageOptions.en },
+              ]}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200/80 bg-white/90">
+        <CardHeader>
+          <CardTitle>{t.settings.preferencesTitle}</CardTitle>
+          <CardDescription>{t.settings.preferencesDescription}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="time-zone">{t.settings.timeZoneLabel}</Label>
+              <Select
+                id="time-zone"
+                value={timeZone}
+                onChange={(event) => setTimeZone(event.target.value)}
+                options={[
+                  { value: "UTC", label: "UTC" },
+                  { value: "America/Sao_Paulo", label: "America/Sao_Paulo" },
+                  { value: "America/New_York", label: "America/New_York" },
+                  { value: "Europe/London", label: "Europe/London" },
+                  { value: "Europe/Berlin", label: "Europe/Berlin" },
+                  { value: "Asia/Tokyo", label: "Asia/Tokyo" },
+                ]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="clock-format">{t.settings.clockFormatLabel}</Label>
+              <Select
+                id="clock-format"
+                value={clockFormat}
+                onChange={(event) => setClockFormat(event.target.value as AppClockFormat)}
+                options={[
+                  { value: "12h", label: t.settings.clockFormatOptions.twelve },
+                  { value: "24h", label: t.settings.clockFormatOptions.twentyFour },
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="update-interval">{t.settings.updateIntervalLabel}</Label>
+            <Select
+              id="update-interval"
+              value={updateInterval}
+              onChange={(event) => setUpdateInterval(event.target.value as AppUpdateInterval)}
+              options={[
+                { value: "instant", label: t.settings.updateIntervalOptions.instant },
+                { value: "30s", label: t.settings.updateIntervalOptions.seconds30 },
+                { value: "1m", label: t.settings.updateIntervalOptions.minute1 },
+                { value: "5m", label: t.settings.updateIntervalOptions.minute5 },
+                { value: "10m", label: t.settings.updateIntervalOptions.minute10 },
+                { value: "30m", label: t.settings.updateIntervalOptions.minute30 },
               ]}
             />
           </div>

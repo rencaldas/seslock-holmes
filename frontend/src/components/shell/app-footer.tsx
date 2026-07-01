@@ -1,14 +1,62 @@
+import { useEffect, useState } from "react";
 import pkg from "../../../package.json";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { getSupabaseLanguage } from "@/lib/supabase/settings";
+import {
+  formatDisplayDateTime,
+  getRefreshIntervalMs,
+  SUPABASE_SETTINGS_UPDATED_EVENT,
+} from "@/lib/supabase/settings";
 
 export function AppFooter() {
   const t = useI18n();
   const currentYear = new Date().getFullYear();
-  const lastUpdated = new Date().toLocaleString(getSupabaseLanguage(), {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const [lastUpdated, setLastUpdated] = useState<string>(t.common.noAvailableData);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadLatestCommit() {
+      try {
+        const response = await fetch("https://api.github.com/repos/rencaldas/seslock-holmes/commits?per_page=1", {
+          headers: { Accept: "application/vnd.github+json" },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch latest commit");
+        }
+
+        const [commit] = await response.json();
+        const commitDate = commit?.commit?.committer?.date ?? commit?.commit?.author?.date;
+
+        if (!commitDate) {
+          throw new Error("Missing commit date");
+        }
+
+        if (!isCancelled) {
+          setLastUpdated(formatDisplayDateTime(commitDate));
+        }
+      } catch {
+        if (!isCancelled) {
+          setLastUpdated(formatDisplayDateTime(new Date()));
+        }
+      }
+    }
+
+    const refreshDisplay = () => {
+      void loadLatestCommit();
+    };
+
+    refreshDisplay();
+
+    const intervalId = window.setInterval(refreshDisplay, getRefreshIntervalMs());
+    window.addEventListener(SUPABASE_SETTINGS_UPDATED_EVENT, refreshDisplay);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener(SUPABASE_SETTINGS_UPDATED_EVENT, refreshDisplay);
+    };
+  }, []);
 
   return (
     <footer className="border-t border-slate-200 bg-slate-950 text-slate-100">

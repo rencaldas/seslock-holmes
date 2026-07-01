@@ -90,11 +90,13 @@ function MetricCard({
   value,
   note,
   tone = "default",
+  compact = false,
 }: {
   title: string;
   value: string;
   note?: string;
   tone?: "default" | "success" | "warning" | "destructive" | "muted";
+  compact?: boolean;
 }) {
   const toneClasses =
     tone === "success"
@@ -108,12 +110,14 @@ function MetricCard({
             : "from-white to-slate-50 border-slate-200";
 
   return (
-    <Card className={`bg-gradient-to-br ${toneClasses}`}>
-      <CardHeader className="space-y-2 pb-3">
+    <Card className={`flex h-full flex-col justify-between bg-gradient-to-br ${toneClasses} ${compact ? "min-h-[170px]" : "min-h-[220px]"}`}>
+      <CardHeader className={`flex flex-col items-center space-y-2 px-4 py-3 text-center ${compact ? "justify-center" : ""}`}>
         <CardDescription className="text-sm font-medium text-slate-500">{title}</CardDescription>
         <CardTitle className="text-3xl tracking-tight text-slate-950">{value}</CardTitle>
       </CardHeader>
-      {note ? <CardContent className="pt-0 text-sm leading-6 text-slate-600">{note}</CardContent> : null}
+      {note ? (
+        <CardContent className="px-4 pb-3 pt-0 text-center text-sm leading-6 text-slate-600">{note}</CardContent>
+      ) : null}
     </Card>
   );
 }
@@ -122,18 +126,24 @@ function SectionCard({
   title,
   description,
   children,
+  compact = false,
+  centeredContent = false,
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  compact?: boolean;
+  centeredContent?: boolean;
 }) {
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className={`flex h-full flex-col overflow-hidden ${compact ? "min-h-[170px]" : ""}`}>
+      <CardHeader className={`flex w-full flex-col px-4 pb-2 pt-4 ${compact ? "items-start justify-start text-left" : "items-start"}`}>
+        <CardTitle className={compact ? "text-base font-semibold tracking-tight text-slate-950" : ""}>{title}</CardTitle>
+        <CardDescription className={compact ? "text-sm text-slate-500" : ""}>{description}</CardDescription>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className={`flex h-full w-full flex-1 flex-col px-4 pb-4 pt-0 ${centeredContent ? "items-center justify-center text-center" : "items-start justify-start text-left"}`}>
+        {children}
+      </CardContent>
     </Card>
   );
 }
@@ -142,25 +152,34 @@ function DistributionBar({
   label,
   count,
   percent,
-  maxPercent,
+  tone = "muted",
 }: {
   label: string;
   count: number;
   percent: number;
-  maxPercent: number;
+  tone?: "success" | "warning" | "destructive" | "muted";
 }) {
-  const width = maxPercent > 0 ? Math.max((percent / maxPercent) * 100, count > 0 ? 6 : 0) : 0;
+  const width = percent > 0 ? Math.max(percent, count > 0 ? 4 : 0) : 0;
+  const toneClasses =
+    tone === "success"
+      ? { fill: "bg-emerald-600", label: "text-emerald-700" }
+      : tone === "warning"
+        ? { fill: "bg-amber-500", label: "text-amber-700" }
+        : tone === "destructive"
+          ? { fill: "bg-rose-600", label: "text-rose-700" }
+          : { fill: "bg-slate-700", label: "text-slate-700" };
 
   return (
-    <div className="space-y-2">
+    <div className={`w-full ${count > 0 ? "pt-1" : "pt-0"}`}>
       <div className="flex items-center justify-between gap-4 text-sm">
-        <span className="font-medium text-slate-700">{label}</span>
+        <span className={`font-medium ${toneClasses.label}`}>{label}</span>
         <span className="text-slate-500">
           {formatCount(count)} <span className="text-slate-400">({formatPercent(percent)})</span>
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full bg-slate-900 transition-all duration-300" style={{ width: `${width}%` }} />
+      <div className="mt-2 flex h-3 w-full overflow-hidden rounded-full border border-slate-200 bg-white">
+        <div className={`h-full rounded-full transition-all duration-300 ${toneClasses.fill}`} style={{ width: `${width}%` }} />
+        <div className="h-full flex-1 bg-white" />
       </div>
     </div>
   );
@@ -174,27 +193,29 @@ function OverviewDistributionChart({
   t: ReturnType<typeof useI18n>;
 }) {
   const total = analytics.eventDistribution.reduce((sum, item) => sum + item.count, 0);
-  const maxPercent = analytics.eventDistribution.reduce((max, item) => {
-    const percent = total > 0 ? (item.count / total) * 100 : 0;
-    return Math.max(max, percent);
-  }, 0);
 
   return (
     <SectionCard
       title={t.overview.analytics.eventDistributionTitle}
       description={t.overview.analytics.eventDistributionDescription}
+      centeredContent={false}
     >
-      <div className="space-y-4">
-        {analytics.eventDistribution.map((item) => {
+      <div className="w-full space-y-4">
+        {analytics.eventDistribution.map((item, index) => {
           const percent = total > 0 ? (item.count / total) * 100 : 0;
+          const tone =
+            item.type === "delivered"
+              ? "success"
+              : item.type === "bounced" || item.type === "rendering_failure"
+                ? "destructive"
+                : item.type === "complained" || item.type === "rejected"
+                  ? "warning"
+                  : "muted";
+
           return (
-            <DistributionBar
-              key={item.type}
-              label={item.label}
-              count={item.count}
-              percent={percent}
-              maxPercent={maxPercent}
-            />
+            <div key={item.type} className={index === 0 ? "pt-1" : ""}>
+              <DistributionBar label={item.label} count={item.count} percent={percent} tone={tone} />
+            </div>
           );
         })}
       </div>
@@ -220,104 +241,113 @@ export function OverviewAnalyticsPanel({ data }: { data: OverviewResult }) {
         <p className="max-w-3xl text-sm leading-6 text-slate-600">{t.overview.analytics.description}</p>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          title={t.overview.analytics.totalEvents}
-          value={formatCount(data.recentEventsCount)}
-          note={t.overview.summary.totalEventsDescription}
-        />
-        <MetricCard
-          title={t.overview.analytics.uniqueMessages}
-          value={formatCount(data.uniqueMessagesCount)}
-          note={t.overview.summary.uniqueMessagesDescription}
-        />
-        <MetricCard
-          title={t.overview.analytics.uniqueRecipients}
-          value={formatCount(data.uniqueRecipientsCount)}
-          note={t.overview.analytics.uniqueRecipientsDescription}
-        />
-        <MetricCard title={t.overview.analytics.delivered} value={formatCount(analytics.deliveredCount)} tone="success" />
-        <MetricCard title={t.overview.analytics.deliveryRate} value={formatPercent(analytics.deliveryRate)} tone="success" />
-        <MetricCard title={t.overview.analytics.bounced} value={formatCount(analytics.bouncedCount)} tone="destructive" />
-        <MetricCard title={t.overview.analytics.complaint} value={formatCount(analytics.complaintCount)} tone="warning" />
-        <MetricCard title={t.overview.analytics.rejected} value={formatCount(analytics.rejectedCount)} tone="warning" />
-        <MetricCard title={t.overview.analytics.delayed} value={formatCount(analytics.delayedCount)} tone="muted" />
-        <MetricCard
-          title={t.overview.analytics.renderingFailure}
-          value={formatCount(analytics.renderingFailureCount)}
-          tone="destructive"
-        />
-        <MetricCard title={t.overview.analytics.sent} value={formatCount(analytics.sentCount)} tone="muted" />
-      </div>
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1.1fr]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MetricCard title={t.overview.analytics.delivered} value={formatCount(analytics.deliveredCount)} tone="success" compact />
+          <MetricCard title={t.overview.analytics.deliveryRate} value={formatPercent(analytics.deliveryRate)} tone="success" compact />
+          <MetricCard title={t.overview.analytics.bounced} value={formatCount(analytics.bouncedCount)} tone="destructive" compact />
+          <MetricCard title={t.overview.analytics.complaint} value={formatCount(analytics.complaintCount)} tone="warning" compact />
+          <MetricCard title={t.overview.analytics.rejected} value={formatCount(analytics.rejectedCount)} tone="warning" compact />
+          <MetricCard title={t.overview.analytics.delayed} value={formatCount(analytics.delayedCount)} tone="muted" compact />
+          <MetricCard
+            title={t.overview.analytics.renderingFailure}
+            value={formatCount(analytics.renderingFailureCount)}
+            tone="destructive"
+            compact
+          />
+          <MetricCard title={t.overview.analytics.sent} value={formatCount(analytics.sentCount)} tone="muted" compact />
+        </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard
-          title={t.overview.analytics.reputationTitle}
-          description={statusDescription(t, analytics.reputation.status)}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <Badge tone={statusTone(analytics.reputation.status)}>{statusLabel(t, analytics.reputation.status)}</Badge>
-              <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{t.overview.analytics.rate}</span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.bounced}</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">
-                  {formatPercent(analytics.reputation.bounceRate)}
-                </p>
+        <div className="flex flex-col gap-4">
+          <MetricCard
+            title={t.overview.analytics.totalEvents}
+            value={formatCount(data.recentEventsCount)}
+            note={t.overview.summary.totalEventsDescription}
+          />
+          <MetricCard
+            title={t.overview.analytics.uniqueMessages}
+            value={formatCount(data.uniqueMessagesCount)}
+            note={t.overview.summary.uniqueMessagesDescription}
+          />
+          <MetricCard
+            title={t.overview.analytics.uniqueRecipients}
+            value={formatCount(data.uniqueRecipientsCount)}
+            note={t.overview.analytics.uniqueRecipientsDescription}
+          />
+        </div>
+
+        <div className="grid gap-4">
+          <SectionCard
+            title={t.overview.analytics.reputationTitle}
+            description={statusDescription(t, analytics.reputation.status)}
+            compact
+          >
+            <div className="flex w-full flex-1 flex-col space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <Badge tone={statusTone(analytics.reputation.status)}>{statusLabel(t, analytics.reputation.status)}</Badge>
+                <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{t.overview.analytics.rate}</span>
               </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.complaint}</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">
-                  {formatPercent(analytics.reputation.complaintRate)}
-                </p>
+              <div className="grid w-full gap-3 sm:grid-cols-2">
+                <div className="w-full rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.bounced}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {formatPercent(analytics.reputation.bounceRate)}
+                  </p>
+                </div>
+                <div className="w-full rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.complaint}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                    {formatPercent(analytics.reputation.complaintRate)}
+                  </p>
+                </div>
               </div>
+              <p className="text-sm leading-6 text-slate-600">{analytics.reputation.reason}</p>
             </div>
-            <p className="text-sm leading-6 text-slate-600">{analytics.reputation.reason}</p>
-          </div>
-        </SectionCard>
+          </SectionCard>
 
-        <SectionCard
-          title={t.overview.analytics.averageDeliveryTime}
-          description={t.overview.analytics.averageDeliveryTimeDescription}
-        >
-          <div className="space-y-3">
-            <p className="text-4xl font-semibold tracking-tight text-slate-950">
-              {formatDuration(analytics.averageDeliveryTimeMs)}
-            </p>
-            <p className="text-sm leading-6 text-slate-600">
-              {analytics.averageDeliveryTimeMs === null
-                ? t.overview.analytics.notAvailable
-                : t.overview.analytics.averageDeliveryTimeDescription}
-            </p>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title={t.overview.analytics.lastEventReceived}
-          description={t.overview.analytics.lastEventReceivedDescription}
-        >
-          <div className="space-y-3">
-            <p className="text-2xl font-semibold tracking-tight text-slate-950">
-              {analytics.lastEventAt ? formatDateTime(analytics.lastEventAt) : t.overview.analytics.notAvailable}
-            </p>
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.relativeTime}</p>
+          <SectionCard
+            title={t.overview.analytics.averageDeliveryTime}
+            description={t.overview.analytics.averageDeliveryTimeDescription}
+            compact
+          >
+            <div className="flex w-full flex-1 flex-col justify-between space-y-3">
+              <p className="text-4xl font-semibold tracking-tight text-slate-950">
+                {formatDuration(analytics.averageDeliveryTimeMs)}
+              </p>
               <p className="text-sm leading-6 text-slate-600">
-                {lastEventRelative ?? t.overview.analytics.notAvailable}
+                {analytics.averageDeliveryTimeMs === null
+                  ? t.overview.analytics.notAvailable
+                  : t.overview.analytics.averageDeliveryTimeDescription}
               </p>
             </div>
-          </div>
-        </SectionCard>
+          </SectionCard>
+
+          <SectionCard
+            title={t.overview.analytics.lastEventReceived}
+            description={t.overview.analytics.lastEventReceivedDescription}
+            compact
+          >
+            <div className="flex w-full flex-1 flex-col justify-between space-y-3">
+              <p className="text-2xl font-semibold tracking-tight text-slate-950">
+                {analytics.lastEventAt ? formatDateTime(analytics.lastEventAt) : t.overview.analytics.notAvailable}
+              </p>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{t.overview.analytics.relativeTime}</p>
+                <p className="text-sm leading-6 text-slate-600">
+                  {lastEventRelative ?? t.overview.analytics.notAvailable}
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <OverviewDistributionChart analytics={analytics} t={t} />
 
-        <SectionCard title={t.overview.analytics.topProvidersTitle} description={t.overview.analytics.topProvidersDescription}>
+        <SectionCard title={t.overview.analytics.topProvidersTitle} description={t.overview.analytics.topProvidersDescription} centeredContent={false}>
           {hasTopProviders ? (
-            <div className="overflow-x-auto">
+            <div className="w-full flex-1 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

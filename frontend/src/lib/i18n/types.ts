@@ -1,4 +1,6 @@
 export type AppLanguage = "pt-BR" | "en-US";
+export type AppClockFormat = "12h" | "24h";
+export type AppUpdateInterval = "instant" | "30s" | "1m" | "5m" | "10m" | "30m";
 
 export type TranslationBundle = {
   nav: {
@@ -239,6 +241,11 @@ export type TranslationBundle = {
     introDescription: string;
     languageTitle: string;
     languageDescription: string;
+    preferencesTitle: string;
+    preferencesDescription: string;
+    timeZoneLabel: string;
+    clockFormatLabel: string;
+    updateIntervalLabel: string;
     supabaseTitle: string;
     supabaseDescription: string;
     urlLabel: string;
@@ -262,6 +269,18 @@ export type TranslationBundle = {
     languageOptions: {
       pt: string;
       en: string;
+    };
+    clockFormatOptions: {
+      twelve: string;
+      twentyFour: string;
+    };
+    updateIntervalOptions: {
+      instant: string;
+      seconds30: string;
+      minute1: string;
+      minute5: string;
+      minute10: string;
+      minute30: string;
     };
   };
   faq: {

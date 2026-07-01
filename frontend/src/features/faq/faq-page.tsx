@@ -75,21 +75,20 @@ export function FaqPage() {
               <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.faq.title}</span>
             </div>
             <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950">{t.faq.subtitle}</h1>
-            <p className="max-w-2xl text-base leading-7 text-slate-600">{t.faq.searchHelpDescription}</p>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Read only</span>
               <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Filters</span>
               <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Supabase</span>
             </div>
           </div>
-          <Card className="bg-slate-950 text-white">
-            <CardHeader>
-              <CardTitle>{t.faq.searchHelpTitle}</CardTitle>
-              <CardDescription>
+          <Card className="border-slate-800 bg-slate-950 text-white shadow-none">
+            <CardHeader className="border-b-0 px-6 py-4">
+              <CardTitle className="text-white">{t.faq.searchHelpTitle}</CardTitle>
+              <CardDescription className="text-slate-400">
                 {t.faq.searchPlaceholder}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 py-5">
               <div className="flex items-center gap-3 rounded-3xl bg-slate-900/95 px-4 py-4 shadow-lg shadow-slate-900/10">
                 <Search className="h-5 w-5 text-slate-300" />
                 <Input
@@ -99,8 +98,7 @@ export function FaqPage() {
                   className="border-slate-800 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-600 focus:ring-slate-600/20"
                 />
               </div>
-              <div className="mt-6 space-y-4 text-sm leading-7 text-slate-300">
-                <p>{t.faq.searchHelpDescription}</p>
+              <div className="mt-6 text-sm leading-7 text-slate-300">
                 <p>{t.faq.searchHelpDescription}</p>
               </div>
             </CardContent>
@@ -112,13 +110,10 @@ export function FaqPage() {
         {visibleSections.length ? (
           visibleSections.map((section) => (
             <div key={section.key} className="space-y-4">
-              <div className="space-y-3 px-2 py-2">
+              <div className="px-2 py-2">
                 <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                   {section.title}
                 </h2>
-                <p className="text-base text-slate-600">
-                  {t.faq.searchHelpDescription}
-                </p>
               </div>
               <div className="space-y-4">
                 {section.items.map((item) => (
