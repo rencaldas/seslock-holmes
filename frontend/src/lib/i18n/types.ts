@@ -67,6 +67,7 @@ export type TranslationBundle = {
     next: string;
     tableHour: string;
     tableResult: string;
+    tableSubject: string;
     tableRecipient: string;
     tableOrigin: string;
     tableActions: string;
@@ -142,10 +143,24 @@ export type TranslationBundle = {
     };
     filters: {
       time: string;
+      timeModeOptions: {
+        window: string;
+        custom: string;
+      };
       status: string;
       origin: string;
       provider: string;
       providerPlaceholder: string;
+      startDateTime: string;
+      endDateTime: string;
+      recentActivitySort: string;
+      recentActivitySortOptions: {
+        timeDesc: string;
+        timeAsc: string;
+        recipientAsc: string;
+        recipientDesc: string;
+      };
+      clear: string;
       apply: string;
       options: {
         all: string;
@@ -193,6 +208,7 @@ export type TranslationBundle = {
     latestActivity: string;
     tableHour: string;
     tableResult: string;
+    tableSubject: string;
     tableOrigin: string;
     tableMessage: string;
     inspectEvent: string;

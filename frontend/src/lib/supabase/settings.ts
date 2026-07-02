@@ -80,25 +80,6 @@ export function getDisplayPreferences() {
   };
 }
 
-export function getRefreshIntervalMs() {
-  switch (getDisplayPreferences().updateInterval) {
-    case "instant":
-      return 10000;
-    case "30s":
-      return 30000;
-    case "1m":
-      return 60000;
-    case "5m":
-      return 300000;
-    case "10m":
-      return 600000;
-    case "30m":
-      return 1800000;
-    default:
-      return 60000;
-  }
-}
-
 export function formatDisplayDateTime(value: Date | string) {
   const { timeZone, clockFormat } = getDisplayPreferences();
   const dateValue = typeof value === "string" ? new Date(value) : value;

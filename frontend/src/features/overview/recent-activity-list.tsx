@@ -71,6 +71,7 @@ export function RecentActivityList({
               <TableRow>
                 <TableHead>{t.overview.tableHour}</TableHead>
                 <TableHead>{t.overview.tableResult}</TableHead>
+                <TableHead>{t.overview.tableSubject}</TableHead>
                 <TableHead>{t.overview.tableRecipient}</TableHead>
                 <TableHead>{t.overview.tableOrigin}</TableHead>
                 <TableHead>{t.overview.tableActions}</TableHead>
@@ -85,7 +86,16 @@ export function RecentActivityList({
                       {formatEventType(event.eventType)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-medium text-slate-950">{event.recipientEmail}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <p className="max-w-[20rem] truncate font-medium text-slate-950" title={event.subject || t.common.noAvailableData}>
+                        {event.subject || t.common.noAvailableData}
+                      </p>
+                      <p className="max-w-[20rem] truncate text-sm text-slate-500" title={event.recipientEmail}>
+                        {event.recipientEmail}
+                      </p>
+                    </div>
+                  </TableCell>
                   <TableCell>{getOriginLabel(event)}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-3">

@@ -13,23 +13,42 @@ import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-p
 import { OverviewFilters } from "@/features/overview/overview-filters";
 import { RecentActivityList } from "@/features/overview/recent-activity-list";
 import { normalizeEmail } from "@/lib/formatters/email";
-import { parsePositiveNumber } from "@/lib/utils";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchOverview } from "@/lib/supabase/queries/overview";
 import { useDisclosure } from "@/lib/hooks/use-disclosure";
+import { parseTimeFilterState } from "@/lib/time-filters";
+import type { RecentActivitySort } from "@/lib/supabase/types";
 
 const RECENT_ACTIVITY_PAGE_SIZE = 50;
+const DEFAULT_OVERVIEW_FILTERS = {
+  timeMode: "window" as const,
+  windowDays: 1,
+  startAt: "",
+  endAt: "",
+  recentActivitySort: "time-desc" as const,
+  status: "all" as const,
+  origin: "",
+  provider: "",
+};
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
-function buildSearchParams(current: URLSearchParams, next: Record<string, string>, resetPage = false) {
+function parseRecentActivitySort(value: string | null): RecentActivitySort {
+  return value === "time-asc" || value === "recipient-asc" || value === "recipient-desc" ? value : "time-desc";
+}
+
+function buildSearchParams(current: URLSearchParams, next: Record<string, string | null | undefined>, resetPage = false) {
   const params = new URLSearchParams(current);
   for (const [key, value] of Object.entries(next)) {
-    params.set(key, value);
+    if (value === null || value === undefined || value === "") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
   }
   if (resetPage) {
     params.set("page", "1");
@@ -45,8 +64,10 @@ export function OverviewPage() {
   const supabase = useSupabase();
   const [recipientEmail, setRecipientEmail] = useState(searchParams.get("recipient") ?? "");
   const page = parsePage(searchParams.get("page"));
-  const [filters, setFilters] = useState({
-    windowDays: parsePositiveNumber(searchParams.get("windowDays")),
+  const [filters, setFilters] = useState(() => ({
+    ...DEFAULT_OVERVIEW_FILTERS,
+    ...parseTimeFilterState(searchParams),
+    recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
     status: (searchParams.get("status") ?? "all") as
       | "all"
       | "sent"
@@ -58,7 +79,7 @@ export function OverviewPage() {
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
     provider: searchParams.get("provider") ?? "",
-  });
+  }));
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
 
   useEffect(() => {
@@ -67,13 +88,15 @@ export function OverviewPage() {
 
   useEffect(() => {
     setFilters({
-      windowDays: parsePositiveNumber(searchParams.get("windowDays")),
+      ...DEFAULT_OVERVIEW_FILTERS,
+      ...parseTimeFilterState(searchParams),
+      recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
       status: (searchParams.get("status") ?? "all") as
         | "all"
         | "sent"
         | "delivered"
         | "bounced"
-        | "complained"
+      | "complained"
       | "delayed"
       | "rejected"
       | "rendering_failure",
@@ -83,13 +106,30 @@ export function OverviewPage() {
   }, [searchParams]);
 
   const overviewQuery = useQuery({
-    queryKey: ["overview", language, page, filters.windowDays, filters.status, filters.origin, filters.provider, supabase.eventsTable],
+    queryKey: [
+      "overview",
+      language,
+      page,
+      filters.timeMode,
+      filters.windowDays,
+      filters.startAt,
+      filters.endAt,
+      filters.recentActivitySort,
+      filters.status,
+      filters.origin,
+      filters.provider,
+      supabase.eventsTable,
+    ],
     enabled: Boolean(supabase.client && supabase.eventsTable),
     queryFn: () =>
       fetchOverview(supabase.client!, supabase.eventsTable!, {
         page,
         pageSize: RECENT_ACTIVITY_PAGE_SIZE,
+        timeMode: filters.timeMode,
         windowDays: filters.windowDays,
+        startAt: filters.startAt,
+        endAt: filters.endAt,
+        recentActivitySort: filters.recentActivitySort,
         status: filters.status,
         origin: filters.origin,
         provider: filters.provider ?? "",
@@ -190,18 +230,25 @@ export function OverviewPage() {
                     if (!normalized) {
                       return;
                     }
-                    setSearchParams(
-                      buildSearchParams(searchParams, {
+                    const nextParams = buildSearchParams(
+                      searchParams,
+                      {
                         recipient: normalized,
+                        query: normalized,
+                        mode: "recipient",
+                        timeMode: filters.timeMode,
                         windowDays: String(filters.windowDays),
+                        startAt: filters.timeMode === "custom" ? filters.startAt : "",
+                        endAt: filters.timeMode === "custom" ? filters.endAt : "",
+                        recentActivitySort: filters.recentActivitySort,
                         status: filters.status,
                         origin: filters.origin,
                         provider: filters.provider ?? "",
-                      }),
+                      },
+                      true,
                     );
-                    navigate(
-                      `/investigate?query=${encodeURIComponent(normalized)}&mode=recipient&windowDays=${filters.windowDays}&status=${filters.status}&origin=${encodeURIComponent(filters.origin)}&provider=${encodeURIComponent(filters.provider ?? "")}`,
-                    );
+                    setSearchParams(nextParams);
+                    navigate(`/investigate?${nextParams.toString()}`);
                   }}
                 >
                   <Search className="mr-2 h-4 w-4" />
@@ -219,12 +266,35 @@ export function OverviewPage() {
               <OverviewFilters
                 value={filters}
                 onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+                onClear={() => {
+                  setFilters({ ...DEFAULT_OVERVIEW_FILTERS });
+                  setSearchParams(
+                    buildSearchParams(
+                      searchParams,
+                      {
+                        timeMode: null,
+                        windowDays: null,
+                        startAt: null,
+                        endAt: null,
+                        recentActivitySort: null,
+                        status: null,
+                        origin: null,
+                        provider: null,
+                      },
+                      true,
+                    ),
+                  );
+                }}
                 onApply={() => {
                   setSearchParams(
                     buildSearchParams(
                       searchParams,
                       {
+                        timeMode: filters.timeMode,
                         windowDays: String(filters.windowDays),
+                        startAt: filters.timeMode === "custom" ? filters.startAt : "",
+                        endAt: filters.timeMode === "custom" ? filters.endAt : "",
+                        recentActivitySort: filters.recentActivitySort,
                         status: filters.status,
                         origin: filters.origin,
                         provider: filters.provider ?? "",
@@ -270,6 +340,7 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(Math.max(1, overviewQuery.data.page - 1)),
+                    recentActivitySort: filters.recentActivitySort,
                   }),
                 )
               }
@@ -277,6 +348,7 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(overviewQuery.data.page + 1),
+                    recentActivitySort: filters.recentActivitySort,
                   }),
                 )
               }

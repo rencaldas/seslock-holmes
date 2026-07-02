@@ -6,19 +6,20 @@ const FETCH_BATCH_SIZE = 1000;
 async function fetchRowsByTimeColumn(
   client: SupabaseClient,
   eventTable: string,
-  cutoffIso: string,
+  startIso: string,
   timeColumn: "timestamp" | "created_at",
+  endIso?: string,
 ) {
   const rows: EmailEventRow[] = [];
   let offset = 0;
 
   while (true) {
-    const { data, error } = await client
-      .from(eventTable)
-      .select("*")
-      .gte(timeColumn, cutoffIso)
-      .order(timeColumn, { ascending: false })
-      .range(offset, offset + FETCH_BATCH_SIZE - 1);
+    let query = client.from(eventTable).select("*").gte(timeColumn, startIso);
+    if (endIso) {
+      query = query.lte(timeColumn, endIso);
+    }
+
+    const { data, error } = await query.order(timeColumn, { ascending: false }).range(offset, offset + FETCH_BATCH_SIZE - 1);
 
     if (error) {
       if (error.message.includes("column") && error.message.includes("does not exist")) {
@@ -44,14 +45,15 @@ async function fetchRowsByTimeColumn(
 export async function fetchEventRowsWithTimeFallback(
   client: SupabaseClient,
   eventTable: string,
-  cutoffIso: string,
+  startIso: string,
+  endIso?: string,
 ) {
   try {
-    return await fetchRowsByTimeColumn(client, eventTable, cutoffIso, "timestamp");
+    return await fetchRowsByTimeColumn(client, eventTable, startIso, "timestamp", endIso);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("column") && message.includes("timestamp") && message.includes("does not exist")) {
-      return fetchRowsByTimeColumn(client, eventTable, cutoffIso, "created_at");
+      return fetchRowsByTimeColumn(client, eventTable, startIso, "created_at", endIso);
     }
 
     throw error;

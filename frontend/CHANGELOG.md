@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [0.6.2] - 2026-07-02
+### Changed
+- Email lists in the overview and recipient investigation views now surface the subject inline so operators can identify recurring patterns faster without opening details.
+
 ## [0.6.1] - 2026-07-01
 ### Fixed
 - Replaced non-generic provider examples with neutral `example.com` placeholders so the project stays safe to share publicly.

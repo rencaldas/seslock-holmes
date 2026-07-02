@@ -4,12 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OverviewFilters } from "@/features/overview/overview-filters";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import type { EmailEventType, RecipientSearchMode } from "@/lib/supabase/types";
+import type { EmailEventType, RecentActivitySort, RecipientSearchMode, TimeFilterMode } from "@/lib/supabase/types";
 
 export interface RecipientSearchFilters {
   searchText: string;
   searchMode: RecipientSearchMode;
+  timeMode: TimeFilterMode;
   windowDays: number;
+  startAt: string;
+  endAt: string;
+  recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
 }
@@ -61,6 +65,7 @@ export function RecipientSearchForm({
           value={value}
           onChange={(next) => onChange({ ...value, ...next })}
           onApply={onSubmit}
+          showRecentActivitySort={false}
           className="bg-slate-950/95 border-slate-700"
           inputClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
           selectClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"

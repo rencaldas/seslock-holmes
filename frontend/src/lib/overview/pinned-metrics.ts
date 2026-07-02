@@ -57,6 +57,10 @@ export function reorderPinnedMetrics(currentIds: MetricCardId[], id: MetricCardI
   }
 
   const [removed] = nextIds.splice(fromIndex, 1);
+  if (!removed) {
+    return nextIds;
+  }
+
   nextIds.splice(toIndex, 0, removed);
   return nextIds;
 }

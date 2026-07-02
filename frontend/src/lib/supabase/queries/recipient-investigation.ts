@@ -16,6 +16,7 @@ import {
   rowToEmailEvent,
 } from "@/lib/supabase/aws-sns";
 import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
+import { resolveTimeRange } from "@/lib/time-filters";
 
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
@@ -111,13 +112,13 @@ export async function fetchRecipientInvestigation(
   const normalizedSearchText = normalizeEmail(searchText);
   const from = (input.page - 1) * input.pageSize;
   const to = from + input.pageSize - 1;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - input.windowDays);
+  const { startIso, endIso } = resolveTimeRange(input);
   const eventTable = tableName || getEventTable();
 
-  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, cutoff.toISOString());
+  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, endIso);
   const scopedRows = rows
-    .filter((row) => getAwsSnsOccurredAt(row) >= cutoff.toISOString())
+    .filter((row) => getAwsSnsOccurredAt(row) >= startIso)
+    .filter((row) => (endIso ? getAwsSnsOccurredAt(row) <= endIso : true))
     .filter((row) => rowMatchesStatus(row, input.status))
     .filter((row) => rowMatchesOrigin(row, input.origin));
 

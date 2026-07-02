@@ -44,6 +44,7 @@ export function RecipientResults({
               <TableRow>
                 <TableHead>{t.investigation.tableHour}</TableHead>
                 <TableHead>{t.investigation.tableResult}</TableHead>
+                <TableHead>{t.investigation.tableSubject}</TableHead>
                 <TableHead>{t.investigation.tableOrigin}</TableHead>
                 <TableHead>{t.investigation.tableMessage}</TableHead>
               </TableRow>
@@ -57,6 +58,11 @@ export function RecipientResults({
                     {isProblemEventType(event.eventType) && event.failureReason ? (
                       <p className="mt-2 max-w-md text-xs text-slate-500">{event.failureReason}</p>
                     ) : null}
+                  </TableCell>
+                  <TableCell>
+                    <p className="max-w-[20rem] truncate text-sm font-medium text-slate-950" title={event.subject || t.common.noAvailableData}>
+                      {event.subject || t.common.noAvailableData}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">

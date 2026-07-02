@@ -14,12 +14,8 @@ import { normalizeEmail } from "@/lib/formatters/email";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchRecipientInvestigation } from "@/lib/supabase/queries/recipient-investigation";
-import type { RecipientSearchMode } from "@/lib/supabase/types";
-
-function parseWindowDays(value: string | null) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
+import type { RecentActivitySort, RecipientSearchMode } from "@/lib/supabase/types";
+import { parseTimeFilterState } from "@/lib/time-filters";
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
@@ -30,6 +26,10 @@ function parseSearchMode(value: string | null): RecipientSearchMode {
   return value === "sender" || value === "origin" ? value : "recipient";
 }
 
+function parseRecentActivitySort(value: string | null): RecentActivitySort {
+  return value === "time-asc" || value === "recipient-asc" || value === "recipient-desc" ? value : "time-desc";
+}
+
 export function RecipientInvestigationPage() {
   const t = useI18n();
   const navigate = useNavigate();
@@ -38,7 +38,8 @@ export function RecipientInvestigationPage() {
   const [form, setForm] = useState({
     searchText: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
     searchMode: parseSearchMode(searchParams.get("mode")),
-    windowDays: parseWindowDays(searchParams.get("windowDays")),
+    ...parseTimeFilterState(searchParams),
+    recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
     status: (searchParams.get("status") ?? "all") as
       | "all"
       | "sent"
@@ -55,7 +56,8 @@ export function RecipientInvestigationPage() {
     setForm({
       searchText: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
       searchMode: parseSearchMode(searchParams.get("mode")),
-      windowDays: parseWindowDays(searchParams.get("windowDays")),
+      ...parseTimeFilterState(searchParams),
+      recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
       status: (searchParams.get("status") ?? "all") as
         | "all"
         | "sent"
@@ -74,13 +76,29 @@ export function RecipientInvestigationPage() {
   const page = parsePage(searchParams.get("page"));
 
   const investigationQuery = useQuery({
-    queryKey: ["recipient-investigation", searchText, searchMode, form.windowDays, form.status, form.origin, page, supabase.eventsTable],
+      queryKey: [
+        "recipient-investigation",
+        searchText,
+        searchMode,
+        form.timeMode,
+        form.windowDays,
+        form.startAt,
+        form.endAt,
+        form.recentActivitySort,
+        form.status,
+        form.origin,
+        page,
+      supabase.eventsTable,
+    ],
     enabled: Boolean(supabase.client && searchText && supabase.eventsTable),
     queryFn: () =>
       fetchRecipientInvestigation(supabase.client!, supabase.eventsTable!, {
         searchText,
         searchMode,
+        timeMode: form.timeMode,
         windowDays: form.windowDays,
+        startAt: form.startAt,
+        endAt: form.endAt,
         status: form.status,
         origin: form.origin,
         page,
@@ -113,7 +131,11 @@ export function RecipientInvestigationPage() {
     setSearchParams({
       query: normalized,
       mode: form.searchMode,
+      timeMode: form.timeMode,
       windowDays: String(form.windowDays),
+      startAt: form.timeMode === "custom" ? form.startAt : "",
+      endAt: form.timeMode === "custom" ? form.endAt : "",
+      recentActivitySort: form.recentActivitySort,
       status: form.status,
       origin: form.origin,
       page: "1",
@@ -179,7 +201,11 @@ export function RecipientInvestigationPage() {
                       setSearchParams({
                         query: searchText,
                         mode: searchMode,
+                        timeMode: form.timeMode,
                         windowDays: String(form.windowDays),
+                        startAt: form.timeMode === "custom" ? form.startAt : "",
+                        endAt: form.timeMode === "custom" ? form.endAt : "",
+                        recentActivitySort: form.recentActivitySort,
                         status: form.status,
                         origin: form.origin,
                         page: String(Math.max(1, page - 1)),
@@ -196,7 +222,11 @@ export function RecipientInvestigationPage() {
                       setSearchParams({
                         query: searchText,
                         mode: searchMode,
+                        timeMode: form.timeMode,
                         windowDays: String(form.windowDays),
+                        startAt: form.timeMode === "custom" ? form.startAt : "",
+                        endAt: form.timeMode === "custom" ? form.endAt : "",
+                        recentActivitySort: form.recentActivitySort,
                         status: form.status,
                         origin: form.origin,
                         page: String(page + 1),
@@ -215,7 +245,11 @@ export function RecipientInvestigationPage() {
                 setSearchParams({
                   query: email,
                   mode: searchMode === "origin" ? "recipient" : searchMode,
+                  timeMode: form.timeMode,
                   windowDays: String(form.windowDays),
+                  startAt: form.timeMode === "custom" ? form.startAt : "",
+                  endAt: form.timeMode === "custom" ? form.endAt : "",
+                  recentActivitySort: form.recentActivitySort,
                   status: form.status,
                   origin: form.origin,
                   page: "1",

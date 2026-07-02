@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { SUPABASE_SETTINGS_UPDATED_EVENT } from "@/lib/supabase/settings";
 
 export const EVENTS_TABLE_STORAGE_KEY = "ses-investigation.eventsTable";
 
@@ -53,6 +54,7 @@ export function saveEventsTableOverride(tableName: string) {
   }
 
   window.localStorage.setItem(EVENTS_TABLE_STORAGE_KEY, tableName.trim());
+  window.dispatchEvent(new CustomEvent(SUPABASE_SETTINGS_UPDATED_EVENT));
 }
 
 function isMissingRelationError(message: string) {

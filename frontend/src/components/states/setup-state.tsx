@@ -41,7 +41,6 @@ export function SetupState({
               return;
             }
             saveEventsTableOverride(value);
-            window.location.reload();
           }}
         >
           {t.common.setupButton}

@@ -217,21 +217,6 @@ function getBounceReasonDetail(reason: string, language: AppLanguage) {
   return humanized || (isEnglish ? "Reason not available" : "Motivo não disponível");
 }
 
-function countBy<T>(items: T[], keySelector: (item: T) => string) {
-  const counts = new Map<string, number>();
-
-  for (const item of items) {
-    const key = keySelector(item);
-    if (!key) {
-      continue;
-    }
-
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-
-  return counts;
-}
-
 function formatReputationReason(language: AppLanguage, bounceRate: number, complaintRate: number) {
   const isEnglish = language === "en-US";
 
@@ -305,19 +290,72 @@ function computeAverageDeliveryTimeMs(events: EmailEvent[]) {
 }
 
 export function buildOverviewAnalytics(events: EmailEvent[], language: AppLanguage): OverviewAnalytics {
-  const deliveredCount = events.filter((event) => event.eventType === "delivered").length;
-  const bouncedCount = events.filter((event) => event.eventType === "bounced").length;
-  const complaintCount = events.filter((event) => event.eventType === "complained").length;
-  const rejectedCount = events.filter((event) => event.eventType === "rejected").length;
-  const delayedCount = events.filter((event) => event.eventType === "delayed").length;
-  const renderingFailureCount = events.filter((event) => event.eventType === "rendering_failure").length;
-  const sentCount = events.filter((event) => event.eventType === "sent").length;
+  let deliveredCount = 0;
+  let bouncedCount = 0;
+  let complaintCount = 0;
+  let rejectedCount = 0;
+  let delayedCount = 0;
+  let renderingFailureCount = 0;
+  let sentCount = 0;
+
+  const uniqueRecipients = new Set<string>();
+  const eventTypeCounts = new Map<EmailEventType, number>();
+  const topProvidersMap = new Map<string, { totalCount: number; deliveredCount: number; bouncedCount: number }>();
+  const bounceReasonCounts = new Map<string, number>();
+  const originApplicationsMap = new Map<string, number>();
+
+  for (const event of events) {
+    switch (event.eventType) {
+      case "delivered":
+        deliveredCount += 1;
+        break;
+      case "bounced":
+        bouncedCount += 1;
+        break;
+      case "complained":
+        complaintCount += 1;
+        break;
+      case "rejected":
+        rejectedCount += 1;
+        break;
+      case "delayed":
+        delayedCount += 1;
+        break;
+      case "rendering_failure":
+        renderingFailureCount += 1;
+        break;
+      case "sent":
+        sentCount += 1;
+        break;
+    }
+
+    eventTypeCounts.set(event.eventType, (eventTypeCounts.get(event.eventType) ?? 0) + 1);
+
+    const recipientEmail = normalizeText(event.recipientEmail);
+    if (recipientEmail.includes("@")) {
+      uniqueRecipients.add(recipientEmail);
+    }
+
+    const domain = getRecipientDomain(event);
+    const providerTotals = topProvidersMap.get(domain) ?? { totalCount: 0, deliveredCount: 0, bouncedCount: 0 };
+    providerTotals.totalCount += 1;
+    if (event.eventType === "delivered") {
+      providerTotals.deliveredCount += 1;
+    }
+    if (event.eventType === "bounced") {
+      providerTotals.bouncedCount += 1;
+
+      const reason = getBounceReason(event) || "N/A";
+      bounceReasonCounts.set(reason, (bounceReasonCounts.get(reason) ?? 0) + 1);
+    }
+    topProvidersMap.set(domain, providerTotals);
+
+    const originLabel = getOriginApplicationLabel(event) || "N/A";
+    originApplicationsMap.set(originLabel, (originApplicationsMap.get(originLabel) ?? 0) + 1);
+  }
+
   const totalCount = events.length;
-  const uniqueRecipientsCount = new Set(
-    events
-      .map((event) => normalizeText(event.recipientEmail))
-      .filter((value) => value.includes("@")),
-  ).size;
+  const uniqueRecipientsCount = uniqueRecipients.size;
   const lastEventAt = events[0]?.occurredAt ?? null;
   const averageDeliveryTimeMs = computeAverageDeliveryTimeMs(events);
   const deliveryRate =
@@ -325,20 +363,6 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
   const bounceRate = totalCount > 0 ? (bouncedCount / totalCount) * 100 : 0;
   const complaintRate = totalCount > 0 ? (complaintCount / totalCount) * 100 : 0;
   const reputationStatus = getReputationStatus(bounceRate, complaintRate);
-
-  const topProvidersMap = new Map<string, { totalCount: number; deliveredCount: number; bouncedCount: number }>();
-  for (const event of events) {
-    const domain = getRecipientDomain(event);
-    const current = topProvidersMap.get(domain) ?? { totalCount: 0, deliveredCount: 0, bouncedCount: 0 };
-    current.totalCount += 1;
-    if (event.eventType === "delivered") {
-      current.deliveredCount += 1;
-    }
-    if (event.eventType === "bounced") {
-      current.bouncedCount += 1;
-    }
-    topProvidersMap.set(domain, current);
-  }
 
   const topProviders = Array.from(topProvidersMap.entries())
     .map(([domain, totals]) => ({
@@ -349,10 +373,6 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
     .sort((left, right) => right.totalCount - left.totalCount || left.domain.localeCompare(right.domain))
     .slice(0, 8);
 
-  const bounceReasonCounts = countBy(
-    events.filter((event) => event.eventType === "bounced"),
-    (event) => getBounceReason(event) || "N/A",
-  );
   const bouncedTotal = bouncedCount || 1;
   const topBounceReasons = Array.from(bounceReasonCounts.entries())
     .map(([label, count]) => ({
@@ -379,10 +399,9 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
   const eventDistribution = eventTypeOrder.map((type) => ({
     type,
     label: EVENT_LABELS[type][language],
-    count: type === "open" || type === "click" ? 0 : events.filter((event) => event.eventType === type).length,
+    count: type === "open" || type === "click" ? 0 : (eventTypeCounts.get(type as EmailEventType) ?? 0),
   }));
 
-  const originApplicationsMap = countBy(events, (event) => getOriginApplicationLabel(event) || "N/A");
   const originApplications = Array.from(originApplicationsMap.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))

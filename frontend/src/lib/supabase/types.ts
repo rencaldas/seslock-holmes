@@ -117,7 +117,11 @@ export interface MessageTraceResult {
 }
 
 export interface OverviewQueryInput {
+  timeMode: TimeFilterMode;
   windowDays: number;
+  startAt: string;
+  endAt: string;
+  recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
   provider: string;
@@ -128,7 +132,10 @@ export interface OverviewQueryInput {
 export interface RecipientInvestigationQueryInput {
   searchText: string;
   searchMode: RecipientSearchMode;
+  timeMode: TimeFilterMode;
   windowDays: number;
+  startAt: string;
+  endAt: string;
   status: "all" | EmailEventType;
   origin: string;
   page: number;
@@ -136,6 +143,8 @@ export interface RecipientInvestigationQueryInput {
 }
 
 export type RecipientSearchMode = "recipient" | "sender" | "origin";
+export type TimeFilterMode = "window" | "custom";
+export type RecentActivitySort = "time-desc" | "time-asc" | "recipient-asc" | "recipient-desc";
 
 export interface MessageTraceQueryInput {
   eventId: string;
