@@ -30,6 +30,8 @@ O projeto é somente leitura:
 
 ## O que o sistema faz
 
+- Exibe um painel de analytics com distribuicao de eventos, reputacao, taxa de bounce, tempo medio de entrega, ultimo evento recebido, principais provedores, principais motivos de bounce e aplicacoes/origens.
+
 - Mostra uma visão geral com atividade recente, eventos problemáticos e principais origens.
 - Permite investigar por destinatário, remetente ou origem.
 - Mostra detalhes de cada evento, incluindo assunto, remetente, destinatário, status e metadados de falha.
@@ -76,6 +78,8 @@ Dashboard/
 - `/` - visão geral
 - `/investigate` - investigação por busca
 - `/events/:eventId` - detalhes do evento
+- `/faq` - perguntas frequentes e ajuda
+- `/settings` - configurações de idioma, fuso, intervalo e Supabase
 
 ## Fluxo de uso
 
@@ -114,12 +118,41 @@ Ao abrir um evento, o sistema exibe:
 - detalhes de falha e entrega;
 - rastreamento da mensagem.
 
+### 4. FAQ
+
+A pagina de FAQ ajuda a responder duvidas operacionais e de uso do painel.
+
+Voce pode:
+
+- pesquisar perguntas e respostas;
+- navegar por categorias de ajuda;
+- encontrar informacoes sobre dados, uso e suporte sem sair do app.
+
+### 5. Configurações
+
+A tela de configuracoes permite ajustar:
+
+- idioma da interface;
+- fuso horario;
+- formato do relogio;
+- intervalo de atualizacao;
+- URL do Supabase;
+- chave publica/publishable do Supabase;
+- nome da tabela ou view de eventos.
+
+As configuracoes podem ser:
+
+- salvas apenas no navegador;
+- exportadas como arquivo `.env.local`;
+- gravadas diretamente no projeto local quando o navegador oferecer acesso ao sistema de arquivos.
+
 ## Supabase
 
 O app usa o Supabase como fonte de dados. Por padrão, a tabela esperada é `aws_sns`.
 
 Se a tabela padrão não existir, o painel permite informar o nome correto da tabela ou view de eventos.
 Esse valor fica salvo localmente no navegador para evitar nova configuração toda vez.
+As credenciais usadas no frontend sao apenas a URL e a chave publica/publishable, nunca uma chave de servico.
 
 ### Variáveis de ambiente
 
@@ -144,6 +177,7 @@ Notas:
 - `VITE_SUPABASE_ANON_KEY` tem prioridade quando disponível.
 - `VITE_SUPABASE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` também são aceitas.
 - Se `VITE_SUPABASE_EVENTS_TABLE` não for definido, o app tenta `aws_sns`.
+- As configuracoes podem ser preenchidas pela pagina de settings e ficam armazenadas localmente no navegador.
 
 ## Estrutura de dados esperada
 
@@ -175,6 +209,7 @@ O aplicativo mapeia esses campos para uma visão unificada de evento de email.
 
 - O app só faz consultas de leitura.
 - A lógica respeita filtros por janela de tempo, status e origem.
+- O overview tambem pode ser refinado por provedor e ordenacao da atividade recente.
 - A busca por destinatário e remetente usa normalização de texto para reduzir variações de caixa.
 - O rastreamento da mensagem usa `messageId` quando disponível.
 
