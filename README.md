@@ -61,7 +61,7 @@ O projeto é somente leitura:
 Dashboard/
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                  # shell do app, rotas e providers
+│   │   ├── app/                 # shell do app, rotas e providers
 │   │   ├── components/          # componentes compartilhados
 │   │   ├── features/            # telas por funcionalidade
 │   │   ├── lib/                 # utilitários, Supabase, formatadores
