@@ -1,89 +1,72 @@
 # Seslock Holmes
 
-Seslock Holmes é um painel web de investigação para eventos de email do AWS SES armazenados no Supabase/PostgreSQL.
-O foco é apoiar times de suporte, operação e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
+Seslock Holmes é um dashboard web de investigação de e-mails do AWS SES armazenados no Supabase/PostgreSQL.
+Ele foi feito para apoiar suporte, operações e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
-<p align="center">
-  <img width="1025" height="907" alt="Captura de tela 2026-07-01 175645" src="https://github.com/user-attachments/assets/205441d5-3bd4-4139-9c72-f93554b82483" />
-</p>
-
-<details>
-<summary><strong>📸 Ver mais screenshots</strong></summary>
-
-<br>
-
-<p align="center">
-
-"><br><br>
-  <img src="https://github.com/user-attachments/assets/f560df86-309c-4140-bd63-ce5586d41ae2" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/c9b0dba8-0f67-409b-bf5a-2ca4938f986e" width="800"><br><br>
-  <img src="https://github.com/user-attachments/assets/e6649aab-542f-4bac-9937-042db17ec17d" width="800">
-</p>
-
-</details>
+## Visão Geral
 
 O projeto é somente leitura:
 
 - não cria, edita nem remove eventos;
 - não exige credenciais de escrita;
-- depende de RLS no Supabase para permitir apenas consultas seguras.
+- depende de RLS no Supabase para limitar consultas aos dados permitidos.
 
-## O que o sistema faz
+## Principais Funcionalidades
 
-- Exibe um painel de analytics com distribuicao de eventos, reputacao, taxa de bounce, tempo medio de entrega, ultimo evento recebido, principais provedores, principais motivos de bounce e aplicacoes/origens.
+- Visão geral com atividade recente, eventos problemáticos e principais origens.
+- Painel de analytics com distribuição de eventos, reputação, taxa de bounce, tempo médio de entrega, último evento recebido, principais provedores, principais motivos de bounce e aplicações/origens.
+- Investigação por destinatário, remetente ou origem.
+- Detalhes completos do evento com assunto, remetente, destinatário, status e metadados de falha.
+- Rastreamento cronológico da mensagem para entender o ciclo completo.
+- Paginação na atividade recente e na investigação por busca.
+- Sugestões de e-mails semelhantes quando não há correspondência exata.
+- Página de FAQ pesquisável para dúvidas operacionais e de uso.
+- Página de configurações para ajustar idioma, fuso horário, relógio, intervalo de atualização e conexão com Supabase.
 
-- Mostra uma visão geral com atividade recente, eventos problemáticos e principais origens.
-- Permite investigar por destinatário, remetente ou origem.
-- Mostra detalhes de cada evento, incluindo assunto, remetente, destinatário, status e metadados de falha.
-- Exibe rastreamento cronológico da mensagem para entender o ciclo completo.
-- Oferece paginação na atividade recente e também na investigação por pesquisa.
-- Quando não há correspondência exata, sugere emails parecidos para facilitar a análise.
-- Inclui melhorias de usabilidade na interface de filtros e espaçamento das ações na lista de atividade.
-
-## Tecnologias
-
-- React 18
-- Vite
-- TypeScript
-- React Router
-- TanStack Query
-- Supabase JS
-- `@supabase/ssr`
-- Tailwind CSS
-- componentes próprios inspirados em shadcn/ui
-- Vitest
-- React Testing Library
-- Playwright
-
-## Estrutura principal
-
-```text
-Dashboard/
-├── frontend/
-│   ├── src/
-│   │   ├── app/                 # shell do app, rotas e providers
-│   │   ├── components/          # componentes compartilhados
-│   │   ├── features/            # telas por funcionalidade
-│   │   ├── lib/                 # utilitários, Supabase, formatadores
-│   │   └── styles/              # estilos globais
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tsconfig*.json
-├── specs/                       # documentação e especificação do recurso
-└── README.md
-```
-
-## Rotas da aplicação
+## Rotas
 
 - `/` - visão geral
 - `/investigate` - investigação por busca
 - `/events/:eventId` - detalhes do evento
 - `/faq` - perguntas frequentes e ajuda
-- `/settings` - configurações de idioma, fuso, intervalo e Supabase
+- `/settings` - configurações do app e do Supabase
 
-## Fluxo de uso
+## Estrutura do Projeto
 
-### 1. Visão geral
+```text
+Dashboard/
+├── frontend/
+│   └── src/
+│       ├── app/                  # shell, rotas e providers
+│       ├── assets/               # imagens e favicon
+│       ├── components/
+│       │   ├── shell/            # header, footer e frame da aplicação
+│       │   ├── states/           # loading, empty, error e setup
+│       │   └── ui/               # componentes visuais base
+│       ├── features/
+│       │   ├── event-detail/     # detalhes do evento
+│       │   ├── faq/              # ajuda e perguntas frequentes
+│       │   ├── message-trace/    # timeline da mensagem
+│       │   ├── overview/         # dashboard principal e analytics
+│       │   ├── recipient-search/ # busca e investigação por e-mail
+│       │   └── settings/         # preferências e configuração do Supabase
+│       ├── lib/
+│       │   ├── data/             # listas e opções de filtro
+│       │   ├── formatters/       # formatação de datas, e-mails e eventos
+│       │   ├── hooks/            # hooks reutilizáveis
+│       │   ├── i18n/             # textos e traduções
+│       │   ├── overview/         # analytics e métricas
+│       │   ├── supabase/         # client, queries, tipos e settings
+│       │   └── time-filters.ts   # utilitários de período
+│       ├── styles/               # estilos globais
+│       └── main.tsx
+├── specs/                        # documentação da feature
+└── README.md
+```
+
+## Fluxo de Uso
+
+### 1. Visão Geral
 
 Na página inicial você pode:
 
@@ -91,56 +74,58 @@ Na página inicial você pode:
 - filtrar por janela de tempo;
 - filtrar por status;
 - filtrar por origem;
+- filtrar por provedor;
+- ordenar a atividade recente;
 - navegar pelas páginas da atividade recente.
 
 ### 2. Investigação
 
 Na tela de investigação você pode escolher o modo de busca:
 
-- procurar destinatário;
-- procurar remetente;
-- procurar origem.
+- destinatário;
+- remetente;
+- origem.
 
-Se a busca exata não retornar resultado, o sistema mostra sugestões de emails semelhantes.
+Se a busca exata não retornar resultado, o sistema mostra sugestões de e-mails semelhantes.
 
-### 3. Detalhes do evento
+### 3. Detalhes do Evento
 
 Ao abrir um evento, o sistema exibe:
 
-- assunto do email;
+- assunto do e-mail;
 - ID do evento;
 - ID da mensagem;
 - status de entrega;
 - origem da mensagem;
 - identidade SMTP;
-- email do remetente;
+- e-mail do remetente;
 - destinatário;
 - detalhes de falha e entrega;
 - rastreamento da mensagem.
 
 ### 4. FAQ
 
-A pagina de FAQ ajuda a responder duvidas operacionais e de uso do painel.
+A página de FAQ ajuda a responder dúvidas operacionais e de uso do painel.
 
-Voce pode:
+Você pode:
 
 - pesquisar perguntas e respostas;
 - navegar por categorias de ajuda;
-- encontrar informacoes sobre dados, uso e suporte sem sair do app.
+- encontrar informações sobre dados, uso e suporte sem sair do app.
 
 ### 5. Configurações
 
-A tela de configuracoes permite ajustar:
+A tela de configurações permite ajustar:
 
 - idioma da interface;
-- fuso horario;
-- formato do relogio;
-- intervalo de atualizacao;
+- fuso horário;
+- formato do relógio;
+- intervalo de atualização;
 - URL do Supabase;
-- chave publica/publishable do Supabase;
+- chave pública/publishable do Supabase;
 - nome da tabela ou view de eventos.
 
-As configuracoes podem ser:
+As configurações podem ser:
 
 - salvas apenas no navegador;
 - exportadas como arquivo `.env.local`;
@@ -152,9 +137,10 @@ O app usa o Supabase como fonte de dados. Por padrão, a tabela esperada é `aws
 
 Se a tabela padrão não existir, o painel permite informar o nome correto da tabela ou view de eventos.
 Esse valor fica salvo localmente no navegador para evitar nova configuração toda vez.
-As credenciais usadas no frontend sao apenas a URL e a chave publica/publishable, nunca uma chave de servico.
 
-### Variáveis de ambiente
+As credenciais usadas no frontend são apenas a URL e a chave pública/publishable, nunca uma chave de serviço.
+
+### Variáveis de Ambiente
 
 O frontend aceita as seguintes variáveis:
 
@@ -177,9 +163,9 @@ Notas:
 - `VITE_SUPABASE_ANON_KEY` tem prioridade quando disponível.
 - `VITE_SUPABASE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` também são aceitas.
 - Se `VITE_SUPABASE_EVENTS_TABLE` não for definido, o app tenta `aws_sns`.
-- As configuracoes podem ser preenchidas pela pagina de settings e ficam armazenadas localmente no navegador.
+- As configurações podem ser preenchidas pela página de settings e ficam armazenadas localmente no navegador.
 
-## Estrutura de dados esperada
+## Estrutura de Dados Esperada
 
 O painel trabalha com uma tabela ou view que contenha, no mínimo, campos equivalentes a:
 
@@ -203,26 +189,31 @@ O painel trabalha com uma tabela ou view que contenha, no mínimo, campos equiva
 - `complainedRecipients`
 - `userAgent`
 
-O aplicativo mapeia esses campos para uma visão unificada de evento de email.
+O aplicativo mapeia esses campos para uma visão unificada de evento de e-mail.
 
-## Regras de leitura
+## Regras de Leitura
 
 - O app só faz consultas de leitura.
 - A lógica respeita filtros por janela de tempo, status e origem.
-- O overview tambem pode ser refinado por provedor e ordenacao da atividade recente.
+- O overview também pode ser refinado por provedor e ordenação da atividade recente.
 - A busca por destinatário e remetente usa normalização de texto para reduzir variações de caixa.
 - O rastreamento da mensagem usa `messageId` quando disponível.
 
-## Desenvolvimento local
+## Desenvolvimento Local
 
-Entre na pasta do frontend e instale as dependências:
+### Pré-requisitos
+
+- Node.js 18+.
+- Um projeto Supabase com dados de eventos de e-mail disponíveis.
+
+### Instalação
 
 ```bash
 cd frontend
 npm install
 ```
 
-Execute o servidor de desenvolvimento:
+### Execução
 
 ```bash
 npm run dev
@@ -230,7 +221,7 @@ npm run dev
 
 Abra o endereço mostrado pelo Vite no navegador.
 
-## Scripts disponíveis
+## Scripts
 
 Dentro de `frontend/`:
 
@@ -241,7 +232,7 @@ Dentro de `frontend/`:
 - `npm run test:e2e` - executa testes end-to-end com Playwright
 - `npm run typecheck` - valida os tipos TypeScript
 
-## Configuração recomendada do Supabase
+## Configuração Recomendada do Supabase
 
 Para obter a melhor experiência:
 
@@ -254,14 +245,7 @@ Para obter a melhor experiência:
   - `source`
   - destinatário ou colunas equivalentes
 
-## Convenções do projeto
-
-- A interface está em português brasileiro.
-- Termos técnicos do domínio podem permanecer em inglês quando isso ajuda a identificação operacional, como `bounce`, `complaint`, `SMTP`, `SES` e `messageId`.
-- O projeto é organizado por funcionalidade, e não por tipo de arquivo.
-- O app é projetado para leitura rápida e investigação operacional.
-
-## Problemas comuns
+## Troubleshooting
 
 ### O painel fica preso em "Conectando ao Supabase"
 
@@ -281,7 +265,13 @@ Se o nome real da tabela ou view for diferente de `aws_sns`, informe o nome corr
 
 O painel pagina a atividade recente e a investigação. Use os botões de próxima/anterior para navegar pelos resultados filtrados.
 
-## Documentação do recurso
+## FAQ Rápido
+
+- O app grava credenciais no GitHub? Não. As configurações ficam no navegador ou em `.env.local` local, e o arquivo é ignorado pelo Git.
+- O frontend usa chave secreta do Supabase? Não. Ele usa apenas URL e chave pública/publishable.
+- A página inicial precisa virar `/dashboard`? Não necessariamente. `/` já é a rota mais limpa para a home do produto.
+
+## Documentação da Feature
 
 A pasta `specs/001-ses-investigation/` contém os artefatos de especificação e planejamento do painel:
 
@@ -291,6 +281,15 @@ A pasta `specs/001-ses-investigation/` contém os artefatos de especificação e
 - `data-model.md`
 - `quickstart.md`
 - `tasks.md`
+
+## Contribuição
+
+Se você for contribuir, siga o fluxo padrão:
+
+1. Crie uma branch.
+2. Faça as alterações.
+3. Rode os testes relevantes.
+4. Abra um PR com uma descrição objetiva do que mudou.
 
 ## Licença
 
