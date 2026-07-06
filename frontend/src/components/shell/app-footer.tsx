@@ -29,7 +29,7 @@ export function AppFooter() {
             <div className="text-sm leading-7 text-slate-200">
               <p>Email: <a href="mailto:renato.deacaldas@gmail.com" className="text-sky-300 hover:text-sky-200">renato.deacaldas@gmail.com</a></p>
               <p>GitHub: <a href="https://github.com/rencaldas" target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:text-sky-200">github.com/rencaldas</a></p>
-              <p>LinkedIn: <a href="https://www.linkedin.com/in/rcaldas/" target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:text-sky-200">linkedin.com/in/rcaldas</a></p>
+              <p>LinkedIn: <a href="https://www.linkedin.com/in/rencaldas/" target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:text-sky-200">linkedin.com/in/rencaldas</a></p>
             </div>
           </div>
 
