@@ -24,3 +24,7 @@ Thumbs.db
 .idea/
 *.swp
 *.tmp
+
+# Local-only deployment helpers
+Dockerfile
+docker-compose.yml
