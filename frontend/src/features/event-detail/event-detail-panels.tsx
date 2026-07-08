@@ -100,6 +100,13 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
           <CardTitle>{t.eventDetail.routing}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          {event.bounceDiagnosis ? (
+            <>
+              <DetailField label={t.investigation.diagnosisCause} value={event.bounceDiagnosis.cause} />
+              <DetailField label={t.investigation.diagnosisRecommendation} value={event.bounceDiagnosis.recommendation} />
+              <DetailField label={t.investigation.diagnosisSeverity} value={event.bounceDiagnosis.severity} />
+            </>
+          ) : null}
           <DetailField label={t.eventDetail.failureReason} value={event.failureReason || t.eventDetail.notAvailable} />
           <DetailField label={t.eventDetail.bounceType} value={String(event.bounceDetails.bounceType ?? t.eventDetail.notAvailable)} />
           <DetailField label={t.eventDetail.bounceSubtype} value={String(event.bounceDetails.bounceSubType ?? t.eventDetail.notAvailable)} />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EmailEventRow } from "@/lib/supabase/types";
-import { rowMatchesRecipientDomain } from "./aws-sns";
+import { rowMatchesBounceDiagnostic, rowMatchesRecipientDomain, rowToEmailEvent } from "./aws-sns";
 
 function makeRow(destination: unknown): EmailEventRow {
   return {
@@ -49,5 +49,25 @@ describe("rowMatchesRecipientDomain", () => {
     const row = makeRow(["guest@example.com"]);
 
     expect(rowMatchesRecipientDomain(row, "@other.com")).toBe(false);
+  });
+});
+
+describe("bounce diagnostics mapping", () => {
+  it("does not classify a normal delivery smtp response as a bounce diagnosis", () => {
+    const row = makeRow(["guest@example.com"]);
+    row.smtpResponse = "250 2.0.0 OK";
+
+    expect(rowToEmailEvent(row).bounceDiagnosis).toBeNull();
+  });
+
+  it("matches diagnostic searches against technical and human-readable bounce text", () => {
+    const row = makeRow(["guest@example.com"]);
+    row.eventType = "Bounce";
+    row.notificationType = "Bounce";
+    row.bounceType = "Permanent";
+    row.diagnosticCode = "smtp; 550 Invalid recipient: <guest@example.com>";
+
+    expect(rowMatchesBounceDiagnostic(row, "invalid recipient")).toBe(true);
+    expect(rowMatchesBounceDiagnostic(row, "endereco inexistente")).toBe(true);
   });
 });

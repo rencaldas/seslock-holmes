@@ -1,4 +1,5 @@
 import type { OverviewAnalytics } from "@/lib/overview/analytics";
+import type { BounceDiagnosis } from "@/lib/supabase/bounce-diagnostics";
 
 export type EmailEventType =
   | "sent"
@@ -63,6 +64,7 @@ export interface EmailEvent {
   deliveryStatus: string;
   deliveryProcessingTimeMillis: number | null;
   failureReason: string;
+  bounceDiagnosis: BounceDiagnosis | null;
   recipientInfo: Record<string, unknown>;
   bounceDetails: Record<string, unknown>;
   complaintDetails: Record<string, unknown>;
@@ -142,7 +144,7 @@ export interface RecipientInvestigationQueryInput {
   pageSize: number;
 }
 
-export type RecipientSearchMode = "recipient" | "sender" | "origin";
+export type RecipientSearchMode = "recipient" | "sender" | "origin" | "diagnostic";
 export type TimeFilterMode = "window" | "custom";
 export type RecentActivitySort = "time-desc" | "time-asc" | "recipient-asc" | "recipient-desc";
 

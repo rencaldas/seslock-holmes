@@ -185,8 +185,17 @@ export type TranslationBundle = {
     title: string;
     backToOverview: string;
     searchLabel: string;
+    searchModeLabel: string;
     searchPlaceholderRecipient: string;
+    searchPlaceholderSender: string;
     searchPlaceholderOrigin: string;
+    searchPlaceholderDiagnostic: string;
+    searchModes: {
+      recipient: string;
+      sender: string;
+      origin: string;
+      diagnostic: string;
+    };
     searchButton: string;
     hideFilters: string;
     showFilters: string;
@@ -211,6 +220,10 @@ export type TranslationBundle = {
     tableSubject: string;
     tableOrigin: string;
     tableMessage: string;
+    diagnosisCause: string;
+    diagnosisRecommendation: string;
+    diagnosisTechnicalCode: string;
+    diagnosisSeverity: string;
     inspectEvent: string;
   };
   eventDetail: {

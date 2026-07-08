@@ -22,6 +22,7 @@ function makeEvent(partial: Partial<EmailEvent> & Pick<EmailEvent, "id" | "event
     deliveryStatus: partial.deliveryStatus ?? partial.eventType,
     deliveryProcessingTimeMillis: partial.deliveryProcessingTimeMillis ?? null,
     failureReason: partial.failureReason ?? "",
+    bounceDiagnosis: partial.bounceDiagnosis ?? null,
     recipientInfo: partial.recipientInfo ?? {},
     bounceDetails: partial.bounceDetails ?? {},
     complaintDetails: partial.complaintDetails ?? {},

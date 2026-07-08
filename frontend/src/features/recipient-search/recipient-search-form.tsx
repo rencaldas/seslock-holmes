@@ -2,6 +2,7 @@ import { useDisclosure } from "@/lib/hooks/use-disclosure";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { OverviewFilters } from "@/features/overview/overview-filters";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType, RecentActivitySort, RecipientSearchMode, TimeFilterMode } from "@/lib/supabase/types";
@@ -16,6 +17,20 @@ export interface RecipientSearchFilters {
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
+}
+
+function getSearchPlaceholder(value: RecipientSearchFilters, t: ReturnType<typeof useI18n>) {
+  switch (value.searchMode) {
+    case "origin":
+      return t.investigation.searchPlaceholderOrigin;
+    case "sender":
+      return t.investigation.searchPlaceholderSender;
+    case "diagnostic":
+      return t.investigation.searchPlaceholderDiagnostic;
+    case "recipient":
+    default:
+      return t.investigation.searchPlaceholderRecipient;
+  }
 }
 
 export function RecipientSearchForm({
@@ -38,11 +53,26 @@ export function RecipientSearchForm({
         onSubmit();
       }}
     >
-      <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
+      <div className="grid gap-2 p-4 lg:grid-cols-[14rem_1fr_auto]">
+        <div className="space-y-2">
+          <Label htmlFor="search-mode" className="sr-only">{t.investigation.searchModeLabel}</Label>
+          <Select
+            id="search-mode"
+            value={value.searchMode}
+            onChange={(event) => onChange({ ...value, searchMode: event.target.value as RecipientSearchMode })}
+            className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
+            options={[
+              { label: t.investigation.searchModes.recipient, value: "recipient" },
+              { label: t.investigation.searchModes.sender, value: "sender" },
+              { label: t.investigation.searchModes.origin, value: "origin" },
+              { label: t.investigation.searchModes.diagnostic, value: "diagnostic" },
+            ]}
+          />
+        </div>
         <Label htmlFor="search-text" className="sr-only">{t.investigation.searchLabel}</Label>
         <Input
           id="search-text"
-          placeholder={value.searchMode === "origin" ? t.investigation.searchPlaceholderOrigin : t.investigation.searchPlaceholderRecipient}
+          placeholder={getSearchPlaceholder(value, t)}
           value={value.searchText}
           onChange={(event) => onChange({ ...value, searchText: event.target.value })}
           className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"

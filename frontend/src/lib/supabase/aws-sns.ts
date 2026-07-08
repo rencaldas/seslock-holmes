@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailEventType, EmailEventRow } from "@/lib/supabase/types";
+import { classifyDiagnosticCode } from "@/lib/supabase/bounce-diagnostics";
 
 const EVENT_TYPE_MAP: Record<string, EmailEventType> = {
   sent: "sent",
@@ -73,6 +74,15 @@ function toStringValue(value: unknown) {
   }
 
   return "";
+}
+
+function hasDiagnosticSignal(row: EmailEventRow) {
+  return Boolean(
+    row.diagnosticCode?.trim() ||
+      row.bounceType?.trim() ||
+      row.bounceSubType?.trim() ||
+      row.complaintFeedbackType?.trim(),
+  );
 }
 
 export function normalizeAwsSnsEventType(value: string | null | undefined): EmailEventType {
@@ -210,6 +220,36 @@ export function rowMatchesOrigin(row: EmailEventRow, origin: string) {
   return getAwsSnsRowSearchText(row).includes(query);
 }
 
+export function rowMatchesBounceDiagnostic(row: EmailEventRow, diagnosticQuery: string) {
+  const query = normalizeText(diagnosticQuery);
+  if (!query) {
+    return true;
+  }
+
+  const diagnosis = hasDiagnosticSignal(row)
+    ? classifyDiagnosticCode(row.diagnosticCode || row.smtpResponse, row.bounceType)
+    : null;
+  const diagnosticSearchText = normalizeText(
+    [
+      row.diagnosticCode,
+      row.smtpResponse,
+      row.bounceType,
+      row.bounceSubType,
+      row.complaintFeedbackType,
+      row.reportingMta,
+      row.remoteMtaIp,
+      diagnosis?.cause,
+      diagnosis?.recommendation,
+      diagnosis?.category,
+      diagnosis?.severity,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  return diagnosticSearchText.includes(query);
+}
+
 export function getAwsSnsRawPayload(row: EmailEventRow) {
   const explicit = row.raw_payload ?? row.rawPayload;
   if (isRecord(explicit)) {
@@ -278,6 +318,9 @@ export function rowToEmailEvent(row: EmailEventRow): EmailEvent {
       : typeof row.deliveryProcessingTimeMillis === "string" && row.deliveryProcessingTimeMillis.trim()
         ? Number(row.deliveryProcessingTimeMillis)
         : null;
+  const bounceDiagnosis = hasDiagnosticSignal(row)
+    ? classifyDiagnosticCode(row.diagnosticCode || row.smtpResponse, row.bounceType)
+    : null;
 
   return {
     id: row.id,
@@ -298,6 +341,7 @@ export function rowToEmailEvent(row: EmailEventRow): EmailEvent {
     deliveryStatus: row.notificationType ?? row.eventType ?? eventType,
     deliveryProcessingTimeMillis,
     failureReason: row.bounceType || row.bounceSubType || row.diagnosticCode || row.complaintFeedbackType || "",
+    bounceDiagnosis,
     recipientInfo: {
       destination: row.destination,
       destinations: row.destinations,

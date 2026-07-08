@@ -10,6 +10,7 @@ import { normalizeEmail } from "@/lib/formatters/email";
 import {
   getAwsSnsOccurredAt,
   rowMatchesOrigin,
+  rowMatchesBounceDiagnostic,
   rowMatchesRecipient,
   rowMatchesSender,
   rowMatchesStatus,
@@ -28,6 +29,8 @@ function getSearchValue(event: EmailEvent, mode: RecipientInvestigationQueryInpu
       return event.senderEmail || event.fromAddress || event.callerIdentity;
     case "origin":
       return `${event.originApp} ${event.smtpIdentity} ${event.senderEmail} ${event.configurationSet} ${event.projectTag}`;
+    case "diagnostic":
+      return `${event.failureReason} ${event.bounceDiagnosis?.cause ?? ""} ${event.bounceDiagnosis?.recommendation ?? ""}`;
     case "recipient":
     default:
       return event.recipientEmail;
@@ -77,7 +80,7 @@ function similarityScore(query: string, candidate: string) {
 }
 
 function buildRelatedEmails(events: EmailEvent[], searchText: string, mode: RecipientInvestigationQueryInput["searchMode"]) {
-  if (mode === "origin") {
+  if (mode === "origin" || mode === "diagnostic") {
     return [];
   }
 
@@ -128,6 +131,8 @@ export async function fetchRecipientInvestigation(
         return rowMatchesSender(row, searchText);
       case "origin":
         return rowMatchesOrigin(row, searchText);
+      case "diagnostic":
+        return rowMatchesBounceDiagnostic(row, searchText);
       case "recipient":
       default:
         return rowMatchesRecipient(row, searchText);

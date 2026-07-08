@@ -9,6 +9,18 @@ import { getOriginLabel } from "@/lib/formatters/event";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { RecipientInvestigationResult } from "@/lib/supabase/types";
 
+function diagnosisTone(severity: string): "destructive" | "warning" | "muted" {
+  if (severity === "high") {
+    return "destructive";
+  }
+
+  if (severity === "medium") {
+    return "warning";
+  }
+
+  return "muted";
+}
+
 export function RecipientResults({
   data,
 }: {
@@ -55,7 +67,34 @@ export function RecipientResults({
                   <TableCell className="whitespace-nowrap">{formatDateTime(event.occurredAt)}</TableCell>
                   <TableCell>
                     <Badge tone={toneForEventType(event.eventType)}>{formatEventType(event.eventType)}</Badge>
-                    {isProblemEventType(event.eventType) && event.failureReason ? (
+                    {event.bounceDiagnosis ? (
+                      <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone={diagnosisTone(event.bounceDiagnosis.severity)}>
+                            {t.investigation.diagnosisSeverity}: {event.bounceDiagnosis.severity}
+                          </Badge>
+                          <span className="font-semibold text-slate-900">{event.bounceDiagnosis.category}</span>
+                        </div>
+                        <p className="mt-2">
+                          <span className="font-semibold text-slate-900">{t.investigation.diagnosisCause}:</span>{" "}
+                          {event.bounceDiagnosis.cause}
+                        </p>
+                        <p className="mt-1">
+                          <span className="font-semibold text-slate-900">{t.investigation.diagnosisRecommendation}:</span>{" "}
+                          {event.bounceDiagnosis.recommendation}
+                        </p>
+                        {event.bounceDetails.diagnosticCode ? (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4">
+                              {t.investigation.diagnosisTechnicalCode}
+                            </summary>
+                            <p className="mt-2 break-words font-mono text-[0.72rem] leading-5 text-slate-600">
+                              {String(event.bounceDetails.diagnosticCode)}
+                            </p>
+                          </details>
+                        ) : null}
+                      </div>
+                    ) : isProblemEventType(event.eventType) && event.failureReason ? (
                       <p className="mt-2 max-w-md text-xs text-slate-500">{event.failureReason}</p>
                     ) : null}
                   </TableCell>

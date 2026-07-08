@@ -23,7 +23,7 @@ function parsePage(value: string | null) {
 }
 
 function parseSearchMode(value: string | null): RecipientSearchMode {
-  return value === "sender" || value === "origin" ? value : "recipient";
+  return value === "sender" || value === "origin" || value === "diagnostic" ? value : "recipient";
 }
 
 function parseRecentActivitySort(value: string | null): RecentActivitySort {
