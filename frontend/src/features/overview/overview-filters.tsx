@@ -232,9 +232,9 @@ export function OverviewFilters({
           </Button>
         ) : null}
         <Button
-          type="button"
-          className="w-full border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900 md:w-auto"
-          onClick={onApply}
+            onClick={() => {
+                onApply();
+            }}
         >
           {t.overview.filters.apply}
         </Button>

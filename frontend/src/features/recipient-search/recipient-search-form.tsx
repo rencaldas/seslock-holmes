@@ -17,6 +17,7 @@ export interface RecipientSearchFilters {
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
+  provider: string;
 }
 
 function getSearchPlaceholder(value: RecipientSearchFilters, t: ReturnType<typeof useI18n>) {
@@ -48,27 +49,36 @@ export function RecipientSearchForm({
   return (
     <form
       className="overflow-hidden rounded-3xl border border-slate-700 bg-slate-950/95 shadow-soft"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
+      onSubmit={async (event) => {
+          event.preventDefault();
+
+          await Promise.resolve(onSubmit());
       }}
     >
       <div className="grid gap-2 p-4 lg:grid-cols-[14rem_1fr_auto]">
-        <div className="space-y-2">
-          <Label htmlFor="search-mode" className="sr-only">{t.investigation.searchModeLabel}</Label>
-          <Select
-            id="search-mode"
-            value={value.searchMode}
-            onChange={(event) => onChange({ ...value, searchMode: event.target.value as RecipientSearchMode })}
-            className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
-            options={[
-              { label: t.investigation.searchModes.recipient, value: "recipient" },
-              { label: t.investigation.searchModes.sender, value: "sender" },
-              { label: t.investigation.searchModes.origin, value: "origin" },
-              { label: t.investigation.searchModes.diagnostic, value: "diagnostic" },
-            ]}
-          />
-        </div>
+      <div className="flex items-center">
+        <Label htmlFor="search-mode" className="sr-only">
+          {t.investigation.searchModeLabel}
+        </Label>
+
+        <Select
+          id="search-mode"
+          value={value.searchMode}
+          onChange={(event) =>
+            onChange({
+              ...value,
+              searchMode: event.target.value as RecipientSearchMode,
+            })
+          }
+          className="h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20"
+          options={[
+            { label: t.investigation.searchModes.recipient, value: "recipient" },
+            { label: t.investigation.searchModes.sender, value: "sender" },
+            { label: t.investigation.searchModes.origin, value: "origin" },
+            { label: t.investigation.searchModes.diagnostic, value: "diagnostic" },
+          ]}
+        />
+      </div>
         <Label htmlFor="search-text" className="sr-only">{t.investigation.searchLabel}</Label>
         <Input
           id="search-text"
@@ -91,16 +101,30 @@ export function RecipientSearchForm({
       </div>
 
       <div className={`overflow-hidden transition-all duration-200 ease-out ${filtersOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"}`}>
-        <OverviewFilters
-          value={value}
-          onChange={(next) => onChange({ ...value, ...next })}
-          onApply={onSubmit}
-          showRecentActivitySort={false}
-          className="bg-slate-950/95 border-slate-700"
-          inputClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-          selectClassName="border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-          labelClassName="text-slate-300"
-        />
+      <OverviewFilters
+        value={value}
+        onChange={(next) => onChange({ ...value, ...next })}
+        onApply={onSubmit}
+        onClear={() =>
+          onChange({
+            searchText: "",
+            searchMode: "recipient",
+
+            timeMode: "window",
+            windowDays: 30,
+            startAt: "",
+            endAt: "",
+
+            recentActivitySort: "time-desc",
+
+            status: "all",
+            origin: "",
+            provider: "",
+          })
+        }
+        showRecentActivitySort
+        showProviderFilter
+      />
       </div>
     </form>
   );
