@@ -15,6 +15,11 @@ frontend/test-results/
 frontend/.env
 frontend/.env.*
 
+# Docker local files
+docker-compose.override.yml
+.docker/
+.dockerignore.local
+
 # Logs and editor files
 *.log
 *.log.*
