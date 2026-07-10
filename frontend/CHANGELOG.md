@@ -2,9 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-# Changelog
+## [0.7.0] - 2026-07-10
+### Added
+- Bounce diagnostic search mode in the investigation flow, allowing operators to search failure causes and recommendations directly.
+- Overview-style filters in the investigation page, including time window, status, origin, provider, and recent activity sorting.
 
-All notable changes to this project will be documented in this file.
+### Changed
+- Updated safe npm dependencies, including Supabase, React Query, Vite, Vitest, PostCSS, Node types, and the Vite React plugin.
+- Investigation searches now preserve and apply provider filters across submit, pagination, and related-email navigation.
+- README and project metadata were refreshed after the latest dashboard changes.
+
+### Fixed
+- Kept the investigation provider filter wired into the Supabase query path so filtered searches match the UI state.
+- Ignored local Docker-only files in Git.
 
 ## [0.6.2] - 2026-07-02
 ### Changed
@@ -19,9 +29,11 @@ All notable changes to this project will be documented in this file.
 - Overview provider filter with `Todos` support, allowing the dashboard to narrow metrics and tables to a specific recipient domain.
 - Short bounce reason details in the overview table, with friendly labels such as `MailboxFull` -> `Caixa do email cheia`.
 - Recipient-domain filtering helper coverage for provider-scoped investigation workflows.
+
 ### Changed
 - Overview analytics now compute from provider-filtered events when a provider is selected.
 - Overview filters gained a dedicated provider field alongside the existing origin filter.
+
 ### Fixed
 - Improved table sizing and card layout so the overview tables use the available card width cleanly.
 
@@ -30,19 +42,23 @@ All notable changes to this project will be documented in this file.
 - New overview analytics visuals with percentage-based event-distribution bars and color-coded states.
 - Favicon, footer metadata improvements, and new display settings for timezone, clock format, and update interval.
 - Overview metrics support and related regression tests.
+
 ### Changed
 - Refined FAQ, settings, and overview layouts for better spacing, alignment, and card structure.
 - Updated TypeScript path configuration and footer timestamp handling.
+
 ### Fixed
 - Overview card layout issues, misaligned content blocks, and inconsistent bar-fill rendering.
 
 ## [0.3.0] - 2026-06-29
 ### Added
-- Sticky, unified search panels under the navbar for both Overview and /investigate pages.
+- Sticky, unified search panels under the navbar for both Overview and `/investigate` pages.
 - Hover-expand behavior for filter panels: filters are hidden by default and reveal on hover.
+
 ### Changed
 - Converted search/filter panels to a dark theme and standardized input/select/button styles.
 - Removed `focus-within` expansion to ensure filters hide on mouse leave after clicks.
+
 ### Fixed
 - Small JSX/format issues preventing builds and layout inconsistencies.
 
