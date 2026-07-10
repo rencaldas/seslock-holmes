@@ -140,6 +140,7 @@ export interface RecipientInvestigationQueryInput {
   endAt: string;
   status: "all" | EmailEventType;
   origin: string;
+  provider: string;
   page: number;
   pageSize: number;
 }

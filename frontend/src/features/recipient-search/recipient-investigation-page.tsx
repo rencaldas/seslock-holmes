@@ -50,6 +50,7 @@ export function RecipientInvestigationPage() {
       | "rejected"
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
+    provider: searchParams.get("provider") ?? "",
   });
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export function RecipientInvestigationPage() {
         | "rejected"
         | "rendering_failure",
       origin: searchParams.get("origin") ?? "",
+      provider: searchParams.get("provider") ?? "",
     });
   }, [searchParams]);
 
@@ -87,6 +89,7 @@ export function RecipientInvestigationPage() {
         form.recentActivitySort,
         form.status,
         form.origin,
+        form.provider,
         page,
       supabase.eventsTable,
     ],
@@ -101,6 +104,7 @@ export function RecipientInvestigationPage() {
         endAt: form.endAt,
         status: form.status,
         origin: form.origin,
+        provider: form.provider,
         page,
         pageSize: 25,
       }),
@@ -138,6 +142,7 @@ export function RecipientInvestigationPage() {
       recentActivitySort: form.recentActivitySort,
       status: form.status,
       origin: form.origin,
+      provider: form.provider,
       page: "1",
     });
   };
@@ -208,6 +213,7 @@ export function RecipientInvestigationPage() {
                         recentActivitySort: form.recentActivitySort,
                         status: form.status,
                         origin: form.origin,
+                        provider: form.provider,
                         page: String(Math.max(1, page - 1)),
                       })
                     }
@@ -229,6 +235,7 @@ export function RecipientInvestigationPage() {
                         recentActivitySort: form.recentActivitySort,
                         status: form.status,
                         origin: form.origin,
+                        provider: form.provider,
                         page: String(page + 1),
                       })
                     }
@@ -252,6 +259,7 @@ export function RecipientInvestigationPage() {
                   recentActivitySort: form.recentActivitySort,
                   status: form.status,
                   origin: form.origin,
+                  provider: form.provider,
                   page: "1",
                 })
               }
