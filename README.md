@@ -15,7 +15,7 @@ O projeto é somente leitura:
 
 - Visão geral com atividade recente, eventos problemáticos e principais origens.
 - Painel de analytics com distribuição de eventos, reputação, taxa de bounce, tempo médio de entrega, último evento recebido, principais provedores, principais motivos de bounce e aplicações/origens.
-- Investigação por destinatário, remetente ou origem.
+- Investigação por destinatário, remetente, bounceType ou origem.
 - Detalhes completos do evento com assunto, remetente, destinatário, status e metadados de falha.
 - Rastreamento cronológico da mensagem para entender o ciclo completo.
 - Paginação na atividade recente e na investigação por busca.
