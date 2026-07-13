@@ -3,6 +3,14 @@
 Seslock Holmes é um dashboard web de investigação de e-mails do AWS SES armazenados no Supabase/PostgreSQL.
 Ele foi feito para apoiar suporte, operações e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
+## Demo
+
+O projeto está disponível em produção através da Vercel:
+
+🔗 **https://seslock-holmes.vercel.app/**
+
+> A aplicação é hospedada na Vercel e pode ser utilizada para validar a interface, navegação e integração com um projeto Supabase configurado.
+
 ## Visão Geral
 
 O projeto é somente leitura:
@@ -220,6 +228,21 @@ npm run dev
 ```
 
 Abra o endereço mostrado pelo Vite no navegador.
+
+## Deploy
+
+O frontend é compatível com a Vercel.
+
+Deploy em produção:
+
+- **Produção:** https://seslock-holmes.vercel.app/
+
+Para publicar sua própria instância:
+
+1. Faça um fork ou clone do repositório.
+2. Importe o projeto na Vercel.
+3. Configure as variáveis de ambiente (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e, opcionalmente, `VITE_SUPABASE_EVENTS_TABLE`).
+4. Realize o deploy.
 
 ## Scripts
 
