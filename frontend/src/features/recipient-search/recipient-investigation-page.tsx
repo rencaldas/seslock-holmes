@@ -50,6 +50,7 @@ export function RecipientInvestigationPage() {
       | "rejected"
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
+    subject: searchParams.get("subject") ?? "",
     provider: searchParams.get("provider") ?? "",
   });
 
@@ -69,6 +70,7 @@ export function RecipientInvestigationPage() {
         | "rejected"
         | "rendering_failure",
       origin: searchParams.get("origin") ?? "",
+      subject: searchParams.get("subject") ?? "",
       provider: searchParams.get("provider") ?? "",
     });
   }, [searchParams]);
@@ -89,6 +91,7 @@ export function RecipientInvestigationPage() {
         form.recentActivitySort,
         form.status,
         form.origin,
+        form.subject,
         form.provider,
         page,
       supabase.eventsTable,
@@ -104,6 +107,7 @@ export function RecipientInvestigationPage() {
         endAt: form.endAt,
         status: form.status,
         origin: form.origin,
+        subject: form.subject,
         provider: form.provider,
         page,
         pageSize: 25,
@@ -142,6 +146,7 @@ export function RecipientInvestigationPage() {
       recentActivitySort: form.recentActivitySort,
       status: form.status,
       origin: form.origin,
+      subject: form.subject,
       provider: form.provider,
       page: "1",
     });
@@ -235,6 +240,7 @@ export function RecipientInvestigationPage() {
                         recentActivitySort: form.recentActivitySort,
                         status: form.status,
                         origin: form.origin,
+                        subject: form.subject,
                         provider: form.provider,
                         page: String(page + 1),
                       })
@@ -259,6 +265,7 @@ export function RecipientInvestigationPage() {
                   recentActivitySort: form.recentActivitySort,
                   status: form.status,
                   origin: form.origin,
+                  subject: form.subject,
                   provider: form.provider,
                   page: "1",
                 })

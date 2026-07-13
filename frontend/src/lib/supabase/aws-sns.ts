@@ -220,6 +220,15 @@ export function rowMatchesOrigin(row: EmailEventRow, origin: string) {
   return getAwsSnsRowSearchText(row).includes(query);
 }
 
+export function rowMatchesSubject(row: EmailEventRow, subject: string) {
+  const query = normalizeText(subject);
+  if (!query) {
+    return true;
+  }
+
+  return normalizeText(row.subject).includes(query);
+}
+
 export function rowMatchesBounceDiagnostic(row: EmailEventRow, diagnosticQuery: string) {
   const query = normalizeText(diagnosticQuery);
   if (!query) {

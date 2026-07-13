@@ -126,6 +126,7 @@ export interface OverviewQueryInput {
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
+  subject: string;
   provider: string;
   page: number;
   pageSize: number;
@@ -140,6 +141,7 @@ export interface RecipientInvestigationQueryInput {
   endAt: string;
   status: "all" | EmailEventType;
   origin: string;
+  subject: string;
   provider: string;
   page: number;
   pageSize: number;

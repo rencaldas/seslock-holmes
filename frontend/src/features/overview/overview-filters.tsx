@@ -16,6 +16,7 @@ export interface OverviewFilterValues {
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
+  subject: string;
   provider?: string;
 }
 
@@ -144,6 +145,7 @@ export function OverviewFilters({
           />
         )}
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="overview-status" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.status}</Label>
         <Select
@@ -166,7 +168,22 @@ export function OverviewFilters({
             { label: t.overview.filters.options.rendering_failure, value: "rendering_failure" },
           ]}
         />
+
+        {/* Assunto empilhado embaixo do Status, alinhado com "Últimas 24 horas" */}
+        <Label htmlFor="overview-subject" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.subject}</Label>
+        <Input
+          id="overview-subject"
+          placeholder={t.overview.filters.subjectPlaceholder}
+          value={value.subject}
+          onChange={(event) => onChange({ ...value, subject: event.target.value })}
+          className={cn(
+            "h-11 w-full rounded-xl border border-slate-700 bg-slate-950 text-slate-100 px-4 text-sm outline-none",
+            "placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20",
+            inputClassName,
+          )}
+        />
       </div>
+
       {showRecentActivitySort ? (
         <div className="space-y-2">
           <Label htmlFor="overview-recent-sort" className={cn("text-slate-300", labelClassName)}>
@@ -190,6 +207,7 @@ export function OverviewFilters({
           />
         </div>
       ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="overview-origin" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.origin}</Label>
         <Input
@@ -204,6 +222,7 @@ export function OverviewFilters({
           )}
         />
       </div>
+
       {showProviderFilter ? (
         <div className="space-y-2">
           <Label htmlFor="overview-provider" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.provider}</Label>
@@ -220,6 +239,7 @@ export function OverviewFilters({
           />
         </div>
       ) : null}
+
       <div className="flex flex-col items-stretch justify-end gap-2">
         {onClear ? (
           <Button

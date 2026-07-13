@@ -16,6 +16,7 @@ vi.mock("@/lib/i18n/use-i18n", () => ({
         },
         status: "Status",
         origin: "Origin filter",
+        subject: "Subject Filter",
         provider: "Provider",
         providerPlaceholder: "@example.com",
         startDateTime: "Start date and time",
@@ -69,6 +70,7 @@ describe("OverviewFilters", () => {
               recentActivitySort: "time-desc",
               status: "all",
               origin: "",
+              subject: "",
               provider: "",
             }}
             onChange={() => undefined}

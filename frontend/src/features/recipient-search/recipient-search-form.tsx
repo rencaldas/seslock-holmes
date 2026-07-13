@@ -17,6 +17,7 @@ export interface RecipientSearchFilters {
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
   origin: string;
+  subject: string;
   provider: string;
 }
 
@@ -119,6 +120,7 @@ export function RecipientSearchForm({
 
             status: "all",
             origin: "",
+            subject: "",
             provider: "",
           })
         }

@@ -29,6 +29,7 @@ const DEFAULT_OVERVIEW_FILTERS = {
   recentActivitySort: "time-desc" as const,
   status: "all" as const,
   origin: "",
+  subject: "",
   provider: "",
 };
 
@@ -78,6 +79,7 @@ export function OverviewPage() {
       | "rejected"
       | "rendering_failure",
     origin: searchParams.get("origin") ?? "",
+    subject: searchParams.get("subject") ?? "",
     provider: searchParams.get("provider") ?? "",
   }));
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
@@ -101,6 +103,7 @@ export function OverviewPage() {
       | "rejected"
       | "rendering_failure",
       origin: searchParams.get("origin") ?? "",
+      subject: searchParams.get("subject") ?? "",
       provider: searchParams.get("provider") ?? "",
     });
   }, [searchParams]);
@@ -117,6 +120,7 @@ export function OverviewPage() {
       filters.recentActivitySort,
       filters.status,
       filters.origin,
+      filters.subject,
       filters.provider,
       supabase.eventsTable,
     ],
@@ -132,6 +136,7 @@ export function OverviewPage() {
         recentActivitySort: filters.recentActivitySort,
         status: filters.status,
         origin: filters.origin,
+        subject: filters.subject ?? "",
         provider: filters.provider ?? "",
       }),
   });
@@ -243,6 +248,7 @@ export function OverviewPage() {
                         recentActivitySort: filters.recentActivitySort,
                         status: filters.status,
                         origin: filters.origin,
+                        subject: filters.subject ?? "",
                         provider: filters.provider ?? "",
                       },
                       true,
@@ -279,6 +285,7 @@ export function OverviewPage() {
                         recentActivitySort: null,
                         status: null,
                         origin: null,
+                        subject: null,
                         provider: null,
                       },
                       true,
@@ -297,6 +304,7 @@ export function OverviewPage() {
                         recentActivitySort: filters.recentActivitySort,
                         status: filters.status,
                         origin: filters.origin,
+                        subject: filters.subject ?? "",
                         provider: filters.provider ?? "",
                       },
                       true,

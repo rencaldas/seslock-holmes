@@ -8,6 +8,7 @@ import {
   rowMatchesOrigin,
   rowMatchesRecipientDomain,
   rowMatchesStatus,
+  rowMatchesSubject,
   rowToEmailEvent,
 } from "@/lib/supabase/aws-sns";
 import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
@@ -50,6 +51,7 @@ export async function fetchOverview(
   const from = (input.page - 1) * input.pageSize;
   const to = from + input.pageSize - 1;
   const origin = input.origin.trim();
+  const subject = input.subject.trim();
   const provider = input.provider.trim();
 
   const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, endIso);
@@ -59,6 +61,7 @@ export async function fetchOverview(
     .filter((row) => (endIso ? getAwsSnsOccurredAt(row) <= endIso : true))
     .filter((row) => rowMatchesStatus(row, input.status))
     .filter((row) => rowMatchesOrigin(row, origin))
+    .filter((row) => rowMatchesSubject(row, subject))
     .filter((row) => rowMatchesRecipientDomain(row, provider))
     .map((row) => rowToEmailEvent(row)),
     input.recentActivitySort,

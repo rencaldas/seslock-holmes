@@ -149,6 +149,8 @@ export type TranslationBundle = {
       };
       status: string;
       origin: string;
+      subject: string;        
+      subjectPlaceholder: string; 
       provider: string;
       providerPlaceholder: string;
       startDateTime: string;
