@@ -20,7 +20,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       projectInfo: "Informações do Projeto",
       projectVersion: "Versão do projeto",
       lastUpdated: "Última atualização",
-      copyright: "Todos os direitos reservados. Permitido usar meu projeto, mas não copiar para fazer os próprios.",
+      copyright: "Todos os direitos reservados.",
       backToTop: "Voltar ao Topo",
     },
     common: {
@@ -370,7 +370,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       projectInfo: "Project Info",
       projectVersion: "Project version",
       lastUpdated: "Last updated",
-      copyright: "All rights reserved. You may use this project, but not copy it to make your own.",
+      copyright: "All rights reserved.",
       backToTop: "Back to Top",
     },
     common: {
