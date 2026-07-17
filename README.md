@@ -3,6 +3,23 @@
 Seslock Holmes é um dashboard web de investigação de e-mails do AWS SES armazenados no Supabase/PostgreSQL.
 Ele foi feito para apoiar suporte, operações e análise na leitura de eventos, rastreamento de mensagens e diagnóstico de falhas.
 
+## 📉 Resultados reais
+
+Graças ao Seslock Holmes, é possível investigar e corrigir problemas de entregabilidade em produção. Os números falam por si:
+
+| Métrica | Antes | Depois | Redução |
+|---|---|---|---|
+| Bounce rate (1 provedor) | 11,6% | 0,8% | **-93%** |
+| Bounce rate geral | 6,8% | 1,8% | **-74%** |
+
+Cada bounce diagnosticado virou uma correção concreta:
+- 📧 Endereços inválidos removidos da base
+- 🌐 Domínios sem registro MX corrigidos
+- 🔐 Falhas de autenticação DMARC ajustadas
+
+O resultado indireto é tão importante quanto o número: **reputação de envio melhorada**, menos mensagens caindo em spam, e menor risco de provedores bloquearem o envio por reputação baixa.
+
+
 ## Demo
 
 O projeto está disponível em produção através da Vercel:
