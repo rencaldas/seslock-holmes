@@ -21,18 +21,6 @@ function DetailField({
   );
 }
 
-function formatJson(value: unknown, fallback: string) {
-  if (!value || (typeof value === "object" && value !== null && Object.keys(value as Record<string, unknown>).length === 0)) {
-    return fallback;
-  }
-
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return fallback;
-  }
-}
-
 export function EventDetailPanels({ event }: { event: EmailEvent }) {
   const t = useI18n();
 
@@ -88,10 +76,7 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <DetailField label={t.eventDetail.primaryRecipient} value={event.recipientEmail} />
-          <DetailField
-            label={t.eventDetail.recipients}
-            value={formatJson(event.recipientInfo.destination ?? event.recipientInfo.destinations, t.eventDetail.notAvailable)}
-          />
+          <DetailField label={t.eventDetail.recipients} value={event.recipientEmail || t.eventDetail.notAvailable} />
         </CardContent>
       </Card>
 

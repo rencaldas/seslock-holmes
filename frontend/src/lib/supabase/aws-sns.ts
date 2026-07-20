@@ -37,31 +37,37 @@ function summarizeArn(value: string | null | undefined) {
 
 function toEmailList(value: unknown): string[] {
   if (typeof value === "string") {
-    return value.trim() ? [value.trim()] : [];
+    const text = value.trim();
+    if (!text) {
+      return [];
+    }
+
+    // PostgreSQL JSON columns may be returned as JSON-encoded strings instead
+    // of arrays. Decode structured values before treating a string as an email.
+    if (text.startsWith("[") || text.startsWith("{")) {
+      try {
+        return toEmailList(JSON.parse(text));
+      } catch {
+        // Keep non-JSON strings usable as-is.
+      }
+    }
+
+    return [text];
   }
 
-  if (!Array.isArray(value)) {
+  if (Array.isArray(value)) {
+    return value.flatMap(toEmailList);
+  }
+
+  if (!isRecord(value)) {
     return [];
   }
 
-  return value.flatMap((entry) => {
-    if (typeof entry === "string") {
-      return entry.trim() ? [entry.trim()] : [];
-    }
+  return [value.emailAddress, value.email, value.address, value.recipientEmail].flatMap(toEmailList);
+}
 
-    if (isRecord(entry)) {
-      const candidate =
-        (typeof entry.emailAddress === "string" && entry.emailAddress) ||
-        (typeof entry.email === "string" && entry.email) ||
-        (typeof entry.address === "string" && entry.address) ||
-        (typeof entry.recipientEmail === "string" && entry.recipientEmail) ||
-        null;
-
-      return candidate?.trim() ? [candidate.trim()] : [];
-    }
-
-    return [];
-  });
+function getEmailDisplayValue(value: unknown) {
+  return toEmailList(value)[0] ?? "";
 }
 
 function toStringValue(value: unknown) {
@@ -303,7 +309,8 @@ export function rowToEmailEvent(row: EmailEventRow): EmailEvent {
   const eventType = normalizeAwsSnsEventType(row.eventType ?? row.notificationType);
   const recipientEmail = getAwsSnsPrimaryRecipient(row);
   const subject = row.subject?.trim() ?? "";
-  const fromAddress = row.fromAddress?.trim() || row.source?.trim() || "";
+  const source = getEmailDisplayValue(row.source);
+  const fromAddress = getEmailDisplayValue(row.fromAddress) || source;
   const sourceIp = row.sourceIp?.trim() || row.remoteMtaIp?.trim() || "";
   const callerIdentity = row.callerIdentity?.trim() || "";
   const configurationSet = row.configurationSet?.trim() || "";
@@ -317,10 +324,10 @@ export function rowToEmailEvent(row: EmailEventRow): EmailEvent {
     "Origem desconhecida";
   const identityLabel =
     summarizeArn(row.sourceArn) ||
-    row.source?.trim() ||
-    row.fromAddress?.trim() ||
+    source ||
+    getEmailDisplayValue(row.fromAddress) ||
     "Identidade desconhecida";
-  const senderEmail = row.source?.trim() || row.fromAddress?.trim() || summarizeArn(row.sourceArn) || "Remetente desconhecido";
+  const senderEmail = source || fromAddress || summarizeArn(row.sourceArn) || "Remetente desconhecido";
   const deliveryProcessingTimeMillis =
     typeof row.deliveryProcessingTimeMillis === "number"
       ? row.deliveryProcessingTimeMillis

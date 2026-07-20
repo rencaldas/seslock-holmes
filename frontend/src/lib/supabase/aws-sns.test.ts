@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { EmailEventRow } from "@/lib/supabase/types";
-import { rowMatchesBounceDiagnostic, rowMatchesRecipientDomain, rowToEmailEvent } from "./aws-sns";
+import {
+  getAwsSnsRecipients,
+  rowMatchesBounceDiagnostic,
+  rowMatchesRecipientDomain,
+  rowToEmailEvent,
+} from "./aws-sns";
 
 function makeRow(destination: unknown): EmailEventRow {
   return {
@@ -49,6 +54,33 @@ describe("rowMatchesRecipientDomain", () => {
     const row = makeRow(["guest@example.com"]);
 
     expect(rowMatchesRecipientDomain(row, "@other.com")).toBe(false);
+  });
+});
+
+describe("recipient email normalization", () => {
+  it("extracts a plain address from a JSON-encoded recipient array", () => {
+    const row = makeRow('["lucas.ribeiro5@uol.com.br"]');
+
+    expect(rowToEmailEvent(row).recipientEmail).toBe("lucas.ribeiro5@uol.com.br");
+    expect(getAwsSnsRecipients(row)).toEqual(["lucas.ribeiro5@uol.com.br"]);
+  });
+
+  it("extracts addresses from JSON-encoded recipient objects", () => {
+    const row = makeRow('[{"emailAddress":"lucas.ribeiro5@uol.com.br"}]');
+
+    expect(rowToEmailEvent(row).recipientEmail).toBe("lucas.ribeiro5@uol.com.br");
+  });
+
+  it("normalizes JSON-encoded sender addresses before they reach the UI", () => {
+    const row = makeRow(["recipient@example.com"]);
+    row.source = '["sender@example.com"]';
+    row.fromAddress = '["from@example.com"]';
+
+    const event = rowToEmailEvent(row);
+
+    expect(event.senderEmail).toBe("sender@example.com");
+    expect(event.fromAddress).toBe("from@example.com");
+    expect(event.smtpIdentity).toBe("sender@example.com");
   });
 });
 
