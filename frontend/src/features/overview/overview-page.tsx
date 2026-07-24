@@ -19,6 +19,7 @@ import { fetchOverview } from "@/lib/supabase/queries/overview";
 import { useDisclosure } from "@/lib/hooks/use-disclosure";
 import { parseTimeFilterState } from "@/lib/time-filters";
 import type { RecentActivitySort } from "@/lib/supabase/types";
+import { DEFAULT_ROW_LIMIT, parseRowLimit } from "@/lib/row-limits";
 
 const RECENT_ACTIVITY_PAGE_SIZE = 50;
 const DEFAULT_OVERVIEW_FILTERS = {
@@ -31,6 +32,7 @@ const DEFAULT_OVERVIEW_FILTERS = {
   origin: "",
   subject: "",
   provider: "",
+  rowLimit: DEFAULT_ROW_LIMIT,
 };
 
 function parsePage(value: string | null) {
@@ -40,6 +42,27 @@ function parsePage(value: string | null) {
 
 function parseRecentActivitySort(value: string | null): RecentActivitySort {
   return value === "time-asc" || value === "recipient-asc" || value === "recipient-desc" ? value : "time-desc";
+}
+
+function parseOverviewFilters(searchParams: URLSearchParams) {
+  return {
+    ...DEFAULT_OVERVIEW_FILTERS,
+    ...parseTimeFilterState(searchParams),
+    recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
+    status: (searchParams.get("status") ?? "all") as
+      | "all"
+      | "sent"
+      | "delivered"
+      | "bounced"
+      | "complained"
+      | "delayed"
+      | "rejected"
+      | "rendering_failure",
+    origin: searchParams.get("origin") ?? "",
+    subject: searchParams.get("subject") ?? "",
+    provider: searchParams.get("provider") ?? "",
+    rowLimit: parseRowLimit(searchParams.get("rows")),
+  };
 }
 
 function buildSearchParams(current: URLSearchParams, next: Record<string, string | null | undefined>, resetPage = false) {
@@ -65,23 +88,8 @@ export function OverviewPage() {
   const supabase = useSupabase();
   const [recipientEmail, setRecipientEmail] = useState(searchParams.get("recipient") ?? "");
   const page = parsePage(searchParams.get("page"));
-  const [filters, setFilters] = useState(() => ({
-    ...DEFAULT_OVERVIEW_FILTERS,
-    ...parseTimeFilterState(searchParams),
-    recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
-    status: (searchParams.get("status") ?? "all") as
-      | "all"
-      | "sent"
-      | "delivered"
-      | "bounced"
-      | "complained"
-      | "delayed"
-      | "rejected"
-      | "rendering_failure",
-    origin: searchParams.get("origin") ?? "",
-    subject: searchParams.get("subject") ?? "",
-    provider: searchParams.get("provider") ?? "",
-  }));
+  const appliedFilters = parseOverviewFilters(searchParams);
+  const [filters, setFilters] = useState(() => appliedFilters);
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
 
   useEffect(() => {
@@ -89,23 +97,7 @@ export function OverviewPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    setFilters({
-      ...DEFAULT_OVERVIEW_FILTERS,
-      ...parseTimeFilterState(searchParams),
-      recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
-      status: (searchParams.get("status") ?? "all") as
-        | "all"
-        | "sent"
-        | "delivered"
-        | "bounced"
-      | "complained"
-      | "delayed"
-      | "rejected"
-      | "rendering_failure",
-      origin: searchParams.get("origin") ?? "",
-      subject: searchParams.get("subject") ?? "",
-      provider: searchParams.get("provider") ?? "",
-    });
+    setFilters(parseOverviewFilters(searchParams));
   }, [searchParams]);
 
   const overviewQuery = useQuery({
@@ -113,15 +105,16 @@ export function OverviewPage() {
       "overview",
       language,
       page,
-      filters.timeMode,
-      filters.windowDays,
-      filters.startAt,
-      filters.endAt,
-      filters.recentActivitySort,
-      filters.status,
-      filters.origin,
-      filters.subject,
-      filters.provider,
+      appliedFilters.timeMode,
+      appliedFilters.windowDays,
+      appliedFilters.startAt,
+      appliedFilters.endAt,
+      appliedFilters.recentActivitySort,
+      appliedFilters.status,
+      appliedFilters.origin,
+      appliedFilters.subject,
+      appliedFilters.provider,
+      appliedFilters.rowLimit,
       supabase.eventsTable,
     ],
     enabled: Boolean(supabase.client && supabase.eventsTable),
@@ -129,15 +122,16 @@ export function OverviewPage() {
       fetchOverview(supabase.client!, supabase.eventsTable!, {
         page,
         pageSize: RECENT_ACTIVITY_PAGE_SIZE,
-        timeMode: filters.timeMode,
-        windowDays: filters.windowDays,
-        startAt: filters.startAt,
-        endAt: filters.endAt,
-        recentActivitySort: filters.recentActivitySort,
-        status: filters.status,
-        origin: filters.origin,
-        subject: filters.subject ?? "",
-        provider: filters.provider ?? "",
+        timeMode: appliedFilters.timeMode,
+        windowDays: appliedFilters.windowDays,
+        startAt: appliedFilters.startAt,
+        endAt: appliedFilters.endAt,
+        recentActivitySort: appliedFilters.recentActivitySort,
+        status: appliedFilters.status,
+        origin: appliedFilters.origin,
+        subject: appliedFilters.subject,
+        provider: appliedFilters.provider,
+        rowLimit: appliedFilters.rowLimit,
       }),
   });
 
@@ -241,15 +235,16 @@ export function OverviewPage() {
                         recipient: normalized,
                         query: normalized,
                         mode: "recipient",
-                        timeMode: filters.timeMode,
-                        windowDays: String(filters.windowDays),
-                        startAt: filters.timeMode === "custom" ? filters.startAt : "",
-                        endAt: filters.timeMode === "custom" ? filters.endAt : "",
-                        recentActivitySort: filters.recentActivitySort,
-                        status: filters.status,
-                        origin: filters.origin,
-                        subject: filters.subject ?? "",
-                        provider: filters.provider ?? "",
+                        timeMode: appliedFilters.timeMode,
+                        windowDays: String(appliedFilters.windowDays),
+                        startAt: appliedFilters.timeMode === "custom" ? appliedFilters.startAt : "",
+                        endAt: appliedFilters.timeMode === "custom" ? appliedFilters.endAt : "",
+                        recentActivitySort: appliedFilters.recentActivitySort,
+                        status: appliedFilters.status,
+                        origin: appliedFilters.origin,
+                        subject: appliedFilters.subject,
+                        provider: appliedFilters.provider,
+                        rows: String(appliedFilters.rowLimit),
                       },
                       true,
                     );
@@ -287,6 +282,7 @@ export function OverviewPage() {
                         origin: null,
                         subject: null,
                         provider: null,
+                        rows: null,
                       },
                       true,
                     ),
@@ -306,6 +302,7 @@ export function OverviewPage() {
                         origin: filters.origin,
                         subject: filters.subject ?? "",
                         provider: filters.provider ?? "",
+                        rows: String(filters.rowLimit),
                       },
                       true,
                     ),
@@ -348,7 +345,7 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(Math.max(1, overviewQuery.data.page - 1)),
-                    recentActivitySort: filters.recentActivitySort,
+                    recentActivitySort: appliedFilters.recentActivitySort,
                   }),
                 )
               }
@@ -356,7 +353,7 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(overviewQuery.data.page + 1),
-                    recentActivitySort: filters.recentActivitySort,
+                    recentActivitySort: appliedFilters.recentActivitySort,
                   }),
                 )
               }

@@ -9,6 +9,7 @@ import {
 import { normalizeEmail } from "@/lib/formatters/email";
 import {
   getAwsSnsOccurredAt,
+  getAwsSnsEventTypeFilterValues,
   rowMatchesOrigin,
   rowMatchesBounceDiagnostic,
   rowMatchesRecipientDomain,
@@ -18,7 +19,10 @@ import {
   rowMatchesSubject,
   rowToEmailEvent,
 } from "@/lib/supabase/aws-sns";
-import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
+import {
+  EMAIL_EVENT_LIST_COLUMNS,
+  fetchEventRowsWithTimeFallback,
+} from "@/lib/supabase/queries/fetch-event-rows";
 import { resolveTimeRange } from "@/lib/time-filters";
 
 function normalizeSearchText(value: string) {
@@ -119,8 +123,20 @@ export async function fetchRecipientInvestigation(
   const to = from + input.pageSize - 1;
   const { startIso, endIso } = resolveTimeRange(input);
   const eventTable = tableName || getEventTable();
+  const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, endIso);
+  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
+    endIso,
+    maxRows: input.rowLimit,
+    columns: EMAIL_EVENT_LIST_COLUMNS,
+    equals:
+      input.searchMode === "recipient" && normalizedSearchText
+        ? [{ column: "destination", value: normalizedSearchText }]
+        : undefined,
+    inValues: eventTypeFilterValues.length
+      ? [{ column: "eventType", values: eventTypeFilterValues }]
+      : undefined,
+  });
   const scopedRows = rows
     .filter((row) => getAwsSnsOccurredAt(row) >= startIso)
     .filter((row) => (endIso ? getAwsSnsOccurredAt(row) <= endIso : true))

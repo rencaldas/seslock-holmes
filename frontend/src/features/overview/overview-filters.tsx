@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { buildDefaultCustomRange } from "@/lib/time-filters";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType, RecentActivitySort, TimeFilterMode } from "@/lib/supabase/types";
+import { ROW_LIMIT_OPTIONS, type RowLimit } from "@/lib/row-limits";
 
 export interface OverviewFilterValues {
   timeMode: TimeFilterMode;
@@ -18,6 +19,7 @@ export interface OverviewFilterValues {
   origin: string;
   subject: string;
   provider?: string;
+  rowLimit: RowLimit;
 }
 
 export function OverviewFilters({
@@ -44,22 +46,14 @@ export function OverviewFilters({
   labelClassName?: string;
 }) {
   const t = useI18n();
-  const gridColumns = showRecentActivitySort
-    ? showProviderFilter
-      ? "md:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]"
-      : "md:grid-cols-[1fr_1fr_1fr_1fr_auto]"
-    : showProviderFilter
-      ? "md:grid-cols-[1fr_1fr_1fr_1fr_auto]"
-      : "md:grid-cols-[1fr_1fr_1fr_auto]";
   const isCustomRange = value.timeMode === "custom";
 
   return (
     <div className={cn(
-      "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft",
-      gridColumns,
+      "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft md:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]",
       className,
     )}>
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-start-1 md:row-span-2 md:row-start-1">
         <Label htmlFor="overview-time-mode" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.time}</Label>
         <Select
           id="overview-time-mode"
@@ -146,7 +140,7 @@ export function OverviewFilters({
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-start-2 md:row-start-1">
         <Label htmlFor="overview-status" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.status}</Label>
         <Select
           id="overview-status"
@@ -168,7 +162,9 @@ export function OverviewFilters({
             { label: t.overview.filters.options.rendering_failure, value: "rendering_failure" },
           ]}
         />
+      </div>
 
+      <div className="space-y-2 md:col-start-2 md:row-start-2">
         {/* Assunto empilhado embaixo do Status, alinhado com "Últimas 24 horas" */}
         <Label htmlFor="overview-subject" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.subject}</Label>
         <Input
@@ -185,7 +181,7 @@ export function OverviewFilters({
       </div>
 
       {showRecentActivitySort ? (
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-start-3 md:row-start-1">
           <Label htmlFor="overview-recent-sort" className={cn("text-slate-300", labelClassName)}>
             {t.overview.filters.recentActivitySort}
           </Label>
@@ -208,7 +204,7 @@ export function OverviewFilters({
         </div>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-start-4 md:row-start-1">
         <Label htmlFor="overview-origin" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.origin}</Label>
         <Input
           id="overview-origin"
@@ -224,7 +220,7 @@ export function OverviewFilters({
       </div>
 
       {showProviderFilter ? (
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-start-3 md:row-start-2">
           <Label htmlFor="overview-provider" className={cn("text-slate-300", labelClassName)}>{t.overview.filters.provider}</Label>
           <Input
             id="overview-provider"
@@ -240,7 +236,27 @@ export function OverviewFilters({
         </div>
       ) : null}
 
-      <div className="flex flex-col items-stretch justify-end gap-2">
+      <div className="space-y-2 md:col-start-5 md:row-start-1">
+        <Label htmlFor="overview-row-limit" className={cn("text-slate-300", labelClassName)}>
+          {t.overview.filters.rows}
+        </Label>
+        <Select
+          id="overview-row-limit"
+          value={String(value.rowLimit)}
+          onChange={(event) => onChange({ ...value, rowLimit: Number(event.target.value) as RowLimit })}
+          className={cn(
+            "h-11 w-full rounded-xl border border-slate-700 bg-slate-950 text-slate-100 px-4 text-sm outline-none",
+            "focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20",
+            selectClassName,
+          )}
+          options={ROW_LIMIT_OPTIONS.map((rowLimit) => ({
+            label: rowLimit.toLocaleString(),
+            value: String(rowLimit),
+          }))}
+        />
+      </div>
+
+      <div className="flex flex-col items-stretch justify-end gap-2 md:col-start-6 md:row-span-2 md:row-start-1">
         {onClear ? (
           <Button
             type="button"
@@ -252,9 +268,10 @@ export function OverviewFilters({
           </Button>
         ) : null}
         <Button
-            onClick={() => {
-                onApply();
-            }}
+          type="button"
+          onClick={() => {
+            onApply();
+          }}
         >
           {t.overview.filters.apply}
         </Button>

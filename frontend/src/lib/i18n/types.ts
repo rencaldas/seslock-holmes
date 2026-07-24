@@ -153,6 +153,7 @@ export type TranslationBundle = {
       subjectPlaceholder: string; 
       provider: string;
       providerPlaceholder: string;
+      rows: string;
       startDateTime: string;
       endDateTime: string;
       recentActivitySort: string;

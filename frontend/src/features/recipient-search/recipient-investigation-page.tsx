@@ -16,6 +16,7 @@ import { useSupabase } from "@/lib/supabase/context";
 import { fetchRecipientInvestigation } from "@/lib/supabase/queries/recipient-investigation";
 import type { RecentActivitySort, RecipientSearchMode } from "@/lib/supabase/types";
 import { parseTimeFilterState } from "@/lib/time-filters";
+import { parseRowLimit } from "@/lib/row-limits";
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
@@ -30,12 +31,8 @@ function parseRecentActivitySort(value: string | null): RecentActivitySort {
   return value === "time-asc" || value === "recipient-asc" || value === "recipient-desc" ? value : "time-desc";
 }
 
-export function RecipientInvestigationPage() {
-  const t = useI18n();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const supabase = useSupabase();
-  const [form, setForm] = useState({
+function parseInvestigationForm(searchParams: URLSearchParams) {
+  return {
     searchText: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
     searchMode: parseSearchMode(searchParams.get("mode")),
     ...parseTimeFilterState(searchParams),
@@ -52,27 +49,20 @@ export function RecipientInvestigationPage() {
     origin: searchParams.get("origin") ?? "",
     subject: searchParams.get("subject") ?? "",
     provider: searchParams.get("provider") ?? "",
-  });
+    rowLimit: parseRowLimit(searchParams.get("rows")),
+  };
+}
+
+export function RecipientInvestigationPage() {
+  const t = useI18n();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const supabase = useSupabase();
+  const appliedForm = parseInvestigationForm(searchParams);
+  const [form, setForm] = useState(() => appliedForm);
 
   useEffect(() => {
-    setForm({
-      searchText: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
-      searchMode: parseSearchMode(searchParams.get("mode")),
-      ...parseTimeFilterState(searchParams),
-      recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
-      status: (searchParams.get("status") ?? "all") as
-        | "all"
-        | "sent"
-        | "delivered"
-        | "bounced"
-        | "complained"
-        | "delayed"
-        | "rejected"
-        | "rendering_failure",
-      origin: searchParams.get("origin") ?? "",
-      subject: searchParams.get("subject") ?? "",
-      provider: searchParams.get("provider") ?? "",
-    });
+    setForm(parseInvestigationForm(searchParams));
   }, [searchParams]);
 
   const searchText = normalizeEmail(searchParams.get("query") ?? searchParams.get("recipient") ?? "");
@@ -84,15 +74,16 @@ export function RecipientInvestigationPage() {
         "recipient-investigation",
         searchText,
         searchMode,
-        form.timeMode,
-        form.windowDays,
-        form.startAt,
-        form.endAt,
-        form.recentActivitySort,
-        form.status,
-        form.origin,
-        form.subject,
-        form.provider,
+        appliedForm.timeMode,
+        appliedForm.windowDays,
+        appliedForm.startAt,
+        appliedForm.endAt,
+        appliedForm.recentActivitySort,
+        appliedForm.status,
+        appliedForm.origin,
+        appliedForm.subject,
+        appliedForm.provider,
+        appliedForm.rowLimit,
         page,
       supabase.eventsTable,
     ],
@@ -101,14 +92,15 @@ export function RecipientInvestigationPage() {
       fetchRecipientInvestigation(supabase.client!, supabase.eventsTable!, {
         searchText,
         searchMode,
-        timeMode: form.timeMode,
-        windowDays: form.windowDays,
-        startAt: form.startAt,
-        endAt: form.endAt,
-        status: form.status,
-        origin: form.origin,
-        subject: form.subject,
-        provider: form.provider,
+        timeMode: appliedForm.timeMode,
+        windowDays: appliedForm.windowDays,
+        startAt: appliedForm.startAt,
+        endAt: appliedForm.endAt,
+        status: appliedForm.status,
+        origin: appliedForm.origin,
+        subject: appliedForm.subject,
+        provider: appliedForm.provider,
+        rowLimit: appliedForm.rowLimit,
         page,
         pageSize: 25,
       }),
@@ -139,6 +131,24 @@ export function RecipientInvestigationPage() {
     setSearchParams({
       query: normalized,
       mode: form.searchMode,
+      timeMode: appliedForm.timeMode,
+      windowDays: String(appliedForm.windowDays),
+      startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
+      endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
+      recentActivitySort: appliedForm.recentActivitySort,
+      status: appliedForm.status,
+      origin: appliedForm.origin,
+      subject: appliedForm.subject,
+      provider: appliedForm.provider,
+      rows: String(appliedForm.rowLimit),
+      page: "1",
+    });
+  };
+
+  const applyFilters = () => {
+    setSearchParams({
+      query: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
+      mode: searchMode,
       timeMode: form.timeMode,
       windowDays: String(form.windowDays),
       startAt: form.timeMode === "custom" ? form.startAt : "",
@@ -148,6 +158,7 @@ export function RecipientInvestigationPage() {
       origin: form.origin,
       subject: form.subject,
       provider: form.provider,
+      rows: String(form.rowLimit),
       page: "1",
     });
   };
@@ -169,7 +180,12 @@ export function RecipientInvestigationPage() {
 
       <div className="sticky top-[7rem] z-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <RecipientSearchForm value={form} onChange={setForm} onSubmit={submitSearch} />
+          <RecipientSearchForm
+            value={form}
+            onChange={setForm}
+            onSubmit={submitSearch}
+            onApplyFilters={applyFilters}
+          />
         </div>
       </div>
 
@@ -211,14 +227,16 @@ export function RecipientInvestigationPage() {
                       setSearchParams({
                         query: searchText,
                         mode: searchMode,
-                        timeMode: form.timeMode,
-                        windowDays: String(form.windowDays),
-                        startAt: form.timeMode === "custom" ? form.startAt : "",
-                        endAt: form.timeMode === "custom" ? form.endAt : "",
-                        recentActivitySort: form.recentActivitySort,
-                        status: form.status,
-                        origin: form.origin,
-                        provider: form.provider,
+                        timeMode: appliedForm.timeMode,
+                        windowDays: String(appliedForm.windowDays),
+                        startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
+                        endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
+                        recentActivitySort: appliedForm.recentActivitySort,
+                        status: appliedForm.status,
+                        origin: appliedForm.origin,
+                        subject: appliedForm.subject,
+                        provider: appliedForm.provider,
+                        rows: String(appliedForm.rowLimit),
                         page: String(Math.max(1, page - 1)),
                       })
                     }
@@ -233,15 +251,16 @@ export function RecipientInvestigationPage() {
                       setSearchParams({
                         query: searchText,
                         mode: searchMode,
-                        timeMode: form.timeMode,
-                        windowDays: String(form.windowDays),
-                        startAt: form.timeMode === "custom" ? form.startAt : "",
-                        endAt: form.timeMode === "custom" ? form.endAt : "",
-                        recentActivitySort: form.recentActivitySort,
-                        status: form.status,
-                        origin: form.origin,
-                        subject: form.subject,
-                        provider: form.provider,
+                        timeMode: appliedForm.timeMode,
+                        windowDays: String(appliedForm.windowDays),
+                        startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
+                        endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
+                        recentActivitySort: appliedForm.recentActivitySort,
+                        status: appliedForm.status,
+                        origin: appliedForm.origin,
+                        subject: appliedForm.subject,
+                        provider: appliedForm.provider,
+                        rows: String(appliedForm.rowLimit),
                         page: String(page + 1),
                       })
                     }
@@ -258,15 +277,16 @@ export function RecipientInvestigationPage() {
                 setSearchParams({
                   query: email,
                   mode: searchMode === "origin" ? "recipient" : searchMode,
-                  timeMode: form.timeMode,
-                  windowDays: String(form.windowDays),
-                  startAt: form.timeMode === "custom" ? form.startAt : "",
-                  endAt: form.timeMode === "custom" ? form.endAt : "",
-                  recentActivitySort: form.recentActivitySort,
-                  status: form.status,
-                  origin: form.origin,
-                  subject: form.subject,
-                  provider: form.provider,
+                  timeMode: appliedForm.timeMode,
+                  windowDays: String(appliedForm.windowDays),
+                  startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
+                  endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
+                  recentActivitySort: appliedForm.recentActivitySort,
+                  status: appliedForm.status,
+                  origin: appliedForm.origin,
+                  subject: appliedForm.subject,
+                  provider: appliedForm.provider,
+                  rows: String(appliedForm.rowLimit),
                   page: "1",
                 })
               }

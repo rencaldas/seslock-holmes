@@ -19,6 +19,7 @@ vi.mock("@/lib/i18n/use-i18n", () => ({
         subject: "Subject Filter",
         provider: "Provider",
         providerPlaceholder: "@example.com",
+        rows: "Rows",
         startDateTime: "Start date and time",
         endDateTime: "End date and time",
         recentActivitySort: "Sort recent activity",
@@ -72,6 +73,7 @@ describe("OverviewFilters", () => {
               origin: "",
               subject: "",
               provider: "",
+              rowLimit: 100,
             }}
             onChange={() => undefined}
             onApply={() => undefined}
@@ -88,6 +90,71 @@ describe("OverviewFilters", () => {
       });
 
       expect(onClear).toHaveBeenCalledTimes(1);
+    } finally {
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
+  it("places the rows selector in the former provider column and moves provider beside subject", () => {
+    const onChange = vi.fn();
+    const onApply = vi.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    try {
+      act(() => {
+        root.render(
+          <OverviewFilters
+            value={{
+              timeMode: "window",
+              windowDays: 30,
+              startAt: "",
+              endAt: "",
+              recentActivitySort: "time-desc",
+              status: "all",
+              origin: "",
+              subject: "",
+              provider: "",
+              rowLimit: 100,
+            }}
+            onChange={onChange}
+            onApply={onApply}
+            showProviderFilter
+          />,
+        );
+      });
+
+      const rowLimit = container.querySelector<HTMLSelectElement>("#overview-row-limit");
+      const provider = container.querySelector<HTMLInputElement>("#overview-provider");
+      const subject = container.querySelector<HTMLInputElement>("#overview-subject");
+
+      expect(rowLimit?.parentElement?.className).toContain("md:col-start-5");
+      expect(provider?.parentElement?.className).toContain("md:col-start-3");
+      expect(provider?.parentElement?.className).toContain("md:row-start-2");
+      expect(subject?.parentElement?.className).toContain("md:col-start-2");
+      expect(subject?.parentElement?.className).toContain("md:row-start-2");
+
+      act(() => {
+        if (rowLimit) {
+          rowLimit.value = "500";
+          rowLimit.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ rowLimit: 500 }));
+      expect(onApply).not.toHaveBeenCalled();
+
+      const applyButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Apply filters",
+      );
+      act(() => {
+        applyButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(onApply).toHaveBeenCalledOnce();
     } finally {
       act(() => {
         root.unmount();

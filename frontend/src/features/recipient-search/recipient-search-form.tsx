@@ -6,6 +6,7 @@ import { Select } from "@/components/ui/select";
 import { OverviewFilters } from "@/features/overview/overview-filters";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType, RecentActivitySort, RecipientSearchMode, TimeFilterMode } from "@/lib/supabase/types";
+import { DEFAULT_ROW_LIMIT, type RowLimit } from "@/lib/row-limits";
 
 export interface RecipientSearchFilters {
   searchText: string;
@@ -19,6 +20,7 @@ export interface RecipientSearchFilters {
   origin: string;
   subject: string;
   provider: string;
+  rowLimit: RowLimit;
 }
 
 function getSearchPlaceholder(value: RecipientSearchFilters, t: ReturnType<typeof useI18n>) {
@@ -39,10 +41,12 @@ export function RecipientSearchForm({
   value,
   onChange,
   onSubmit,
+  onApplyFilters,
 }: {
   value: RecipientSearchFilters;
   onChange: (next: RecipientSearchFilters) => void;
   onSubmit: () => void;
+  onApplyFilters: () => void;
 }) {
   const t = useI18n();
   const { isOpen: filtersOpen, toggle: toggleFilters } = useDisclosure(false);
@@ -105,7 +109,7 @@ export function RecipientSearchForm({
       <OverviewFilters
         value={value}
         onChange={(next) => onChange({ ...value, ...next })}
-        onApply={onSubmit}
+        onApply={onApplyFilters}
         onClear={() =>
           onChange({
             searchText: "",
@@ -122,6 +126,7 @@ export function RecipientSearchForm({
             origin: "",
             subject: "",
             provider: "",
+            rowLimit: DEFAULT_ROW_LIMIT,
           })
         }
         showRecentActivitySort

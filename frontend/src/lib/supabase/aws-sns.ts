@@ -9,12 +9,29 @@ const EVENT_TYPE_MAP: Record<string, EmailEventType> = {
   bounced: "bounced",
   complaint: "complained",
   complained: "complained",
+  deliverydelay: "delayed",
+  delivery_delay: "delayed",
   delay: "delayed",
   delayed: "delayed",
   reject: "rejected",
   rejected: "rejected",
   renderingfailure: "rendering_failure",
   rendering_failure: "rendering_failure",
+};
+
+const EVENT_TYPE_FILTER_MAP: Record<EmailEventType, string[]> = {
+  sent: ["SEND", "SENT", "send", "sent"],
+  delivered: ["DELIVERY", "DELIVERED", "delivery", "delivered"],
+  bounced: ["BOUNCE", "BOUNCED", "bounce", "bounced"],
+  complained: ["COMPLAINT", "COMPLAINED", "complaint", "complained"],
+  delayed: ["DELIVERYDELAY", "DELIVERY_DELAY", "DELAY", "DELAYED", "deliverydelay", "delivery_delay", "delay", "delayed"],
+  rejected: ["REJECT", "REJECTED", "reject", "rejected"],
+  rendering_failure: [
+    "RENDERINGFAILURE",
+    "RENDERING_FAILURE",
+    "renderingfailure",
+    "rendering_failure",
+  ],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -94,6 +111,10 @@ function hasDiagnosticSignal(row: EmailEventRow) {
 export function normalizeAwsSnsEventType(value: string | null | undefined): EmailEventType {
   const normalized = normalizeText(value).replace(/\s+/g, "_");
   return EVENT_TYPE_MAP[normalized] ?? "sent";
+}
+
+export function getAwsSnsEventTypeFilterValues(status: "all" | EmailEventType) {
+  return status === "all" ? [] : EVENT_TYPE_FILTER_MAP[status];
 }
 
 export function getAwsSnsOccurredAt(row: EmailEventRow) {

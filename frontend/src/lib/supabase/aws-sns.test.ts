@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { EmailEventRow } from "@/lib/supabase/types";
 import {
+  getAwsSnsEventTypeFilterValues,
   getAwsSnsRecipients,
   rowMatchesBounceDiagnostic,
   rowMatchesRecipientDomain,
   rowToEmailEvent,
 } from "./aws-sns";
+
+describe("event type server filters", () => {
+  it("includes the uppercase SES value stored by the database", () => {
+    expect(getAwsSnsEventTypeFilterValues("bounced")).toContain("BOUNCE");
+    expect(getAwsSnsEventTypeFilterValues("all")).toEqual([]);
+  });
+});
 
 function makeRow(destination: unknown): EmailEventRow {
   return {

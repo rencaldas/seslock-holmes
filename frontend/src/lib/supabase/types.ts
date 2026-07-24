@@ -1,5 +1,6 @@
 import type { OverviewAnalytics } from "@/lib/overview/analytics";
 import type { BounceDiagnosis } from "@/lib/supabase/bounce-diagnostics";
+import type { RowLimit } from "@/lib/row-limits";
 
 export type EmailEventType =
   | "sent"
@@ -128,6 +129,7 @@ export interface OverviewQueryInput {
   origin: string;
   subject: string;
   provider: string;
+  rowLimit: RowLimit;
   page: number;
   pageSize: number;
 }
@@ -143,6 +145,7 @@ export interface RecipientInvestigationQueryInput {
   origin: string;
   subject: string;
   provider: string;
+  rowLimit: RowLimit;
   page: number;
   pageSize: number;
 }

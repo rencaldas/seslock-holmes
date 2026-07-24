@@ -5,13 +5,17 @@ import { getSupabaseLanguage } from "@/lib/supabase/settings";
 import { PROBLEM_EVENT_TYPES, type OverviewQueryInput, type OverviewResult } from "@/lib/supabase/types";
 import {
   getAwsSnsOccurredAt,
+  getAwsSnsEventTypeFilterValues,
   rowMatchesOrigin,
   rowMatchesRecipientDomain,
   rowMatchesStatus,
   rowMatchesSubject,
   rowToEmailEvent,
 } from "@/lib/supabase/aws-sns";
-import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
+import {
+  EMAIL_EVENT_LIST_COLUMNS,
+  fetchEventRowsWithTimeFallback,
+} from "@/lib/supabase/queries/fetch-event-rows";
 import { resolveTimeRange } from "@/lib/time-filters";
 
 function compareRecipientEmails(left: string, right: string) {
@@ -53,8 +57,16 @@ export async function fetchOverview(
   const origin = input.origin.trim();
   const subject = input.subject.trim();
   const provider = input.provider.trim();
+  const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, endIso);
+  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
+    endIso,
+    maxRows: input.rowLimit,
+    columns: EMAIL_EVENT_LIST_COLUMNS,
+    inValues: eventTypeFilterValues.length
+      ? [{ column: "eventType", values: eventTypeFilterValues }]
+      : undefined,
+  });
   const events = sortRecentEvents(
     rows
     .filter((row) => getAwsSnsOccurredAt(row) >= startIso)
