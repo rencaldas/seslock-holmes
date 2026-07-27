@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getEventTable } from "@/lib/supabase/schema";
 import type { EmailEventRow, MessageTraceQueryInput, MessageTraceResult } from "@/lib/supabase/types";
 import { getAwsSnsOccurredAt, rowToEmailEvent } from "@/lib/supabase/aws-sns";
-import { fetchEventRowsWithTimeFallback } from "@/lib/supabase/queries/fetch-event-rows";
+
+const TRACE_KEY_COLUMNS = ["id", "messageId", "snsMessageId"] as const;
+
+function quoteFilterValue(value: string) {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
 
 async function fetchOneByColumn(client: SupabaseClient, eventTable: string, column: "id" | "messageId" | "snsMessageId", value: string) {
   const { data, error } = await client.from(eventTable).select("*").eq(column, value).maybeSingle();
@@ -15,6 +20,16 @@ async function fetchOneByColumn(client: SupabaseClient, eventTable: string, colu
   }
 
   return data as EmailEventRow | null;
+}
+
+async function fetchTraceRows(client: SupabaseClient, eventTable: string, traceKey: string) {
+  const orFilter = TRACE_KEY_COLUMNS.map((column) => `${column}.eq.${quoteFilterValue(traceKey)}`).join(",");
+  const { data, error } = await client.from(eventTable).select("*").or(orFilter);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as EmailEventRow[];
 }
 
 export async function fetchMessageTrace(
@@ -35,14 +50,8 @@ export async function fetchMessageTrace(
 
   const selectedEvent = rowToEmailEvent(selectedRow);
   const traceKey = selectedEvent.snsMessageId || selectedEvent.messageId || selectedEvent.id;
-  const traceCutoff = new Date(0).toISOString();
-  const allRows = await fetchEventRowsWithTimeFallback(client, eventTable, traceCutoff);
-  const traceEvents = allRows
-    .filter((row) => {
-      const messageId = row.messageId?.trim() ?? "";
-      const snsMessageId = row.snsMessageId?.trim() ?? "";
-      return messageId === traceKey || snsMessageId === traceKey || row.id === traceKey;
-    })
+  const traceRows = await fetchTraceRows(client, eventTable, traceKey);
+  const traceEvents = traceRows
     .sort((a, b) => getAwsSnsOccurredAt(a).localeCompare(getAwsSnsOccurredAt(b)))
     .map((row) => rowToEmailEvent(row));
 
