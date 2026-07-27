@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ROW_LIMIT, parseRowLimit } from "@/lib/row-limits";
+import { DEFAULT_ROW_LIMIT, UNLIMITED_ROW_LIMIT, parseRowLimit } from "@/lib/row-limits";
 
 describe("row limits", () => {
   it.each([
     ["100", 100],
     ["500", 500],
     ["1000", 1000],
+    [UNLIMITED_ROW_LIMIT, UNLIMITED_ROW_LIMIT],
   ])("accepts the supported value %s", (value, expected) => {
     expect(parseRowLimit(value)).toBe(expected);
   });

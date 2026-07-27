@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { buildDefaultCustomRange } from "@/lib/time-filters";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEventType, RecentActivitySort, TimeFilterMode } from "@/lib/supabase/types";
-import { ROW_LIMIT_OPTIONS, type RowLimit } from "@/lib/row-limits";
+import { parseRowLimit, ROW_LIMIT_OPTIONS, UNLIMITED_ROW_LIMIT, type RowLimit } from "@/lib/row-limits";
 
 export interface OverviewFilterValues {
   timeMode: TimeFilterMode;
@@ -243,16 +243,22 @@ export function OverviewFilters({
         <Select
           id="overview-row-limit"
           value={String(value.rowLimit)}
-          onChange={(event) => onChange({ ...value, rowLimit: Number(event.target.value) as RowLimit })}
+          onChange={(event) => onChange({ ...value, rowLimit: parseRowLimit(event.target.value) })}
           className={cn(
             "h-11 w-full rounded-xl border border-slate-700 bg-slate-950 text-slate-100 px-4 text-sm outline-none",
             "focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20",
             selectClassName,
           )}
-          options={ROW_LIMIT_OPTIONS.map((rowLimit) => ({
-            label: rowLimit.toLocaleString(),
-            value: String(rowLimit),
-          }))}
+          options={[
+            ...ROW_LIMIT_OPTIONS.map((rowLimit) => ({
+              label: rowLimit.toLocaleString(),
+              value: String(rowLimit),
+            })),
+            {
+              label: t.overview.filters.noRowLimit,
+              value: UNLIMITED_ROW_LIMIT,
+            },
+          ]}
         />
       </div>
 

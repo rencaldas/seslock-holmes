@@ -8,6 +8,7 @@ import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { EmailEvent } from "@/lib/supabase/types";
+import { EmailReportExport } from "@/features/overview/email-report-export";
 
 async function copyToClipboard(value: string) {
   if (!value) {
@@ -29,6 +30,8 @@ async function copyToClipboard(value: string) {
 
 export function RecentActivityList({
   events,
+  reportEvents,
+  reportQuery,
   page,
   totalPages,
   hasPreviousPage,
@@ -37,6 +40,8 @@ export function RecentActivityList({
   onNextPage,
 }: {
   events: EmailEvent[];
+  reportEvents: EmailEvent[];
+  reportQuery: Record<string, string>;
   page: number;
   totalPages: number;
   hasPreviousPage: boolean;
@@ -55,7 +60,8 @@ export function RecentActivityList({
             {t.overview.pageLabel} {page} de {totalPages}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <EmailReportExport events={reportEvents} query={reportQuery} />
           <Button type="button" variant="secondary" disabled={!hasPreviousPage} onClick={onPreviousPage}>
             {t.overview.previous}
           </Button>

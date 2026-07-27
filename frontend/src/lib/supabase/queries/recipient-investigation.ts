@@ -24,6 +24,7 @@ import {
   fetchEventRowsWithTimeFallback,
 } from "@/lib/supabase/queries/fetch-event-rows";
 import { resolveTimeRange } from "@/lib/time-filters";
+import { UNLIMITED_ROW_LIMIT } from "@/lib/row-limits";
 
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
@@ -127,7 +128,7 @@ export async function fetchRecipientInvestigation(
 
   const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
     endIso,
-    maxRows: input.rowLimit,
+    maxRows: input.rowLimit === UNLIMITED_ROW_LIMIT ? undefined : input.rowLimit,
     columns: EMAIL_EVENT_LIST_COLUMNS,
     equals:
       input.searchMode === "recipient" && normalizedSearchText

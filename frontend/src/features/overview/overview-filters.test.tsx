@@ -20,6 +20,7 @@ vi.mock("@/lib/i18n/use-i18n", () => ({
         provider: "Provider",
         providerPlaceholder: "@example.com",
         rows: "Rows",
+        noRowLimit: "No limit",
         startDateTime: "Start date and time",
         endDateTime: "End date and time",
         recentActivitySort: "Sort recent activity",
@@ -137,6 +138,7 @@ describe("OverviewFilters", () => {
       expect(provider?.parentElement?.className).toContain("md:row-start-2");
       expect(subject?.parentElement?.className).toContain("md:col-start-2");
       expect(subject?.parentElement?.className).toContain("md:row-start-2");
+      expect(Array.from(rowLimit?.options ?? []).map((option) => option.textContent)).toContain("No limit");
 
       act(() => {
         if (rowLimit) {
@@ -147,6 +149,15 @@ describe("OverviewFilters", () => {
 
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ rowLimit: 500 }));
       expect(onApply).not.toHaveBeenCalled();
+
+      act(() => {
+        if (rowLimit) {
+          rowLimit.value = "all";
+          rowLimit.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ rowLimit: "all" }));
 
       const applyButton = Array.from(container.querySelectorAll("button")).find(
         (button) => button.textContent === "Apply filters",

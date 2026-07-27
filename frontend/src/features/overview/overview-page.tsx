@@ -337,6 +337,19 @@ export function OverviewPage() {
           {overviewQuery.data.recentEvents.length ? (
             <RecentActivityList
               events={overviewQuery.data.recentEvents}
+              reportEvents={overviewQuery.data.reportEvents}
+              reportQuery={{
+                timeMode: appliedFilters.timeMode,
+                windowDays: String(appliedFilters.windowDays),
+                startAt: appliedFilters.timeMode === "custom" ? appliedFilters.startAt : "",
+                endAt: appliedFilters.timeMode === "custom" ? appliedFilters.endAt : "",
+                recentActivitySort: appliedFilters.recentActivitySort,
+                status: appliedFilters.status,
+                origin: appliedFilters.origin,
+                subject: appliedFilters.subject,
+                provider: appliedFilters.provider,
+                rows: String(appliedFilters.rowLimit),
+              }}
               page={overviewQuery.data.page}
               totalPages={overviewQuery.data.totalPages}
               hasPreviousPage={overviewQuery.data.hasPreviousPage}

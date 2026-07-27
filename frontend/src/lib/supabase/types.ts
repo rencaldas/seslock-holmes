@@ -96,6 +96,7 @@ export interface RecipientInvestigationResult {
 
 export interface OverviewResult {
   recentEvents: EmailEvent[];
+  reportEvents: EmailEvent[];
   recentEventsCount: number;
   uniqueMessagesCount: number;
   uniqueRecipientsCount: number;

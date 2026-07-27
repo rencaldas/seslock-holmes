@@ -65,6 +65,11 @@ export type TranslationBundle = {
     pageLabel: string;
     previous: string;
     next: string;
+    exportReport: string;
+    exportAllResults: string;
+    exportPdf: string;
+    exportCsv: string;
+    exportJson: string;
     tableHour: string;
     tableResult: string;
     tableSubject: string;
@@ -154,6 +159,7 @@ export type TranslationBundle = {
       provider: string;
       providerPlaceholder: string;
       rows: string;
+      noRowLimit: string;
       startDateTime: string;
       endDateTime: string;
       recentActivitySort: string;

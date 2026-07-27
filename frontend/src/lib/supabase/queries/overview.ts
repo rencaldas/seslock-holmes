@@ -17,6 +17,7 @@ import {
   fetchEventRowsWithTimeFallback,
 } from "@/lib/supabase/queries/fetch-event-rows";
 import { resolveTimeRange } from "@/lib/time-filters";
+import { UNLIMITED_ROW_LIMIT } from "@/lib/row-limits";
 
 function compareRecipientEmails(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
@@ -61,7 +62,7 @@ export async function fetchOverview(
 
   const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
     endIso,
-    maxRows: input.rowLimit,
+    maxRows: input.rowLimit === UNLIMITED_ROW_LIMIT ? undefined : input.rowLimit,
     columns: EMAIL_EVENT_LIST_COLUMNS,
     inValues: eventTypeFilterValues.length
       ? [{ column: "eventType", values: eventTypeFilterValues }]
@@ -95,6 +96,7 @@ export async function fetchOverview(
 
   return {
     recentEvents,
+    reportEvents: events,
     recentEventsCount: totalCount,
     uniqueMessagesCount,
     uniqueRecipientsCount: analytics.uniqueRecipientsCount,
