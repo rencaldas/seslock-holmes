@@ -37,10 +37,20 @@ export interface EmailReport {
   recipients: EmailReportRecipient[];
 }
 
+export type EmailReportSortBy =
+  | "email"
+  | "criticality"
+  | "totalEvents"
+  | "recentActivity"
+  | "complaints"
+  | "domain"
+  | "problemRate";
+
 interface EmailReportOptions {
   language: AppLanguage;
   query?: Record<string, string>;
   generatedAt?: string;
+  sortBy?: EmailReportSortBy;
 }
 
 type MutableRecipient = EmailReportRecipient & {
@@ -143,6 +153,40 @@ function addReasonDetails(
   }
 }
 
+function problemRate(recipient: EmailReportRecipient) {
+  const problems = recipient.eventCounts.bounced + recipient.eventCounts.complained + recipient.eventCounts.rejected;
+  return recipient.totalEvents > 0 ? problems / recipient.totalEvents : 0;
+}
+
+function createRecipientComparator(sortBy: EmailReportSortBy, language: AppLanguage) {
+  const compareEmail = (left: EmailReportRecipient, right: EmailReportRecipient) =>
+    left.email.localeCompare(right.email, language, { sensitivity: "base" });
+
+  switch (sortBy) {
+    case "criticality":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.eventCounts.bounced - left.eventCounts.bounced || compareEmail(left, right);
+    case "totalEvents":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.totalEvents - left.totalEvents || compareEmail(left, right);
+    case "recentActivity":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        getTimestamp(right.lastEventAt) - getTimestamp(left.lastEventAt) || compareEmail(left, right);
+    case "complaints":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.eventCounts.complained - left.eventCounts.complained || compareEmail(left, right);
+    case "domain":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        left.domain.localeCompare(right.domain, language, { sensitivity: "base" }) || compareEmail(left, right);
+    case "problemRate":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        problemRate(right) - problemRate(left) || compareEmail(left, right);
+    case "email":
+    default:
+      return compareEmail;
+  }
+}
+
 export function buildEmailReport(events: EmailEvent[], options: EmailReportOptions): EmailReport {
   const groups = new Map<string, MutableRecipient>();
   const allMessageIds = new Set<string>();
@@ -209,7 +253,7 @@ export function buildEmailReport(events: EmailEvent[], options: EmailReportOptio
       recommendations: [...recipient.recommendationSet].sort(),
       subjects: [...recipient.subjectSet].sort(),
     }))
-    .sort((left, right) => left.email.localeCompare(right.email, options.language, { sensitivity: "base" }));
+    .sort(createRecipientComparator(options.sortBy ?? "email", options.language));
 
   return {
     generatedAt: options.generatedAt ?? new Date().toISOString(),
