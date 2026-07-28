@@ -67,6 +67,14 @@ export type TranslationBundle = {
     next: string;
     exportReport: string;
     exportAllResults: string;
+    exportSortLabel: string;
+    exportSortEmail: string;
+    exportSortCriticality: string;
+    exportSortTotalEvents: string;
+    exportSortRecentActivity: string;
+    exportSortComplaints: string;
+    exportSortDomain: string;
+    exportSortProblemRate: string;
     exportPdf: string;
     exportCsv: string;
     exportJson: string;

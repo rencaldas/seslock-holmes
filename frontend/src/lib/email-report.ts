@@ -37,10 +37,20 @@ export interface EmailReport {
   recipients: EmailReportRecipient[];
 }
 
+export type EmailReportSortBy =
+  | "email"
+  | "criticality"
+  | "totalEvents"
+  | "recentActivity"
+  | "complaints"
+  | "domain"
+  | "problemRate";
+
 interface EmailReportOptions {
   language: AppLanguage;
   query?: Record<string, string>;
   generatedAt?: string;
+  sortBy?: EmailReportSortBy;
 }
 
 type MutableRecipient = EmailReportRecipient & {
@@ -143,6 +153,40 @@ function addReasonDetails(
   }
 }
 
+function problemRate(recipient: EmailReportRecipient) {
+  const problems = recipient.eventCounts.bounced + recipient.eventCounts.complained + recipient.eventCounts.rejected;
+  return recipient.totalEvents > 0 ? problems / recipient.totalEvents : 0;
+}
+
+function createRecipientComparator(sortBy: EmailReportSortBy, language: AppLanguage) {
+  const compareEmail = (left: EmailReportRecipient, right: EmailReportRecipient) =>
+    left.email.localeCompare(right.email, language, { sensitivity: "base" });
+
+  switch (sortBy) {
+    case "criticality":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.eventCounts.bounced - left.eventCounts.bounced || compareEmail(left, right);
+    case "totalEvents":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.totalEvents - left.totalEvents || compareEmail(left, right);
+    case "recentActivity":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        getTimestamp(right.lastEventAt) - getTimestamp(left.lastEventAt) || compareEmail(left, right);
+    case "complaints":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        right.eventCounts.complained - left.eventCounts.complained || compareEmail(left, right);
+    case "domain":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        left.domain.localeCompare(right.domain, language, { sensitivity: "base" }) || compareEmail(left, right);
+    case "problemRate":
+      return (left: EmailReportRecipient, right: EmailReportRecipient) =>
+        problemRate(right) - problemRate(left) || compareEmail(left, right);
+    case "email":
+    default:
+      return compareEmail;
+  }
+}
+
 export function buildEmailReport(events: EmailEvent[], options: EmailReportOptions): EmailReport {
   const groups = new Map<string, MutableRecipient>();
   const allMessageIds = new Set<string>();
@@ -209,7 +253,7 @@ export function buildEmailReport(events: EmailEvent[], options: EmailReportOptio
       recommendations: [...recipient.recommendationSet].sort(),
       subjects: [...recipient.subjectSet].sort(),
     }))
-    .sort((left, right) => left.email.localeCompare(right.email, options.language, { sensitivity: "base" }));
+    .sort(createRecipientComparator(options.sortBy ?? "email", options.language));
 
   return {
     generatedAt: options.generatedAt ?? new Date().toISOString(),
@@ -325,75 +369,276 @@ function wrapText(value: string, maxLength = 92) {
   return lines;
 }
 
-function addWrappedLines(lines: string[], label: string, values: string[]) {
-  const content = values.length ? values.join(" | ") : "-";
-  lines.push(...wrapText(`${label}: ${content}`));
+function formatDateTimeBR(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  const pad = (input: number) => String(input).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function buildPdfLines(report: EmailReport) {
+const EVENT_TYPE_LABELS: Record<AppLanguage, Record<EmailEventType, string>> = {
+  "en-US": {
+    sent: "Sent",
+    delivered: "Delivered",
+    bounced: "Bounced",
+    complained: "Complaint",
+    delayed: "Delayed",
+    rejected: "Rejected",
+    rendering_failure: "Rendering failure",
+  },
+  "pt-BR": {
+    sent: "Enviado",
+    delivered: "Entregue",
+    bounced: "Rejeitado (bounce)",
+    complained: "Reclamação",
+    delayed: "Atrasado",
+    rejected: "Rejeitado",
+    rendering_failure: "Falha de renderização",
+  },
+};
+
+function eventCountLabels(recipient: EmailReportRecipient, language: AppLanguage) {
+  const labels = EVENT_TYPE_LABELS[language];
+  return EVENT_TYPES.filter((eventType) => recipient.eventCounts[eventType] > 0).map(
+    (eventType) => `${labels[eventType]}: ${recipient.eventCounts[eventType]}`,
+  );
+}
+
+// --- PDF layout engine -----------------------------------------------------
+// A small hand-rolled layout engine: no external PDF library is used, so we
+// track a text cursor across pages ourselves and emit positioned text/line
+// drawing operators directly into the PDF content streams.
+
+const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
+const MARGIN_LEFT = 50;
+const MARGIN_RIGHT = 50;
+const MARGIN_TOP = 56;
+const MARGIN_BOTTOM = 54;
+const START_Y = PAGE_HEIGHT - MARGIN_TOP;
+const TITLE_GRAY = 0.09;
+const HEADING_GRAY = 0.12;
+const LABEL_GRAY = 0.28;
+const VALUE_GRAY = 0.18;
+const META_GRAY = 0.42;
+const RULE_GRAY = 0.8;
+
+type PdfFont = "F1" | "F2";
+
+type PdfCommand =
+  | { kind: "text"; x: number; y: number; font: PdfFont; size: number; gray: number; text: string }
+  | { kind: "line"; x1: number; y1: number; x2: number; y2: number; gray: number; width: number };
+
+function charsPerLine(size: number, x: number, bold: boolean) {
+  const availableWidth = PAGE_WIDTH - MARGIN_RIGHT - x;
+  const avgCharWidth = size * (bold ? 0.56 : 0.5);
+  return Math.max(12, Math.floor(availableWidth / avgCharWidth));
+}
+
+function createPdfLayout() {
+  const pages: PdfCommand[][] = [[]];
+  let y = START_Y;
+
+  function newPage() {
+    pages.push([]);
+    y = START_Y;
+  }
+
+  function ensureSpace(height: number) {
+    if (y - height < MARGIN_BOTTOM) {
+      newPage();
+    }
+  }
+
+  function currentPage() {
+    return pages[pages.length - 1]!;
+  }
+
+  function spacer(height: number) {
+    ensureSpace(height);
+    y -= height;
+  }
+
+  function rule(gray = RULE_GRAY, width = 0.75) {
+    ensureSpace(12);
+    y -= 5;
+    currentPage().push({
+      kind: "line",
+      x1: MARGIN_LEFT,
+      y1: y,
+      x2: PAGE_WIDTH - MARGIN_RIGHT,
+      y2: y,
+      gray,
+      width,
+    });
+    y -= 7;
+  }
+
+  function textLine(x: number, font: PdfFont, size: number, gray: number, text: string, leading?: number) {
+    const lineLeading = leading ?? size * 1.5;
+    ensureSpace(lineLeading);
+    currentPage().push({ kind: "text", x, y: y - size, font, size, gray, text });
+    y -= lineLeading;
+  }
+
+  function wrapped(x: number, font: PdfFont, size: number, gray: number, text: string, leading?: number) {
+    const chars = charsPerLine(size, x, font === "F2");
+    for (const line of wrapText(text, chars)) {
+      textLine(x, font, size, gray, line, leading);
+    }
+  }
+
+  function bulletList(x: number, size: number, gray: number, items: string[], emptyLabel: string) {
+    if (!items.length) {
+      textLine(x, "F1", size, gray, emptyLabel);
+      return;
+    }
+    const chars = charsPerLine(size, x + 12, false);
+    for (const item of items) {
+      const wrappedLines = wrapText(item, chars);
+      wrappedLines.forEach((line, index) => {
+        textLine(x, "F1", size, gray, `${index === 0 ? "• " : "  "}${line}`);
+      });
+    }
+  }
+
+  function field(x: number, label: string, items: string[], emptyLabel: string) {
+    ensureSpace(size1_5(9.5));
+    textLine(x, "F2", 9.5, LABEL_GRAY, label);
+    bulletList(x + 10, 9.3, VALUE_GRAY, items, emptyLabel);
+    spacer(3);
+  }
+
+  function size1_5(size: number) {
+    return size * 1.5;
+  }
+
+  return { pages, ensureSpace, spacer, rule, textLine, wrapped, field, get y() {
+    return y;
+  } };
+}
+
+function buildPdfPages(report: EmailReport) {
   const isEnglish = report.language === "en-US";
   const labels = isEnglish
     ? {
-        title: "SES email report",
-        generated: "Generated",
-        query: "Query",
-        summary: "Summary",
-        events: "events",
-        messages: "unique messages",
-        recipients: "recipients",
+        title: "SES Email Report",
+        generated: "Generated on",
+        query: "Applied filters",
+        summary: "SUMMARY",
+        totalEvents: "Total events",
+        uniqueMessages: "Unique messages",
+        uniqueRecipients: "Recipients",
+        recipientsHeading: "RECIPIENTS",
         domain: "Domain",
+        events: "events",
+        uniqueMessagesShort: "unique messages",
         period: "Period",
-        statuses: "Statuses",
-        origins: "Origins",
+        statuses: "Status",
+        origins: "Origin",
         reasons: "Possible reasons",
         recommendations: "Recommendations",
         subjects: "Subjects",
+        none: "None recorded",
+        noRecipients: "No recipients match the applied filters.",
       }
     : {
-        title: "Relatório de emails SES",
+        title: "Relatório de Emails SES",
         generated: "Gerado em",
-        query: "Consulta",
-        summary: "Resumo",
-        events: "eventos",
-        messages: "mensagens únicas",
-        recipients: "destinatários",
+        query: "Filtros aplicados",
+        summary: "RESUMO",
+        totalEvents: "Total de eventos",
+        uniqueMessages: "Mensagens únicas",
+        uniqueRecipients: "Destinatários",
+        recipientsHeading: "DESTINATÁRIOS",
         domain: "Domínio",
+        events: "eventos",
+        uniqueMessagesShort: "mensagens únicas",
         period: "Período",
         statuses: "Status",
-        origins: "Origens",
+        origins: "Origem",
         reasons: "Possíveis motivos",
         recommendations: "Recomendações",
         subjects: "Assuntos",
+        none: "Nenhum registrado",
+        noRecipients: "Nenhum destinatário corresponde aos filtros aplicados.",
       };
-  const lines = [
-    labels.title,
-    `${labels.generated}: ${report.generatedAt}`,
-    `${labels.summary}: ${report.summary.totalEvents} ${labels.events}; ${report.summary.uniqueMessages} ${labels.messages}; ${report.summary.uniqueRecipients} ${labels.recipients}`,
-  ];
+
+  const layout = createPdfLayout();
+
+  layout.textLine(MARGIN_LEFT, "F2", 19, TITLE_GRAY, labels.title, 26);
+  layout.rule(TITLE_GRAY, 1.2);
+  layout.spacer(6);
+  layout.textLine(MARGIN_LEFT, "F1", 9.5, META_GRAY, `${labels.generated}: ${formatDateTimeBR(report.generatedAt)}`);
 
   const querySummary = Object.entries(report.query)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("; ");
+    .map(([key, value]) => `${key} = ${value}`)
+    .join("   •   ");
   if (querySummary) {
-    lines.push(...wrapText(`${labels.query}: ${querySummary}`));
+    layout.spacer(2);
+    layout.textLine(MARGIN_LEFT, "F2", 9.5, LABEL_GRAY, `${labels.query}:`);
+    layout.wrapped(MARGIN_LEFT + 10, "F1", 9.3, META_GRAY, querySummary);
   }
-  lines.push("", "=".repeat(92), "");
 
-  for (const recipient of report.recipients) {
-    lines.push(recipient.email);
-    lines.push(
-      `${labels.domain}: ${recipient.domain || "-"} | ${recipient.totalEvents} ${labels.events} | ${recipient.uniqueMessages} ${labels.messages}`,
+  layout.spacer(10);
+  layout.textLine(MARGIN_LEFT, "F2", 11.5, HEADING_GRAY, labels.summary, 18);
+  layout.textLine(
+    MARGIN_LEFT,
+    "F1",
+    10,
+    VALUE_GRAY,
+    `${labels.totalEvents}: ${report.summary.totalEvents}   •   ${labels.uniqueMessages}: ${report.summary.uniqueMessages}   •   ${labels.uniqueRecipients}: ${report.summary.uniqueRecipients}`,
+  );
+
+  layout.spacer(10);
+  layout.rule();
+  layout.spacer(6);
+  layout.textLine(
+    MARGIN_LEFT,
+    "F2",
+    11.5,
+    HEADING_GRAY,
+    `${labels.recipientsHeading} (${report.recipients.length})`,
+    20,
+  );
+
+  if (!report.recipients.length) {
+    layout.textLine(MARGIN_LEFT, "F1", 10, VALUE_GRAY, labels.noRecipients);
+  }
+
+  report.recipients.forEach((recipient, index) => {
+    layout.ensureSpace(70);
+    layout.textLine(MARGIN_LEFT, "F2", 12.5, TITLE_GRAY, `${index + 1}. ${recipient.email}`, 18);
+    layout.textLine(
+      MARGIN_LEFT,
+      "F1",
+      9.5,
+      META_GRAY,
+      `${labels.domain}: ${recipient.domain || "-"}   •   ${recipient.totalEvents} ${labels.events}   •   ${recipient.uniqueMessages} ${labels.uniqueMessagesShort}`,
     );
-    lines.push(`${labels.period}: ${recipient.firstEventAt} - ${recipient.lastEventAt}`);
-    addWrappedLines(lines, labels.statuses, [eventCountSummary(recipient)]);
-    addWrappedLines(lines, labels.origins, recipient.origins);
-    addWrappedLines(lines, labels.reasons, recipient.possibleReasons);
-    addWrappedLines(lines, labels.recommendations, recipient.recommendations);
-    addWrappedLines(lines, labels.subjects, recipient.subjects);
-    lines.push("", "-".repeat(92), "");
-  }
+    layout.textLine(
+      MARGIN_LEFT,
+      "F1",
+      9.5,
+      META_GRAY,
+      `${labels.period}: ${formatDateTimeBR(recipient.firstEventAt)} - ${formatDateTimeBR(recipient.lastEventAt)}`,
+    );
+    layout.spacer(5);
 
-  return lines;
+    layout.field(MARGIN_LEFT, `${labels.statuses}:`, eventCountLabels(recipient, report.language), labels.none);
+    layout.field(MARGIN_LEFT, `${labels.origins}:`, recipient.origins, labels.none);
+    layout.field(MARGIN_LEFT, `${labels.reasons}:`, recipient.possibleReasons, labels.none);
+    layout.field(MARGIN_LEFT, `${labels.recommendations}:`, recipient.recommendations, labels.none);
+    layout.field(MARGIN_LEFT, `${labels.subjects}:`, recipient.subjects, labels.none);
+
+    layout.spacer(4);
+    layout.rule();
+    layout.spacer(8);
+  });
+
+  return layout.pages;
 }
 
 function toPdfBinaryString(value: string) {
@@ -404,6 +649,7 @@ function toPdfBinaryString(value: string) {
       if (character === ")") return "\\)";
       if (character === "–" || character === "—") return "-";
       if (character === "…") return "...";
+      if (character === "•") return String.fromCharCode(0x95);
       return character.charCodeAt(0) <= 255 ? character : "?";
     })
     .join("");
@@ -413,14 +659,43 @@ function binaryStringToBytes(value: string) {
   return Uint8Array.from(value, (character) => character.charCodeAt(0) & 0xff);
 }
 
+function renderPdfCommand(command: PdfCommand) {
+  if (command.kind === "line") {
+    return [
+      `${command.gray} G`,
+      `${command.width} w`,
+      `${command.x1} ${command.y1} m`,
+      `${command.x2} ${command.y2} l`,
+      "S",
+    ].join("\n");
+  }
+  return [
+    `${command.gray} g`,
+    "BT",
+    `/${command.font} ${command.size} Tf`,
+    `1 0 0 1 ${command.x} ${command.y} Tm`,
+    `(${toPdfBinaryString(command.text)}) Tj`,
+    "ET",
+  ].join("\n");
+}
+
+function renderPdfPageContent(commands: PdfCommand[], pageNumber: number, totalPages: number) {
+  const footer = renderPdfCommand({
+    kind: "text",
+    x: PAGE_WIDTH / 2 - 24,
+    y: 28,
+    font: "F1",
+    size: 8,
+    gray: META_GRAY,
+    text: `${pageNumber} / ${totalPages}`,
+  });
+  return [...commands.map(renderPdfCommand), footer].join("\n");
+}
+
 export function emailReportToPdf(report: EmailReport) {
-  const lines = buildPdfLines(report);
-  const linesPerPage = 54;
-  const pages = Array.from(
-    { length: Math.max(1, Math.ceil(lines.length / linesPerPage)) },
-    (_, index) => lines.slice(index * linesPerPage, (index + 1) * linesPerPage),
-  );
-  const fontObjectId = 3 + pages.length * 2;
+  const pages = buildPdfPages(report);
+  const regularFontId = 3 + pages.length * 2;
+  const boldFontId = regularFontId + 1;
   const objects = new Map<number, string>();
   const pageObjectIds = pages.map((_, index) => 3 + index * 2);
 
@@ -430,42 +705,39 @@ export function emailReportToPdf(report: EmailReport) {
     `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`,
   );
 
-  pages.forEach((pageLines, index) => {
+  pages.forEach((pageCommands, index) => {
     const pageObjectId = pageObjectIds[index]!;
     const contentObjectId = pageObjectId + 1;
-    const content = [
-      "BT",
-      "/F1 9 Tf",
-      "12 TL",
-      "42 800 Td",
-      ...pageLines.flatMap((line) => [`(${toPdfBinaryString(line)}) Tj`, "T*"]),
-      "ET",
-    ].join("\n");
+    const content = renderPdfPageContent(pageCommands, index + 1, pages.length);
     objects.set(
       pageObjectId,
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`,
     );
     objects.set(contentObjectId, `<< /Length ${binaryStringToBytes(content).length} >>\nstream\n${content}\nendstream`);
   });
   objects.set(
-    fontObjectId,
+    regularFontId,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+  );
+  objects.set(
+    boldFontId,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
   );
 
   let pdf = "%PDF-1.4\n%âãÏÓ\n";
-  const offsets = new Array<number>(fontObjectId + 1).fill(0);
-  for (let objectId = 1; objectId <= fontObjectId; objectId += 1) {
+  const offsets = new Array<number>(boldFontId + 1).fill(0);
+  for (let objectId = 1; objectId <= boldFontId; objectId += 1) {
     offsets[objectId] = pdf.length;
     pdf += `${objectId} 0 obj\n${objects.get(objectId)}\nendobj\n`;
   }
 
   const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${fontObjectId + 1}\n`;
+  pdf += `xref\n0 ${boldFontId + 1}\n`;
   pdf += "0000000000 65535 f \n";
-  for (let objectId = 1; objectId <= fontObjectId; objectId += 1) {
+  for (let objectId = 1; objectId <= boldFontId; objectId += 1) {
     pdf += `${String(offsets[objectId]).padStart(10, "0")} 00000 n \n`;
   }
-  pdf += `trailer\n<< /Size ${fontObjectId + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  pdf += `trailer\n<< /Size ${boldFontId + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
   return new Blob([binaryStringToBytes(pdf)], { type: "application/pdf" });
 }

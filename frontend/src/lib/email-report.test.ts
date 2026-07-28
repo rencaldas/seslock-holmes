@@ -99,6 +99,29 @@ describe("email report", () => {
     expect(report.recipients[1]?.possibleReasons).toEqual(["A entrega sofreu um atraso temporário."]);
   });
 
+  it("sorts recipients by criticality, total events, recent activity, complaints, domain and problem rate", () => {
+    const sortEvents = [
+      createEvent({ id: "e1", recipientEmail: "ana@example.com", eventType: "sent", occurredAt: "2026-07-20T10:00:00.000Z" }),
+      createEvent({ id: "e2", recipientEmail: "ana@example.com", eventType: "bounced", occurredAt: "2026-07-20T10:05:00.000Z" }),
+      createEvent({ id: "e3", recipientEmail: "bruno@example.net", eventType: "bounced", occurredAt: "2026-07-20T09:00:00.000Z" }),
+      createEvent({ id: "e4", recipientEmail: "bruno@example.net", eventType: "bounced", occurredAt: "2026-07-20T09:05:00.000Z" }),
+      createEvent({ id: "e5", recipientEmail: "bruno@example.net", eventType: "complained", occurredAt: "2026-07-20T09:10:00.000Z" }),
+      createEvent({ id: "e6", recipientEmail: "carla@zzz.example", eventType: "sent", occurredAt: "2026-07-20T12:00:00.000Z" }),
+    ];
+
+    const build = (sortBy: Parameters<typeof buildEmailReport>[1]["sortBy"]) =>
+      buildEmailReport(sortEvents, { language: "pt-BR", generatedAt: "2026-07-27T12:00:00.000Z", sortBy }).recipients.map(
+        (recipient) => recipient.email,
+      );
+
+    expect(build("criticality")).toEqual(["bruno@example.net", "ana@example.com", "carla@zzz.example"]);
+    expect(build("totalEvents")).toEqual(["bruno@example.net", "ana@example.com", "carla@zzz.example"]);
+    expect(build("recentActivity")).toEqual(["carla@zzz.example", "ana@example.com", "bruno@example.net"]);
+    expect(build("complaints")).toEqual(["bruno@example.net", "ana@example.com", "carla@zzz.example"]);
+    expect(build("domain")).toEqual(["ana@example.com", "bruno@example.net", "carla@zzz.example"]);
+    expect(build("problemRate")).toEqual(["bruno@example.net", "ana@example.com", "carla@zzz.example"]);
+  });
+
   it("exports CSV and JSON with the grouped recipients", () => {
     const report = buildEmailReport(events, {
       language: "pt-BR",

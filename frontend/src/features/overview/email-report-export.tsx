@@ -1,12 +1,14 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Download, FileJson, FileSpreadsheet, FileText } from "lucide-react";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
+import { Select } from "@/components/ui/select";
 import {
   buildEmailReport,
   createEmailReportFilename,
   emailReportToCsv,
   emailReportToJson,
   emailReportToPdf,
+  type EmailReportSortBy,
 } from "@/lib/email-report";
 import type { EmailEvent } from "@/lib/supabase/types";
 
@@ -33,9 +35,20 @@ export function EmailReportExport({
   const t = useI18n();
   const language = useAppLanguage();
   const menuRef = useRef<HTMLDetailsElement>(null);
+  const [sortBy, setSortBy] = useState<EmailReportSortBy>("email");
+
+  const sortOptions: { value: EmailReportSortBy; label: string }[] = [
+    { value: "email", label: t.overview.exportSortEmail },
+    { value: "criticality", label: t.overview.exportSortCriticality },
+    { value: "totalEvents", label: t.overview.exportSortTotalEvents },
+    { value: "recentActivity", label: t.overview.exportSortRecentActivity },
+    { value: "complaints", label: t.overview.exportSortComplaints },
+    { value: "domain", label: t.overview.exportSortDomain },
+    { value: "problemRate", label: t.overview.exportSortProblemRate },
+  ];
 
   function exportReport(format: ExportFormat) {
-    const report = buildEmailReport(events, { language, query });
+    const report = buildEmailReport(events, { language, query, sortBy });
     const filename = createEmailReportFilename(format, report.generatedAt);
 
     if (format === "pdf") {
@@ -60,6 +73,15 @@ export function EmailReportExport({
       </summary>
       <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-xl md:left-0 md:right-auto">
         <p className="px-3 py-2 text-xs leading-5 text-slate-500">{t.overview.exportAllResults}</p>
+        <div className="px-3 pb-2">
+          <label className="mb-1 block text-xs font-medium text-slate-500">{t.overview.exportSortLabel}</label>
+          <Select
+            className="h-9 text-xs"
+            options={sortOptions}
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as EmailReportSortBy)}
+          />
+        </div>
         <button
           type="button"
           className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100"
