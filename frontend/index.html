@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Seslock Holmes</title>
     <link rel="icon" type="image/x-icon" href="/src/assets/favicon.ico" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("seslock-theme");
+          var isDark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.classList.toggle("dark", isDark);
+        } catch (error) {
+          // Segue com o tema claro padrão se o localStorage estiver indisponível.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
