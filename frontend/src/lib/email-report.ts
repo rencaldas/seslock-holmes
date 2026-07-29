@@ -25,6 +25,12 @@ export interface EmailReportRecipient {
   subjects: string[];
 }
 
+export interface EmailReportCategorySummary {
+  category: string;
+  subjectCount: number;
+  uniqueRecipients: number;
+}
+
 export interface EmailReport {
   generatedAt: string;
   language: AppLanguage;
@@ -34,6 +40,7 @@ export interface EmailReport {
     uniqueMessages: number;
     uniqueRecipients: number;
   };
+  categories: EmailReportCategorySummary[];
   recipients: EmailReportRecipient[];
 }
 
@@ -153,6 +160,87 @@ function addReasonDetails(
   }
 }
 
+interface SubjectCategoryDefinition {
+  keywords: string[];
+  label: Record<AppLanguage, string>;
+}
+
+// Keyword rules for grouping free-text email subjects into business categories
+// for the report's summary table. Order matters: the first matching rule wins,
+// so more specific rules (e.g. site orders) are listed before broader ones
+// (e.g. generic sales orders) that would otherwise shadow them.
+const SUBJECT_CATEGORIES: SubjectCategoryDefinition[] = [
+  {
+    keywords: ["nf-e", "nfe", "nota fiscal"],
+    label: { "pt-BR": "Emissão de NF-e", "en-US": "Invoice issuance (NF-e)" },
+  },
+  {
+    keywords: ["ramada.com.br", "pedido via site"],
+    label: {
+      "pt-BR": "Pedido via site (www.ramada.com.br)",
+      "en-US": "Website order (www.ramada.com.br)",
+    },
+  },
+  {
+    keywords: ["pedido de venda", "boleto", "pedido"],
+    label: {
+      "pt-BR": "Pedido de venda (inclui boleto+pedido)",
+      "en-US": "Sales order (includes invoice+order)",
+    },
+  },
+  {
+    keywords: ["cotacao"],
+    label: { "pt-BR": "Cotação", "en-US": "Quote" },
+  },
+  {
+    keywords: ["relatorio", "bi/erp", "comunicado de ferias", "erp"],
+    label: {
+      "pt-BR": 'Relatórios automáticos (BI/ERP, inclui "Comunicado de Férias")',
+      "en-US": 'Automated reports (BI/ERP, incl. "Vacation Notice")',
+    },
+  },
+  {
+    keywords: ["glpi", "chamado"],
+    label: { "pt-BR": "GLPI — chamados internos", "en-US": "GLPI — internal tickets" },
+  },
+  {
+    keywords: ["senha", "cadastro"],
+    label: { "pt-BR": "Senha / cadastro de cliente", "en-US": "Password / customer registration" },
+  },
+  {
+    keywords: ["ocorrencia", "s.a.c"],
+    label: { "pt-BR": "Abertura de ocorrência S.A.C.", "en-US": "Customer service ticket (S.A.C.)" },
+  },
+  {
+    keywords: ["marketing", "oportunidade", "promo", "oferta", "desconto"],
+    label: { "pt-BR": "Marketing / oportunidades de compra", "en-US": "Marketing / purchase opportunities" },
+  },
+];
+
+const OTHER_SUBJECT_CATEGORY_LABEL: Record<AppLanguage, string> = {
+  "pt-BR": "Outros",
+  "en-US": "Other",
+};
+
+function normalizeForMatch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+function classifySubjectCategory(subject: string, language: AppLanguage) {
+  const normalized = normalizeForMatch(subject);
+  if (normalized) {
+    for (const definition of SUBJECT_CATEGORIES) {
+      if (definition.keywords.some((keyword) => normalized.includes(normalizeForMatch(keyword)))) {
+        return definition.label[language];
+      }
+    }
+  }
+  return OTHER_SUBJECT_CATEGORY_LABEL[language];
+}
+
 function problemRate(recipient: EmailReportRecipient) {
   const problems = recipient.eventCounts.bounced + recipient.eventCounts.complained + recipient.eventCounts.rejected;
   return recipient.totalEvents > 0 ? problems / recipient.totalEvents : 0;
@@ -190,11 +278,18 @@ function createRecipientComparator(sortBy: EmailReportSortBy, language: AppLangu
 export function buildEmailReport(events: EmailEvent[], options: EmailReportOptions): EmailReport {
   const groups = new Map<string, MutableRecipient>();
   const allMessageIds = new Set<string>();
+  const categoryStats = new Map<string, { subjectCount: number; recipients: Set<string> }>();
 
   for (const event of events) {
     const email = event.recipientEmail.trim().toLowerCase();
     const recipientKey = email || (options.language === "en-US" ? "Unknown recipient" : "Destinatário desconhecido");
     const occurredAt = event.occurredAt;
+
+    const category = classifySubjectCategory(event.subject, options.language);
+    const stats = categoryStats.get(category) ?? { subjectCount: 0, recipients: new Set<string>() };
+    stats.subjectCount += 1;
+    stats.recipients.add(recipientKey);
+    categoryStats.set(category, stats);
     const existing = groups.get(recipientKey);
     const recipient =
       existing ??
@@ -255,6 +350,19 @@ export function buildEmailReport(events: EmailEvent[], options: EmailReportOptio
     }))
     .sort(createRecipientComparator(options.sortBy ?? "email", options.language));
 
+  const categories = [...categoryStats.entries()]
+    .map(
+      ([category, stats]): EmailReportCategorySummary => ({
+        category,
+        subjectCount: stats.subjectCount,
+        uniqueRecipients: stats.recipients.size,
+      }),
+    )
+    .sort(
+      (left, right) =>
+        right.subjectCount - left.subjectCount || left.category.localeCompare(right.category, options.language),
+    );
+
   return {
     generatedAt: options.generatedAt ?? new Date().toISOString(),
     language: options.language,
@@ -268,6 +376,7 @@ export function buildEmailReport(events: EmailEvent[], options: EmailReportOptio
       uniqueMessages: allMessageIds.size,
       uniqueRecipients: recipients.length,
     },
+    categories,
     recipients,
   };
 }
@@ -437,6 +546,15 @@ function charsPerLine(size: number, x: number, bold: boolean) {
   return Math.max(12, Math.floor(availableWidth / avgCharWidth));
 }
 
+function columnChars(width: number, size: number, bold: boolean) {
+  const avgCharWidth = size * (bold ? 0.56 : 0.5);
+  return Math.max(6, Math.floor(width / avgCharWidth));
+}
+
+const CATEGORY_TABLE_CATEGORY_X = MARGIN_LEFT;
+const CATEGORY_TABLE_SUBJECTS_X = MARGIN_LEFT + 330;
+const CATEGORY_TABLE_RECIPIENTS_X = MARGIN_LEFT + 420;
+
 function createPdfLayout() {
   const pages: PdfCommand[][] = [[]];
   let y = START_Y;
@@ -515,7 +633,29 @@ function createPdfLayout() {
     return size * 1.5;
   }
 
-  return { pages, ensureSpace, spacer, rule, textLine, wrapped, field, get y() {
+  // Draws several independently-wrapped text columns side by side on the same
+  // row (e.g. a table row), then advances the shared cursor once by the
+  // tallest column, since the rest of the layout only tracks a single cursor.
+  function columnRow(columns: Array<{ x: number; font: PdfFont; size: number; gray: number; lines: string[] }>, leading: number) {
+    const lineCount = Math.max(1, ...columns.map((column) => column.lines.length));
+    ensureSpace(lineCount * leading);
+    for (const column of columns) {
+      column.lines.forEach((line, index) => {
+        currentPage().push({
+          kind: "text",
+          x: column.x,
+          y: y - column.size - index * leading,
+          font: column.font,
+          size: column.size,
+          gray: column.gray,
+          text: line,
+        });
+      });
+    }
+    y -= lineCount * leading;
+  }
+
+  return { pages, ensureSpace, spacer, rule, textLine, wrapped, field, columnRow, get y() {
     return y;
   } };
 }
@@ -543,6 +683,10 @@ function buildPdfPages(report: EmailReport) {
         subjects: "Subjects",
         none: "None recorded",
         noRecipients: "No recipients match the applied filters.",
+        categoryColumn: "Category",
+        subjectsColumn: "Subjects",
+        uniqueRecipientsColumn: "Unique recipients",
+        noCategories: "No subjects classified.",
       }
     : {
         title: "Relatório de Emails SES",
@@ -564,10 +708,15 @@ function buildPdfPages(report: EmailReport) {
         subjects: "Assuntos",
         none: "Nenhum registrado",
         noRecipients: "Nenhum destinatário corresponde aos filtros aplicados.",
+        categoryColumn: "Categoria",
+        subjectsColumn: "Assuntos",
+        uniqueRecipientsColumn: "Destinatários únicos",
+        noCategories: "Nenhum assunto classificado.",
       };
 
   const layout = createPdfLayout();
 
+  layout.textLine(MARGIN_LEFT, "F2", 12, TITLE_GRAY, "Seslock Holmes", 16);
   layout.textLine(MARGIN_LEFT, "F2", 19, TITLE_GRAY, labels.title, 26);
   layout.rule(TITLE_GRAY, 1.2);
   layout.spacer(6);
@@ -591,6 +740,57 @@ function buildPdfPages(report: EmailReport) {
     VALUE_GRAY,
     `${labels.totalEvents}: ${report.summary.totalEvents}   •   ${labels.uniqueMessages}: ${report.summary.uniqueMessages}   •   ${labels.uniqueRecipients}: ${report.summary.uniqueRecipients}`,
   );
+
+  layout.spacer(8);
+  if (report.categories.length) {
+    layout.columnRow(
+      [
+        { x: CATEGORY_TABLE_CATEGORY_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.categoryColumn] },
+        { x: CATEGORY_TABLE_SUBJECTS_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.subjectsColumn] },
+        {
+          x: CATEGORY_TABLE_RECIPIENTS_X,
+          font: "F2",
+          size: 9.5,
+          gray: HEADING_GRAY,
+          lines: wrapText(
+            labels.uniqueRecipientsColumn,
+            columnChars(PAGE_WIDTH - MARGIN_RIGHT - CATEGORY_TABLE_RECIPIENTS_X, 9.5, true),
+          ),
+        },
+      ],
+      13,
+    );
+    layout.rule();
+
+    report.categories.forEach((entry) => {
+      layout.columnRow(
+        [
+          {
+            x: CATEGORY_TABLE_CATEGORY_X,
+            font: "F1",
+            size: 9.3,
+            gray: VALUE_GRAY,
+            lines: wrapText(
+              entry.category,
+              columnChars(CATEGORY_TABLE_SUBJECTS_X - CATEGORY_TABLE_CATEGORY_X - 10, 9.3, false),
+            ),
+          },
+          { x: CATEGORY_TABLE_SUBJECTS_X, font: "F1", size: 9.3, gray: VALUE_GRAY, lines: [String(entry.subjectCount)] },
+          {
+            x: CATEGORY_TABLE_RECIPIENTS_X,
+            font: "F1",
+            size: 9.3,
+            gray: VALUE_GRAY,
+            lines: [String(entry.uniqueRecipients)],
+          },
+        ],
+        13,
+      );
+      layout.rule(RULE_GRAY, 0.5);
+    });
+  } else {
+    layout.textLine(MARGIN_LEFT, "F1", 10, VALUE_GRAY, labels.noCategories);
+  }
 
   layout.spacer(10);
   layout.rule();
@@ -742,7 +942,29 @@ export function emailReportToPdf(report: EmailReport) {
   return new Blob([binaryStringToBytes(pdf)], { type: "application/pdf" });
 }
 
+function formatFilenameTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.replaceAll(":", "-").replace(/\.\d{3}Z$/, "Z");
+  }
+
+  // "/" and ":" aren't safe in filenames, so dd/mm/yyyy and HH:mm:ss become
+  // dd-mm-yyyy_HH-mm-ss, always converted to Brasília time regardless of the
+  // machine's local timezone.
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return `${parts.day}-${parts.month}-${parts.year}_${parts.hour}-${parts.minute}-${parts.second}`;
+}
+
 export function createEmailReportFilename(extension: "pdf" | "csv" | "json", generatedAt: string) {
-  const timestamp = generatedAt.replaceAll(":", "-").replace(/\.\d{3}Z$/, "Z");
-  return `relatorio-emails-${timestamp}.${extension}`;
+  return `relatorio-emails-${formatFilenameTimestamp(generatedAt)}.${extension}`;
 }

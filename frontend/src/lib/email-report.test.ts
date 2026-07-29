@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildEmailReport,
+  createEmailReportFilename,
   emailReportToCsv,
   emailReportToJson,
   emailReportToPdf,
@@ -122,6 +123,30 @@ describe("email report", () => {
     expect(build("problemRate")).toEqual(["bruno@example.net", "ana@example.com", "carla@zzz.example"]);
   });
 
+  it("classifies subjects into business categories with subject and unique-recipient counts", () => {
+    const categoryEvents = [
+      createEvent({ id: "c1", recipientEmail: "a@example.com", subject: "Promoção especial de fim de ano" }),
+      createEvent({ id: "c2", recipientEmail: "b@example.com", subject: "Promoção especial de fim de ano" }),
+      createEvent({ id: "c3", recipientEmail: "a@example.com", subject: "NF-e referente ao pedido 4521" }),
+      createEvent({ id: "c4", recipientEmail: "a@example.com", subject: "Pedido via site www.ramada.com.br" }),
+      createEvent({ id: "c5", recipientEmail: "b@example.com", subject: "Boleto referente ao pedido 991" }),
+      createEvent({ id: "c6", recipientEmail: "c@example.com", subject: "Assunto sem categoria conhecida" }),
+    ];
+
+    const report = buildEmailReport(categoryEvents, {
+      language: "pt-BR",
+      generatedAt: "2026-07-27T12:00:00.000Z",
+    });
+
+    expect(report.categories).toEqual([
+      { category: "Marketing / oportunidades de compra", subjectCount: 2, uniqueRecipients: 2 },
+      { category: "Emissão de NF-e", subjectCount: 1, uniqueRecipients: 1 },
+      { category: "Outros", subjectCount: 1, uniqueRecipients: 1 },
+      { category: "Pedido de venda (inclui boleto+pedido)", subjectCount: 1, uniqueRecipients: 1 },
+      { category: "Pedido via site (www.ramada.com.br)", subjectCount: 1, uniqueRecipients: 1 },
+    ]);
+  });
+
   it("exports CSV and JSON with the grouped recipients", () => {
     const report = buildEmailReport(events, {
       language: "pt-BR",
@@ -141,9 +166,23 @@ describe("email report", () => {
       generatedAt: "2026-07-27T12:00:00.000Z",
     });
     const pdf = emailReportToPdf(report);
-    const header = new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 8));
+    const bytes = await pdf.arrayBuffer();
+    const header = new TextDecoder().decode(bytes.slice(0, 8));
+    const body = new TextDecoder("latin1").decode(bytes);
 
     expect(pdf.type).toBe("application/pdf");
     expect(header).toBe("%PDF-1.4");
+    expect(body).toContain("Seslock Holmes");
+    expect(body).toContain("Categoria");
+    expect(body).toContain("Cotação");
+  });
+
+  it("names the exported file using Brasília date and time, regardless of the input's timezone", () => {
+    expect(createEmailReportFilename("pdf", "2026-07-27T12:00:00.000Z")).toBe(
+      "relatorio-emails-27-07-2026_09-00-00.pdf",
+    );
+    expect(createEmailReportFilename("csv", "2026-01-01T02:00:00.000Z")).toBe(
+      "relatorio-emails-31-12-2025_23-00-00.csv",
+    );
   });
 });
