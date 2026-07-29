@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
+import { OverviewSkeleton } from "@/components/states/overview-skeleton";
 import { SetupState } from "@/components/states/setup-state";
+import { DomainHealthHero } from "@/features/overview/domain-health-hero";
+import { TopMetrics } from "@/features/overview/top-metrics";
 import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-panel";
 import { OverviewFilters } from "@/features/overview/overview-filters";
 import { RecentActivityList } from "@/features/overview/recent-activity-list";
@@ -17,6 +18,7 @@ import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchOverview } from "@/lib/supabase/queries/overview";
 import { useDisclosure } from "@/lib/hooks/use-disclosure";
+import { buildEventTimeSeries } from "@/lib/overview/timeseries";
 import { parseTimeFilterState } from "@/lib/time-filters";
 import type { RecentActivitySort } from "@/lib/supabase/types";
 import { DEFAULT_ROW_LIMIT, parseRowLimit } from "@/lib/row-limits";
@@ -135,8 +137,15 @@ export function OverviewPage() {
       }),
   });
 
+  const timeSeries = useMemo(() => {
+    if (!overviewQuery.data) {
+      return { points: [], granularity: "hour" as const };
+    }
+    return buildEventTimeSeries(overviewQuery.data.reportEvents, language);
+  }, [overviewQuery.data, language]);
+
   if (!supabase.ready) {
-    return <LoadingState title={t.common.loadingSupabase} description={t.common.loadingDescription} />;
+    return <OverviewSkeleton />;
   }
 
   if (!supabase.eventsTable) {
@@ -152,174 +161,119 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white/75 p-6 shadow-soft backdrop-blur-sm lg:p-8">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <svg
-            className="absolute -right-12 top-2 h-[460px] w-[460px] text-slate-900 opacity-[0.09]"
-            viewBox="0 0 460 460"
-            fill="none"
-          >
-            <g transform="translate(40 28)">
-              <path
-                d="M108 92c0-24 19-43 43-43s43 19 43 43c0 22-16 40-37 43l23 28h-58l23-28c-21-3-37-21-37-43Z"
-                fill="currentColor"
-              />
-              <path
-                d="M61 296c9-44 43-78 88-78h32c45 0 79 34 88 78l7 36H54l7-36Z"
-                fill="currentColor"
-              />
-              <path
-                d="M98 64c18-20 41-30 66-30 24 0 46 10 65 30l11 12-25 8c-15-13-31-19-51-19-19 0-36 6-51 19l-25-8 10-12Z"
-                fill="currentColor"
-              />
-              <path
-                d="M248 236c0-34 28-62 62-62s62 28 62 62-28 62-62 62-62-28-62-62Zm24 0c0 21 17 38 38 38s38-17 38-38-17-38-38-38-38 17-38 38Z"
-                fill="currentColor"
-              />
-              <path d="M301 288 347 334" stroke="currentColor" strokeWidth="28" strokeLinecap="round" />
-            </g>
-          </svg>
-          <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-sky-200/40 blur-3xl" />
-          <div className="absolute right-12 top-6 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
-        </div>
-
-        <div className="relative grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.overview.kicker}</p>
-            <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950">
-              {t.overview.title}
-            </h2>
-            <p className="max-w-2xl text-base leading-7 text-slate-600">
-              {t.overview.description}
-            </p>
-          </div>
-
-          <Card className="relative border-slate-200/80 bg-white/75 backdrop-blur">
-            <CardHeader>
-              <CardTitle>{t.overview.panelTitle}</CardTitle>
-              <CardDescription>{t.overview.panelDescription}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>• {t.overview.bullet1}</p>
-              <p>• {t.overview.bullet2}</p>
-              <p>• {t.overview.bullet3}</p>
-              <p>• {t.overview.bullet4}</p>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="space-y-8">
+      <section className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">{t.overview.kicker}</p>
+        <h1 className="max-w-3xl text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{t.overview.title}</h1>
+        <p className="max-w-2xl text-sm leading-6 text-ink-muted sm:text-base">{t.overview.description}</p>
       </section>
 
-      <div className="sticky top-[7rem] z-20">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="overflow-hidden rounded-[1.5rem] border border-slate-800/80 bg-slate-950/95 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.85)] backdrop-blur transition-all duration-200">
-            <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
-              <Input
-                value={recipientEmail}
-                placeholder={t.overview.searchPlaceholder}
-                onChange={(event) => setRecipientEmail(event.target.value)}
-                className="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-              />
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  className="border border-slate-500/60 bg-slate-950 text-white hover:bg-slate-900"
-                  onClick={() => {
-                    const normalized = normalizeEmail(recipientEmail);
-                    if (!normalized) {
-                      return;
-                    }
-                    const nextParams = buildSearchParams(
-                      searchParams,
-                      {
-                        recipient: normalized,
-                        query: normalized,
-                        mode: "recipient",
-                        timeMode: appliedFilters.timeMode,
-                        windowDays: String(appliedFilters.windowDays),
-                        startAt: appliedFilters.timeMode === "custom" ? appliedFilters.startAt : "",
-                        endAt: appliedFilters.timeMode === "custom" ? appliedFilters.endAt : "",
-                        recentActivitySort: appliedFilters.recentActivitySort,
-                        status: appliedFilters.status,
-                        origin: appliedFilters.origin,
-                        subject: appliedFilters.subject,
-                        provider: appliedFilters.provider,
-                        rows: String(appliedFilters.rowLimit),
-                      },
-                      true,
-                    );
-                    setSearchParams(nextParams);
-                    navigate(`/investigate?${nextParams.toString()}`);
-                  }}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  {t.overview.investigateRecipient}
-                </Button>
-                <Button type="button" variant="secondary" onClick={toggleFilters}>
-                  {filtersOpen ? t.overview.hideFilters : t.overview.showFilters}
-                </Button>
-              </div>
+      <div className="sticky top-16 z-20 -mx-4 bg-paper/85 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <div className="overflow-hidden rounded-panel border border-slate-200 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid gap-2 p-4 sm:grid-cols-[1fr_auto]">
+            <Input
+              value={recipientEmail}
+              placeholder={t.overview.searchPlaceholder}
+              onChange={(event) => setRecipientEmail(event.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  const normalized = normalizeEmail(recipientEmail);
+                  if (!normalized) {
+                    return;
+                  }
+                  const nextParams = buildSearchParams(
+                    searchParams,
+                    {
+                      recipient: normalized,
+                      query: normalized,
+                      mode: "recipient",
+                      timeMode: appliedFilters.timeMode,
+                      windowDays: String(appliedFilters.windowDays),
+                      startAt: appliedFilters.timeMode === "custom" ? appliedFilters.startAt : "",
+                      endAt: appliedFilters.timeMode === "custom" ? appliedFilters.endAt : "",
+                      recentActivitySort: appliedFilters.recentActivitySort,
+                      status: appliedFilters.status,
+                      origin: appliedFilters.origin,
+                      subject: appliedFilters.subject,
+                      provider: appliedFilters.provider,
+                      rows: String(appliedFilters.rowLimit),
+                    },
+                    true,
+                  );
+                  setSearchParams(nextParams);
+                  navigate(`/investigate?${nextParams.toString()}`);
+                }}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {t.overview.investigateRecipient}
+              </Button>
+              <Button type="button" variant="secondary" onClick={toggleFilters}>
+                {filtersOpen ? t.overview.hideFilters : t.overview.showFilters}
+              </Button>
             </div>
+          </div>
 
-            <div
-              className={`overflow-hidden transition-all duration-200 ease-out ${filtersOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"}`}
-            >
-              <OverviewFilters
-                value={filters}
-                onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-                onClear={() => {
-                  setFilters({ ...DEFAULT_OVERVIEW_FILTERS });
-                  setSearchParams(
-                    buildSearchParams(
-                      searchParams,
-                      {
-                        timeMode: null,
-                        windowDays: null,
-                        startAt: null,
-                        endAt: null,
-                        recentActivitySort: null,
-                        status: null,
-                        origin: null,
-                        subject: null,
-                        provider: null,
-                        rows: null,
-                      },
-                      true,
-                    ),
-                  );
-                }}
-                onApply={() => {
-                  setSearchParams(
-                    buildSearchParams(
-                      searchParams,
-                      {
-                        timeMode: filters.timeMode,
-                        windowDays: String(filters.windowDays),
-                        startAt: filters.timeMode === "custom" ? filters.startAt : "",
-                        endAt: filters.timeMode === "custom" ? filters.endAt : "",
-                        recentActivitySort: filters.recentActivitySort,
-                        status: filters.status,
-                        origin: filters.origin,
-                        subject: filters.subject ?? "",
-                        provider: filters.provider ?? "",
-                        rows: String(filters.rowLimit),
-                      },
-                      true,
-                    ),
-                  );
-                }}
-                showProviderFilter
-                className="bg-slate-950/95 border-slate-700"
-                inputClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-                selectClassName="bg-slate-950 text-slate-100 border-slate-700 placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20"
-                labelClassName="text-slate-300"
-              />
-            </div>
+          <div
+            className={`overflow-hidden transition-all duration-200 ease-out ${filtersOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"}`}
+          >
+            <OverviewFilters
+              value={filters}
+              onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+              onClear={() => {
+                setFilters({ ...DEFAULT_OVERVIEW_FILTERS });
+                setSearchParams(
+                  buildSearchParams(
+                    searchParams,
+                    {
+                      timeMode: null,
+                      windowDays: null,
+                      startAt: null,
+                      endAt: null,
+                      recentActivitySort: null,
+                      status: null,
+                      origin: null,
+                      subject: null,
+                      provider: null,
+                      rows: null,
+                    },
+                    true,
+                  ),
+                );
+              }}
+              onApply={() => {
+                setSearchParams(
+                  buildSearchParams(
+                    searchParams,
+                    {
+                      timeMode: filters.timeMode,
+                      windowDays: String(filters.windowDays),
+                      startAt: filters.timeMode === "custom" ? filters.startAt : "",
+                      endAt: filters.timeMode === "custom" ? filters.endAt : "",
+                      recentActivitySort: filters.recentActivitySort,
+                      status: filters.status,
+                      origin: filters.origin,
+                      subject: filters.subject ?? "",
+                      provider: filters.provider ?? "",
+                      rows: String(filters.rowLimit),
+                    },
+                    true,
+                  ),
+                );
+              }}
+              showProviderFilter
+              className="border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/40"
+              inputClassName="border-slate-200 bg-white text-ink placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-brand/10 dark:border-slate-700 dark:bg-slate-900"
+              selectClassName="border-slate-200 bg-white text-ink focus:border-brand focus:ring-2 focus:ring-brand/10 dark:border-slate-700 dark:bg-slate-900"
+              labelClassName="text-ink-muted"
+            />
           </div>
         </div>
       </div>
 
-      {overviewQuery.isLoading ? <LoadingState title={t.overview.recentActivityTitle} /> : null}
+      {overviewQuery.isLoading ? <OverviewSkeleton /> : null}
       {overviewQuery.isError ? (
         <ErrorState
           description={
@@ -332,8 +286,10 @@ export function OverviewPage() {
       ) : null}
 
       {overviewQuery.data ? (
-        <div className="space-y-5">
-          <OverviewAnalyticsPanel data={overviewQuery.data} />
+        <div className="space-y-8">
+          <DomainHealthHero analytics={overviewQuery.data.analytics} />
+          <TopMetrics analytics={overviewQuery.data.analytics} timeSeries={timeSeries.points} />
+          <OverviewAnalyticsPanel data={overviewQuery.data} timeSeries={timeSeries} />
           {overviewQuery.data.recentEvents.length ? (
             <RecentActivityList
               events={overviewQuery.data.recentEvents}

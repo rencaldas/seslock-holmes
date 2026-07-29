@@ -67,14 +67,14 @@ export function EmailReportExport({
 
   return (
     <details ref={menuRef} className="relative">
-      <summary className="inline-flex cursor-pointer list-none items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+      <summary className="inline-flex cursor-pointer list-none items-center justify-center rounded-control bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
         <Download className="mr-2 h-4 w-4" />
         {t.overview.exportReport}
       </summary>
-      <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-xl md:left-0 md:right-auto">
-        <p className="px-3 py-2 text-xs leading-5 text-slate-500">{t.overview.exportAllResults}</p>
+      <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-card border border-slate-200 bg-white p-2 shadow-hover dark:border-slate-700 dark:bg-slate-900 md:left-0 md:right-auto">
+        <p className="px-3 py-2 text-xs leading-5 text-ink-muted">{t.overview.exportAllResults}</p>
         <div className="px-3 pb-2">
-          <label className="mb-1 block text-xs font-medium text-slate-500">{t.overview.exportSortLabel}</label>
+          <label className="mb-1 block text-xs font-medium text-ink-muted">{t.overview.exportSortLabel}</label>
           <Select
             className="h-9 text-xs"
             options={sortOptions}
@@ -84,7 +84,7 @@ export function EmailReportExport({
         </div>
         <button
           type="button"
-          className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100"
+          className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
           onClick={() => exportReport("pdf")}
         >
           <FileText className="mr-2 h-4 w-4" />
@@ -92,7 +92,7 @@ export function EmailReportExport({
         </button>
         <button
           type="button"
-          className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100"
+          className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
           onClick={() => exportReport("csv")}
         >
           <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -100,7 +100,7 @@ export function EmailReportExport({
         </button>
         <button
           type="button"
-          className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100"
+          className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
           onClick={() => exportReport("json")}
         >
           <FileJson className="mr-2 h-4 w-4" />
