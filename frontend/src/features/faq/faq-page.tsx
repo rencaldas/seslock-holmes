@@ -67,18 +67,18 @@ export function FaqPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-white/95 p-8 shadow-soft">
+      <section className="rounded-[2rem] border border-slate-200 bg-white/95 p-8 shadow-soft dark:border-slate-800 dark:bg-slate-900/95">
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-3 rounded-full bg-slate-100 px-4 py-2 text-slate-600">
+            <div className="inline-flex items-center gap-3 rounded-full bg-slate-100 px-4 py-2 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               <BookOpen className="h-5 w-5" />
-              <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.faq.title}</span>
+              <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.faq.title}</span>
             </div>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950">{t.faq.subtitle}</h1>
+            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">{t.faq.subtitle}</h1>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Read only</span>
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Filters</span>
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Supabase</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Read only</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Filters</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Supabase</span>
             </div>
           </div>
           <Card className="border-slate-800 bg-slate-950 text-white shadow-none">
@@ -111,40 +111,40 @@ export function FaqPage() {
           visibleSections.map((section) => (
             <div key={section.key} className="space-y-4">
               <div className="px-2 py-2">
-                <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                <h2 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50 sm:text-4xl">
                   {section.title}
                 </h2>
               </div>
               <div className="space-y-4">
                 {section.items.map((item) => (
-                  <details key={item.question} className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft transition duration-200 hover:border-slate-300">
-                    <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-base font-semibold text-slate-950 transition hover:bg-slate-50">
+                  <details key={item.question} className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft transition duration-200 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
+                    <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-base font-semibold text-slate-950 transition hover:bg-slate-50 dark:text-slate-50 dark:hover:bg-slate-800/60">
                       <span>{item.question}</span>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-500 transition duration-200 group-open:rotate-45 group-open:border-slate-300">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-500 transition duration-200 group-open:rotate-45 group-open:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:group-open:border-slate-600">
                         +
                       </span>
                     </summary>
-                    <div className="border-t border-slate-100 px-6 py-5 text-sm leading-7 text-slate-600">{item.answer}</div>
+                    <div className="border-t border-slate-100 px-6 py-5 text-sm leading-7 text-slate-600 dark:border-slate-800 dark:text-slate-300">{item.answer}</div>
                   </details>
                 ))}
               </div>
             </div>
           ))
         ) : (
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-soft">
-            <p className="text-lg font-semibold text-slate-950">{t.faq.emptyTitle}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{t.faq.emptyDescription}</p>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-soft dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-lg font-semibold text-slate-950 dark:text-slate-50">{t.faq.emptyTitle}</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{t.faq.emptyDescription}</p>
 
             {similarSuggestions.length ? (
               <div className="mt-8 text-left">
-                <p className="text-sm font-semibold text-slate-700">{t.faq.suggestionsTitle}</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t.faq.suggestionsTitle}</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {similarSuggestions.map((item) => (
                     <button
                       key={item.question}
                       type="button"
                       onClick={() => setSearch(item.question)}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-100"
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
                       {item.question}
                     </button>
@@ -152,26 +152,26 @@ export function FaqPage() {
                 </div>
               </div>
             ) : (
-              <p className="mt-6 text-sm text-slate-500">{t.faq.emptyDescription}</p>
+              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">{t.faq.emptyDescription}</p>
             )}
           </div>
         )}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm leading-7 text-slate-600 shadow-soft">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm leading-7 text-slate-600 shadow-soft dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-semibold text-slate-950">{t.faq.suggestionsTitle}</p>
+            <p className="font-semibold text-slate-950 dark:text-slate-50">{t.faq.suggestionsTitle}</p>
             <p className="mt-3 max-w-2xl">
               {t.faq.sendSuggestion}:{' '}
-              <a href="mailto:renato.deacaldas@gmail.com" className="font-semibold text-sky-600 hover:text-sky-500">
+              <a href="mailto:renato.deacaldas@gmail.com" className="font-semibold text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">
                 renato.deacaldas@gmail.com
               </a>
             </p>
           </div>
           <a
             href="mailto:renato.deacaldas@gmail.com"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             {t.faq.suggestionsEmail}
           </a>

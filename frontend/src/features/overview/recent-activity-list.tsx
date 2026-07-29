@@ -56,7 +56,7 @@ export function RecentActivityList({
       <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <CardTitle>{t.overview.recentActivityTitle}</CardTitle>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             {t.overview.pageLabel} {page} de {totalPages}
           </p>
         </div>
@@ -94,10 +94,10 @@ export function RecentActivityList({
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <p className="max-w-[20rem] truncate font-medium text-slate-950" title={event.subject || t.common.noAvailableData}>
+                      <p className="max-w-[20rem] truncate font-semibold text-ink" title={event.subject || t.common.noAvailableData}>
                         {event.subject || t.common.noAvailableData}
                       </p>
-                      <p className="max-w-[20rem] truncate text-sm text-slate-500" title={event.recipientEmail}>
+                      <p className="max-w-[20rem] truncate text-sm text-ink-muted" title={event.recipientEmail}>
                         {event.recipientEmail}
                       </p>
                     </div>
@@ -106,7 +106,7 @@ export function RecentActivityList({
                   <TableCell>
                     <div className="flex flex-wrap gap-3">
                       <Link
-                        className="text-sm font-medium text-slate-950 underline"
+                        className="text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 hover:decoration-brand"
                         target="_blank"
                         rel="noreferrer noopener"
                         to={`/events/${event.id}`}
@@ -114,21 +114,21 @@ export function RecentActivityList({
                         {t.overview.details}
                       </Link>
                       <button
-                        className="text-sm font-medium text-slate-950 underline"
+                        className="text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 hover:decoration-brand"
                         type="button"
                         onClick={() => copyToClipboard(event.messageId)}
                       >
                         {t.overview.copyId}
                       </button>
                       <button
-                        className="text-sm font-medium text-slate-950 underline"
+                        className="text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 hover:decoration-brand"
                         type="button"
                         onClick={() => copyToClipboard(event.recipientEmail)}
                       >
                         {t.overview.copyRecipient}
                       </button>
                       <Link
-                        className="text-sm font-medium text-slate-950 underline"
+                        className="text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 hover:decoration-brand"
                         target="_blank"
                         rel="noreferrer noopener"
                         to={`/events/${event.id}#raw-payload`}

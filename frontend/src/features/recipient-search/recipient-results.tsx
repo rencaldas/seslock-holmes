@@ -40,13 +40,13 @@ export function RecipientResults({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="border-b border-slate-100 px-6 py-4">
+        <div className="border-b border-slate-100 px-6 py-4 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-3">
             <Badge tone={data.hasProblemActivity ? "destructive" : "success"}>
               {data.totalCount} {t.investigation.resultCount}
             </Badge>
 
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
               {t.investigation.latestActivity}: {formatDateTime(data.latestEventAt)}
             </span>
           </div>
@@ -84,22 +84,22 @@ export function RecipientResults({
                             {t.investigation.diagnosisSeverity}: {event.bounceDiagnosis.severity}
                           </Badge>
 
-                          <span className="text-sm font-semibold text-slate-900">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                             {event.bounceDiagnosis.category}
                           </span>
                         </div>
 
                         {/* Caixa com detalhes */}
-                        <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                        <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                           <p className="leading-6">
-                            <span className="font-semibold text-slate-900">
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
                               {t.investigation.diagnosisCause}:
                             </span>{" "}
                             {event.bounceDiagnosis.cause}
                           </p>
 
                           <p className="mt-3 leading-6">
-                            <span className="font-semibold text-slate-900">
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
                               {t.investigation.diagnosisRecommendation}:
                             </span>{" "}
                             {event.bounceDiagnosis.recommendation}
@@ -107,11 +107,11 @@ export function RecipientResults({
 
                           {event.bounceDetails.diagnosticCode ? (
                             <div className="mt-3">
-                              <p className="font-semibold text-slate-900">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">
                                 {t.investigation.diagnosisTechnicalCode}:
                               </p>
 
-                              <p className="mt-2 break-words rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm leading-6 text-slate-700">
+                              <p className="mt-2 break-words rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm leading-6 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
                                 {String(event.bounceDetails.diagnosticCode)}
                               </p>
                             </div>
@@ -125,7 +125,7 @@ export function RecipientResults({
                         </Badge>
 
                         {isProblemEventType(event.eventType) && event.failureReason ? (
-                          <p className="mt-2 max-w-md text-sm text-slate-500">
+                          <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
                             {event.failureReason}
                           </p>
                         ) : null}
@@ -135,7 +135,7 @@ export function RecipientResults({
 
                   <TableCell>
                     <p
-                      className="max-w-[20rem] truncate text-sm font-medium text-slate-950"
+                      className="max-w-[20rem] truncate text-sm font-medium text-slate-950 dark:text-slate-50"
                       title={event.subject || t.common.noAvailableData}
                     >
                       {event.subject || t.common.noAvailableData}
@@ -144,11 +144,11 @@ export function RecipientResults({
 
                   <TableCell>
                     <div className="space-y-1">
-                      <p className="font-medium text-slate-950">
+                      <p className="font-medium text-slate-950 dark:text-slate-50">
                         {getOriginLabel(event)}
                       </p>
 
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {event.smtpIdentity}
                       </p>
                     </div>
@@ -156,12 +156,12 @@ export function RecipientResults({
 
                   <TableCell>
                     <div className="space-y-2">
-                      <p className="text-sm text-slate-700">
+                      <p className="text-sm text-slate-700 dark:text-slate-300">
                         {event.senderEmail} -&gt; {event.recipientEmail}
                       </p>
 
                       <Link
-                        className="text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-950"
+                        className="text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-950 dark:text-slate-50 dark:decoration-slate-600 dark:hover:decoration-slate-50"
                         to={`/events/${event.id}`}
                       >
                         {t.investigation.inspectEvent}

@@ -39,14 +39,14 @@ export function MessageTraceTimeline({ events }: { events: EmailEvent[] }) {
           <div key={event.id} className="flex gap-4">
             <div className="flex flex-col items-center">
               <div className={`h-3 w-3 rounded-full ${dotColor(event.eventType)}`} />
-              {index < events.length - 1 ? <div className="mt-2 h-full w-px bg-slate-200" /> : null}
+              {index < events.length - 1 ? <div className="mt-2 h-full w-px bg-slate-200 dark:bg-slate-700" /> : null}
             </div>
-            <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
               <div className="flex flex-wrap items-center gap-3">
                 <Badge tone={toneForEventType(event.eventType)}>{formatEventType(event.eventType)}</Badge>
-                <span className="text-sm text-slate-500">{formatDateTime(event.occurredAt)}</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">{formatDateTime(event.occurredAt)}</span>
               </div>
-              <p className="mt-3 text-sm text-slate-700">{summarizeEvent(event)}</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{summarizeEvent(event)}</p>
             </div>
           </div>
         ))}

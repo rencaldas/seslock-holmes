@@ -10,6 +10,12 @@ export type TranslationBundle = {
     settings: string;
     mobileSearch: string;
   };
+  shell: {
+    openMenu: string;
+    closeMenu: string;
+    switchToLight: string;
+    switchToDark: string;
+  };
   app: {
     title: string;
     subtitle: string;
@@ -153,6 +159,16 @@ export type TranslationBundle = {
       notAvailable: string;
       exactTime: string;
       relativeTime: string;
+      eventsOverTimeTitle: string;
+      eventsOverTimeDescription: string;
+      trendVsPrevious: string;
+      bounceHealthyHint: string;
+      complaintHealthyHint: string;
+      viewPercent: string;
+      viewAbsolute: string;
+      total: string;
+      summaryTitle: string;
+      summaryDescription: string;
     };
     filters: {
       time: string;
