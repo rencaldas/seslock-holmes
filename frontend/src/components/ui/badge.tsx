@@ -5,26 +5,39 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   tone?: "default" | "success" | "warning" | "destructive" | "muted";
 }
 
-export function Badge({ className, tone = "default", ...props }: BadgeProps) {
+export function Badge({ className, tone = "default", children, ...props }: BadgeProps) {
   const toneClass =
     tone === "success"
-      ? "bg-emerald-100 text-emerald-800"
+      ? "bg-success-soft text-success"
       : tone === "warning"
-        ? "bg-amber-100 text-amber-900"
+        ? "bg-warning-soft text-warning"
         : tone === "destructive"
-          ? "bg-rose-100 text-rose-800"
+          ? "bg-danger-soft text-danger"
           : tone === "muted"
-            ? "bg-slate-100 text-slate-600"
-            : "bg-slate-900 text-white";
+            ? "bg-slate-100 text-ink-muted dark:bg-slate-800"
+            : "bg-ink text-white dark:bg-slate-100 dark:text-ink";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
         toneClass,
         className,
       )}
       {...props}
-    />
+    >
+      {tone === "success" || tone === "warning" || tone === "destructive" ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            tone === "success" && "bg-success",
+            tone === "warning" && "bg-warning",
+            tone === "destructive" && "bg-danger",
+          )}
+        />
+      ) : null}
+      {children}
+    </span>
   );
 }

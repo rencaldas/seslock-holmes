@@ -15,8 +15,8 @@ function DetailField({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm text-slate-900">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
             <Badge tone={toneForEventType(event.eventType)}>
               {formatEventType(event.eventType)}
             </Badge>
-            <span className="text-sm text-slate-500">{formatDateTime(event.occurredAt)}</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">{formatDateTime(event.occurredAt)}</span>
           </div>
           <DetailField label={t.eventDetail.subject} value={event.subject || t.eventDetail.notAvailable} />
           <DetailField label={t.eventDetail.eventId} value={event.id} />
@@ -108,7 +108,7 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
           <CardTitle>{t.eventDetail.rawPayload}</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+          <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 dark:bg-black/40">
             {JSON.stringify(event.rawPayload, null, 2)}
           </pre>
         </CardContent>

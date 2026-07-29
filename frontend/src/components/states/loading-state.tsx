@@ -11,13 +11,13 @@ export function LoadingState({
   const t = useI18n();
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+    <div className="space-y-3 rounded-panel border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
       <div className="space-y-2">
         <Skeleton className="h-5 w-48" />
         <Skeleton className="h-4 w-80" />
       </div>
-      <p className="text-sm font-medium text-slate-700">{title ?? t.common.loading}</p>
-      <p className="text-sm text-slate-500">{description ?? t.common.loadingDescription}</p>
+      <p className="text-sm font-semibold text-ink">{title ?? t.common.loading}</p>
+      <p className="text-sm text-ink-muted">{description ?? t.common.loadingDescription}</p>
     </div>
   );
 }

@@ -52,12 +52,12 @@ export function EventDetailPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.eventDetail.kicker}</p>
-          <h2 className="text-3xl font-semibold text-slate-950">{t.eventDetail.title}</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.eventDetail.kicker}</p>
+          <h2 className="text-3xl font-semibold text-slate-950 dark:text-slate-50">{t.eventDetail.title}</h2>
         </div>
         <Link
           to={backLink}
-          className="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-300"
+          className="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t.eventDetail.backToInvestigation}

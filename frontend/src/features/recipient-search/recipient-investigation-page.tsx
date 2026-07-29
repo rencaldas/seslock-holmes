@@ -167,8 +167,8 @@ export function RecipientInvestigationPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{t.investigation.kicker}</p>
-          <h2 className="text-3xl font-semibold text-slate-950">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.investigation.kicker}</p>
+          <h2 className="text-3xl font-semibold text-slate-950 dark:text-slate-50">
             {t.investigation.title}
           </h2>
         </div>
@@ -178,7 +178,7 @@ export function RecipientInvestigationPage() {
         </Button>
       </div>
 
-      <div className="sticky top-[7rem] z-20">
+      <div className="sticky top-16 z-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <RecipientSearchForm
             value={form}
@@ -214,7 +214,7 @@ export function RecipientInvestigationPage() {
             <>
               <RecipientResults data={investigationQuery.data} />
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {t.investigation.pageLabel} {investigationQuery.data.page} de{" "}
                   {Math.max(1, Math.ceil(investigationQuery.data.totalCount / investigationQuery.data.pageSize))}
                 </p>

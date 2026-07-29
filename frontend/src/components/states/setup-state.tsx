@@ -46,7 +46,7 @@ export function SetupState({
           {t.common.setupButton}
         </Button>
         {triedTables.length ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {t.common.setupTried}: {triedTables.join(", ")}
           </p>
         ) : null}

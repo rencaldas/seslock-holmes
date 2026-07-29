@@ -98,7 +98,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200/80 bg-white/90">
+      <Card className="border-slate-200/80 bg-white/90 dark:border-slate-800/80 dark:bg-slate-900/90">
         <CardHeader>
           <CardTitle>{t.settings.languageTitle}</CardTitle>
           <CardDescription>{t.settings.languageDescription}</CardDescription>
@@ -119,7 +119,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200/80 bg-white/90">
+      <Card className="border-slate-200/80 bg-white/90 dark:border-slate-800/80 dark:bg-slate-900/90">
         <CardHeader>
           <CardTitle>{t.settings.preferencesTitle}</CardTitle>
           <CardDescription>{t.settings.preferencesDescription}</CardDescription>
@@ -176,7 +176,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200/80 bg-white/90">
+      <Card className="border-slate-200/80 bg-white/90 dark:border-slate-800/80 dark:bg-slate-900/90">
         <CardHeader>
           <CardTitle>{t.settings.supabaseTitle}</CardTitle>
           <CardDescription>{t.settings.supabaseDescription}</CardDescription>
@@ -213,7 +213,7 @@ export function SettingsPage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
             <div className="flex gap-3">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>{t.settings.warning}</p>
@@ -239,8 +239,8 @@ export function SettingsPage() {
             </Button>
           </div>
 
-          {feedback ? <p className="text-sm font-medium text-emerald-700">{feedback}</p> : null}
-          {error ? <p className="text-sm font-medium text-rose-700">{error}</p> : null}
+          {feedback ? <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{feedback}</p> : null}
+          {error ? <p className="text-sm font-medium text-rose-700 dark:text-rose-400">{error}</p> : null}
         </CardContent>
       </Card>
     </div>
