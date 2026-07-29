@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/shell/app-header";
 import { AppFooter } from "@/components/shell/app-footer";
+import { Sidebar } from "@/components/shell/sidebar";
+import { Topbar } from "@/components/shell/topbar";
+import { useDisclosure } from "@/lib/hooks/use-disclosure";
 
 export function AppFrame({ children }: { children: ReactNode }) {
+  const { isOpen: mobileNavOpen, open: openMobileNav, close: closeMobileNav } = useDisclosure(false);
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <AppHeader />
-      <main className="mx-auto max-w-7xl flex-1 px-4 pt-6 pb-8 sm:px-6 lg:px-8">{children}</main>
-      <AppFooter />
+    <div className="flex min-h-screen bg-paper">
+      <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={closeMobileNav} />
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <Topbar onOpenMobileNav={openMobileNav} />
+        <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10">{children}</main>
+        <AppFooter />
+      </div>
     </div>
   );
 }
