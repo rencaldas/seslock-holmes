@@ -80,6 +80,7 @@ export type TranslationBundle = {
     applyFilters: string;
     recentActivityTitle: string;
     pageLabel: string;
+    pageSizeLabel: string;
     previous: string;
     next: string;
     exportReport: string;

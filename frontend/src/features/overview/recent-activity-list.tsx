@@ -4,31 +4,16 @@ import { Copy, Eye, MoreHorizontal, Send, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { copyToClipboard } from "@/lib/clipboard";
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { PAGE_SIZE_OPTIONS, type PageSize } from "@/lib/page-size";
 import type { EmailEvent } from "@/lib/supabase/types";
 import { EmailReportExport } from "@/features/overview/email-report-export";
-
-async function copyToClipboard(value: string) {
-  if (!value) {
-    return;
-  }
-
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-
-  const input = document.createElement("textarea");
-  input.value = value;
-  document.body.appendChild(input);
-  input.select();
-  document.execCommand("copy");
-  document.body.removeChild(input);
-}
 
 function EventActionsMenu({ event }: { event: EmailEvent }) {
   const t = useI18n();
@@ -112,20 +97,24 @@ export function RecentActivityList({
   reportQuery,
   page,
   totalPages,
+  pageSize,
   hasPreviousPage,
   hasNextPage,
   onPreviousPage,
   onNextPage,
+  onPageSizeChange,
 }: {
   events: EmailEvent[];
   reportEvents: EmailEvent[];
   reportQuery: Record<string, string>;
   page: number;
   totalPages: number;
+  pageSize: PageSize;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  onPageSizeChange: (pageSize: PageSize) => void;
 }) {
   const t = useI18n();
 
@@ -138,8 +127,18 @@ export function RecentActivityList({
             {t.overview.pageLabel} {page} de {totalPages}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <EmailReportExport events={reportEvents} query={reportQuery} />
+          <label className="flex items-center gap-2 text-sm text-ink-muted">
+            {t.overview.pageSizeLabel}
+            <Select
+              aria-label={t.overview.pageSizeLabel}
+              className="h-9 w-auto min-w-[4.5rem]"
+              value={String(pageSize)}
+              onChange={(event) => onPageSizeChange(Number(event.target.value) as PageSize)}
+              options={PAGE_SIZE_OPTIONS.map((option) => ({ label: String(option), value: String(option) }))}
+            />
+          </label>
           <Button type="button" variant="secondary" disabled={!hasPreviousPage} onClick={onPreviousPage}>
             {t.overview.previous}
           </Button>
