@@ -39,7 +39,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeText(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? "";
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") ?? ""
+  );
 }
 
 function summarizeArn(value: string | null | undefined) {

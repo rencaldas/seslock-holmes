@@ -41,7 +41,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     ready: Boolean(env),
     error: env
       ? null
-      : "As credenciais do Supabase estao ausentes. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY, ou salve-as em Configuracoes.",
+      : "As credenciais do Supabase estão ausentes. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY, ou salve-as em Configurações.",
     eventsTable: env?.eventsTable ?? null,
     triedTables: env?.eventsTable ? [env.eventsTable] : [],
   };
