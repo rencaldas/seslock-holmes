@@ -1,6 +1,11 @@
 // Shared by both /api/send-scheduled-reports.ts (Vercel Cron) and
 // /api/run-schedule-now.ts (manual "force run" trigger from the app): builds
-// the report for a schedule, emails it via Resend, and records the run.
+// the report for a schedule, emails it via Gmail SMTP, and records the run.
+//
+// Sends through a real Gmail account (SMTP + App Password) instead of a
+// transactional email API, since those all require verifying a domain the
+// sender owns — not an option here. Gmail's daily sending limit (~500/day
+// for a regular account) comfortably covers a handful of scheduled reports.
 //
 // A leading underscore keeps this directory out of Vercel's file-based API
 // routing (only api/*.ts and api/**/*.ts *without* an underscore-prefixed
@@ -10,6 +15,7 @@
 // src/lib/* modules) because Vercel's Node.js function bundler does not
 // resolve the `@/` tsconfig path alias Vite uses for the browser build.
 
+import nodemailer, { type Transporter } from "nodemailer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getAwsSnsEventTypeFilterValues,
@@ -69,8 +75,26 @@ export function readEnv(...keys: string[]) {
 
 export const SUPABASE_URL = readEnv("SUPABASE_URL", "VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
 export const SUPABASE_SERVICE_ROLE_KEY = readEnv("SUPABASE_SERVICE_ROLE_KEY");
-export const RESEND_API_KEY = readEnv("RESEND_API_KEY");
-export const RESEND_FROM = readEnv("RESEND_FROM") || "Seslock Holmes <reports@resend.dev>";
+export const GMAIL_USER = readEnv("GMAIL_USER");
+export const GMAIL_APP_PASSWORD = readEnv("GMAIL_APP_PASSWORD");
+export const GMAIL_FROM_NAME = readEnv("GMAIL_FROM_NAME") || "Seslock Holmes";
+
+let cachedTransporter: Transporter | null = null;
+
+// Reused across invocations of the same warm serverless instance instead of
+// reconnecting to Gmail's SMTP server on every send.
+function getGmailTransporter(): Transporter {
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+    throw new Error("GMAIL_USER/GMAIL_APP_PASSWORD não configuradas nas variáveis de ambiente do Vercel.");
+  }
+  if (!cachedTransporter) {
+    cachedTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    });
+  }
+  return cachedTransporter;
+}
 
 function humanFrequency(frequency: ScheduleFrequency) {
   const dayNames = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -150,9 +174,7 @@ function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced
 }
 
 export async function sendReportEmail(schedule: ReportScheduleRow, report: EmailReport, options: { forced?: boolean } = {}) {
-  if (!RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY não configurada nas variáveis de ambiente do Vercel.");
-  }
+  const transporter = getGmailTransporter();
 
   const csv = emailReportToCsv(report);
   const pdfBlob = emailReportToPdf(report);
@@ -160,28 +182,16 @@ export async function sendReportEmail(schedule: ReportScheduleRow, report: Email
   const csvFilename = createEmailReportFilename("csv", report.generatedAt);
   const pdfFilename = createEmailReportFilename("pdf", report.generatedAt);
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: RESEND_FROM,
-      to: schedule.recipients,
-      subject: `Relatório agendado: ${schedule.name}${options.forced ? " (forçado)" : ""}`,
-      html: buildEmailHtml(schedule, report, options.forced ?? false),
-      attachments: [
-        { filename: csvFilename, content: Buffer.from(csv, "utf-8").toString("base64") },
-        { filename: pdfFilename, content: pdfBuffer.toString("base64") },
-      ],
-    }),
+  await transporter.sendMail({
+    from: `"${GMAIL_FROM_NAME}" <${GMAIL_USER}>`,
+    to: schedule.recipients,
+    subject: `Relatório agendado: ${schedule.name}${options.forced ? " (forçado)" : ""}`,
+    html: buildEmailHtml(schedule, report, options.forced ?? false),
+    attachments: [
+      { filename: csvFilename, content: Buffer.from(csv, "utf-8") },
+      { filename: pdfFilename, content: pdfBuffer },
+    ],
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Resend respondeu ${response.status}: ${text}`);
-  }
 }
 
 export async function recordScheduleRun(

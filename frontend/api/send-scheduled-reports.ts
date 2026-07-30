@@ -1,13 +1,13 @@
 // Vercel Cron Job target — see the `crons` entry in ../vercel.json. On every
 // invocation it processes every `report_schedules` row whose `next_run_at`
 // has passed: re-runs the same filtered query the Overview page would run,
-// builds the report, emails it via Resend, and records the run so the app
-// can show it in-page without the browser needing to be open.
+// builds the report, emails it via Gmail SMTP, and records the run so the
+// app can show it in-page without the browser needing to be open.
 //
 // Required env vars (Vercel Project Settings > Environment Variables):
-// SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, CRON_SECRET. Reuses whichever
-// Supabase URL the frontend already has configured (VITE_SUPABASE_URL /
-// NEXT_PUBLIC_SUPABASE_URL).
+// SUPABASE_SERVICE_ROLE_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, CRON_SECRET.
+// Reuses whichever Supabase URL the frontend already has configured
+// (VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL).
 //
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the

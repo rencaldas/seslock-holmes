@@ -5,12 +5,13 @@
 // send-scheduled-reports.ts) is left untouched, this is purely an
 // out-of-band send for testing or urgent situations.
 //
-// Reuses the same SUPABASE_SERVICE_ROLE_KEY / RESEND_API_KEY env vars as the
-// cron endpoint — no extra secret to configure. Note this endpoint shares the
-// rest of the app's trust model (see supabase/migrations/*report_schedules*):
-// there's no user login, the Supabase anon key embedded in the browser
-// bundle is already the access boundary, and schedule ids are unguessable
-// UUIDs an anonymous caller has no way to obtain without that same access.
+// Reuses the same SUPABASE_SERVICE_ROLE_KEY / GMAIL_USER / GMAIL_APP_PASSWORD
+// env vars as the cron endpoint — no extra secret to configure. Note this
+// endpoint shares the rest of the app's trust model (see
+// supabase/migrations/*report_schedules*): there's no user login, the
+// Supabase anon key embedded in the browser bundle is already the access
+// boundary, and schedule ids are unguessable UUIDs an anonymous caller has
+// no way to obtain without that same access.
 //
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
