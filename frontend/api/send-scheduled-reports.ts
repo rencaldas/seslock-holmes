@@ -12,62 +12,36 @@
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
 // browser build.
+//
+// The `./_lib/scheduled-report-runner` import is done dynamically (inside
+// the try/catch below) rather than statically at the top of the file — see
+// the matching comment in run-schedule-now.ts for why: a static import that
+// fails at module-load time crashes the whole invocation before the
+// CRON_SECRET check even runs, and Vercel returns a bare platform 500 with
+// no JSON body. Deferring the import makes that failure catchable instead.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import {
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  advanceNextRun,
-  buildReportForSchedule,
-  readEnv,
-  recordScheduleRun,
-  sendReportEmail,
-  type ReportScheduleRow,
-} from "./_lib/scheduled-report-runner";
-
-const CRON_SECRET = readEnv("CRON_SECRET");
-
-async function claimSchedule(client: SupabaseClient, schedule: ReportScheduleRow) {
-  // Simple guard against overlapping cron ticks processing the same schedule
-  // twice: push next_run_at forward before doing the (slower) real work, then
-  // overwrite it with the real computed value once the run finishes.
-  const { data, error } = await client
-    .from("report_schedules")
-    .update({ next_run_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() })
-    .eq("id", schedule.id)
-    .lte("next_run_at", new Date().toISOString())
-    .select("id")
-    .maybeSingle();
-
-  if (error) throw error;
-  return Boolean(data);
-}
-
-// Recording the run + advancing next_run_at is bookkeeping around the actual
-// send — a write failure here must not crash the loop and skip every
-// remaining schedule, so it's logged and swallowed rather than left to throw.
-async function finishRunSafely(
-  client: SupabaseClient,
-  schedule: ReportScheduleRow,
-  status: "success" | "error",
-  report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined,
-  errorMessage: string | undefined,
-) {
-  try {
-    await recordScheduleRun(client, schedule, status, report, errorMessage);
-    await advanceNextRun(client, schedule, status, errorMessage);
-  } catch (recordError) {
-    console.error(`send-scheduled-reports: failed to record run for schedule ${schedule.id}`, recordError);
-  }
-}
+import type { ReportScheduleRow } from "./_lib/scheduled-report-runner";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
+    const { readEnv } = await import("./_lib/scheduled-report-runner");
+    const CRON_SECRET = readEnv("CRON_SECRET");
+
     if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
+
+    const {
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      advanceNextRun,
+      buildReportForSchedule,
+      recordScheduleRun,
+      sendReportEmail,
+    } = await import("./_lib/scheduled-report-runner");
+    const { createClient } = await import("@supabase/supabase-js");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       response.status(500).json({ error: "Supabase não configurado (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)." });
@@ -87,20 +61,55 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return;
     }
 
+    async function claimSchedule(schedule: ReportScheduleRow) {
+      // Simple guard against overlapping cron ticks processing the same
+      // schedule twice: push next_run_at forward before doing the (slower)
+      // real work, then overwrite it with the real computed value once the
+      // run finishes.
+      const { data, error: claimError } = await client
+        .from("report_schedules")
+        .update({ next_run_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() })
+        .eq("id", schedule.id)
+        .lte("next_run_at", new Date().toISOString())
+        .select("id")
+        .maybeSingle();
+
+      if (claimError) throw claimError;
+      return Boolean(data);
+    }
+
+    // Recording the run + advancing next_run_at is bookkeeping around the
+    // actual send — a write failure here must not crash the loop and skip
+    // every remaining schedule, so it's logged and swallowed rather than
+    // left to throw.
+    async function finishRunSafely(
+      schedule: ReportScheduleRow,
+      status: "success" | "error",
+      report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined,
+      errorMessage: string | undefined,
+    ) {
+      try {
+        await recordScheduleRun(client, schedule, status, report, errorMessage);
+        await advanceNextRun(client, schedule, status, errorMessage);
+      } catch (recordError) {
+        console.error(`send-scheduled-reports: failed to record run for schedule ${schedule.id}`, recordError);
+      }
+    }
+
     const results: Array<{ id: string; status: string; error?: string }> = [];
 
     for (const schedule of (dueSchedules ?? []) as ReportScheduleRow[]) {
-      const claimed = await claimSchedule(client, schedule);
+      const claimed = await claimSchedule(schedule);
       if (!claimed) continue;
 
       try {
         const report = await buildReportForSchedule(client, schedule);
         await sendReportEmail(schedule, report);
-        await finishRunSafely(client, schedule, "success", report, undefined);
+        await finishRunSafely(schedule, "success", report, undefined);
         results.push({ id: schedule.id, status: "success" });
       } catch (runError) {
         const message = runError instanceof Error ? runError.message : String(runError);
-        await finishRunSafely(client, schedule, "error", undefined, message);
+        await finishRunSafely(schedule, "error", undefined, message);
         results.push({ id: schedule.id, status: "error", error: message });
       }
     }
