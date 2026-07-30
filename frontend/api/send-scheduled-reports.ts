@@ -44,49 +44,73 @@ async function claimSchedule(client: SupabaseClient, schedule: ReportScheduleRow
   return Boolean(data);
 }
 
+// Recording the run + advancing next_run_at is bookkeeping around the actual
+// send — a write failure here must not crash the loop and skip every
+// remaining schedule, so it's logged and swallowed rather than left to throw.
+async function finishRunSafely(
+  client: SupabaseClient,
+  schedule: ReportScheduleRow,
+  status: "success" | "error",
+  report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined,
+  errorMessage: string | undefined,
+) {
+  try {
+    await recordScheduleRun(client, schedule, status, report, errorMessage);
+    await advanceNextRun(client, schedule, status, errorMessage);
+  } catch (recordError) {
+    console.error(`send-scheduled-reports: failed to record run for schedule ${schedule.id}`, recordError);
+  }
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
-    response.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  try {
+    if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+      response.status(401).json({ error: "Unauthorized" });
+      return;
+    }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    response.status(500).json({ error: "Supabase não configurado (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)." });
-    return;
-  }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      response.status(500).json({ error: "Supabase não configurado (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)." });
+      return;
+    }
 
-  const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: dueSchedules, error } = await client
-    .from("report_schedules")
-    .select("*")
-    .eq("is_active", true)
-    .lte("next_run_at", new Date().toISOString());
+    const { data: dueSchedules, error } = await client
+      .from("report_schedules")
+      .select("*")
+      .eq("is_active", true)
+      .lte("next_run_at", new Date().toISOString());
 
-  if (error) {
-    response.status(500).json({ error: error.message });
-    return;
-  }
+    if (error) {
+      response.status(500).json({ error: error.message });
+      return;
+    }
 
-  const results: Array<{ id: string; status: string; error?: string }> = [];
+    const results: Array<{ id: string; status: string; error?: string }> = [];
 
-  for (const schedule of (dueSchedules ?? []) as ReportScheduleRow[]) {
-    const claimed = await claimSchedule(client, schedule);
-    if (!claimed) continue;
+    for (const schedule of (dueSchedules ?? []) as ReportScheduleRow[]) {
+      const claimed = await claimSchedule(client, schedule);
+      if (!claimed) continue;
 
-    try {
-      const report = await buildReportForSchedule(client, schedule);
-      await sendReportEmail(schedule, report);
-      await recordScheduleRun(client, schedule, "success", report);
-      await advanceNextRun(client, schedule, "success");
-      results.push({ id: schedule.id, status: "success" });
-    } catch (runError) {
-      const message = runError instanceof Error ? runError.message : String(runError);
-      await recordScheduleRun(client, schedule, "error", undefined, message);
-      await advanceNextRun(client, schedule, "error", message);
-      results.push({ id: schedule.id, status: "error", error: message });
+      try {
+        const report = await buildReportForSchedule(client, schedule);
+        await sendReportEmail(schedule, report);
+        await finishRunSafely(client, schedule, "success", report, undefined);
+        results.push({ id: schedule.id, status: "success" });
+      } catch (runError) {
+        const message = runError instanceof Error ? runError.message : String(runError);
+        await finishRunSafely(client, schedule, "error", undefined, message);
+        results.push({ id: schedule.id, status: "error", error: message });
+      }
+    }
+
+    response.status(200).json({ processed: results.length, results });
+  } catch (unexpectedError) {
+    console.error("send-scheduled-reports: unexpected failure", unexpectedError);
+    const message = unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);
+    if (!response.headersSent) {
+      response.status(500).json({ error: message });
     }
   }
-
-  response.status(200).json({ processed: results.length, results });
 }
