@@ -16,37 +16,18 @@
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
 // browser build.
+//
+// The `./_lib/scheduled-report-runner` import is done dynamically (inside
+// the try/catch below) rather than statically at the top of the file. A
+// static import that throws at module-load time — e.g. because a dependency
+// failed to bundle — crashes the whole function invocation before our own
+// code ever runs, and Vercel then returns a bare platform 500
+// (FUNCTION_INVOCATION_FAILED, no JSON body) that the frontend can't show a
+// real reason for. Deferring the import into the try/catch turns that into
+// an ordinary catchable error instead.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import {
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  buildReportForSchedule,
-  recordLastRunOnly,
-  recordScheduleRun,
-  sendReportEmail,
-  type ReportScheduleRow,
-} from "./_lib/scheduled-report-runner";
-
-// Recording the run outcome is best-effort bookkeeping for the UI's history
-// view — a failure here (e.g. a transient Supabase write error) must never
-// hide the real send outcome from the caller, so it's logged and swallowed
-// rather than left to crash the handler after the response has been decided.
-async function recordRunSafely(
-  client: SupabaseClient,
-  row: ReportScheduleRow,
-  status: "success" | "error",
-  report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined,
-  errorMessage: string | undefined,
-) {
-  try {
-    await recordScheduleRun(client, row, status, report, errorMessage);
-    await recordLastRunOnly(client, row.id, status, errorMessage);
-  } catch (recordError) {
-    console.error("run-schedule-now: failed to record run history", recordError);
-  }
-}
+import type { ReportScheduleRow } from "./_lib/scheduled-report-runner";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
@@ -54,6 +35,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
       response.status(405).json({ error: "Method not allowed" });
       return;
     }
+
+    const {
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      buildReportForSchedule,
+      recordLastRunOnly,
+      recordScheduleRun,
+      sendReportEmail,
+    } = await import("./_lib/scheduled-report-runner");
+    const { createClient } = await import("@supabase/supabase-js");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       response.status(500).json({ error: "Supabase não configurado (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)." });
@@ -85,19 +76,29 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     const row = schedule as ReportScheduleRow;
 
+    async function recordRunSafely(status: "success" | "error", report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined, errorMessage: string | undefined) {
+      try {
+        await recordScheduleRun(client, row, status, report, errorMessage);
+        await recordLastRunOnly(client, row.id, status, errorMessage);
+      } catch (recordError) {
+        console.error("run-schedule-now: failed to record run history", recordError);
+      }
+    }
+
     try {
       const report = await buildReportForSchedule(client, row);
       await sendReportEmail(row, report, { forced: true });
-      await recordRunSafely(client, row, "success", report, undefined);
+      await recordRunSafely("success", report, undefined);
       response.status(200).json({ status: "success" });
     } catch (runError) {
       const message = runError instanceof Error ? runError.message : String(runError);
-      await recordRunSafely(client, row, "error", undefined, message);
+      await recordRunSafely("error", undefined, message);
       response.status(500).json({ status: "error", error: message });
     }
   } catch (unexpectedError) {
-    // Last-resort guard: whatever broke above, always answer with JSON so
-    // the browser can show the real reason instead of a bare platform 500.
+    // Last-resort guard: whatever broke above (including a failed dynamic
+    // import), always answer with JSON so the browser can show the real
+    // reason instead of a bare platform 500.
     console.error("run-schedule-now: unexpected failure", unexpectedError);
     const message = unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);
     if (!response.headersSent) {
