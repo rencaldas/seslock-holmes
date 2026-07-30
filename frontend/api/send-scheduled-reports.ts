@@ -14,12 +14,11 @@
 // browser build.
 //
 // report-runner is imported statically (like the other local api/* imports)
-// so Vercel's build bundles it into the compiled function output — see the
-// matching comment in run-schedule-now.ts for why a dynamic `await
-// import(...)` of this same local file was tried and reverted: it resolves
-// against the deployed filesystem at runtime instead of being inlined at
-// build time, which produced "Cannot find module" in production regardless
-// of which directory the file lived in.
+// — see the matching comment in run-schedule-now.ts for why a dynamic
+// `await import(...)` was tried and reverted, and for why the `.js`
+// extension below (required by Node's ESM loader, since @vercel/node ships
+// each file separately rather than bundling them into one) is required even
+// though the real source file is .ts.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
@@ -32,7 +31,7 @@ import {
   recordScheduleRun,
   sendReportEmail,
   type ReportScheduleRow,
-} from "../src/lib/scheduled-reports/report-runner";
+} from "../src/lib/scheduled-reports/report-runner.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {

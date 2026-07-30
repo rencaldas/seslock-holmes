@@ -18,17 +18,22 @@
 // browser build.
 //
 // report-runner is imported statically (like the other local api/* imports)
-// so Vercel's build bundles it into the compiled function output. It was
-// briefly imported via a dynamic `await import(...)` instead, on the theory
-// that deferring it into the try/catch below would turn a module-load crash
-// into a catchable error — but a *local*, non-node_modules file reached only
-// through a dynamic import() is resolved by Node against the deployed
-// filesystem at runtime, not inlined at build time like a static import, and
-// Vercel's function bundler doesn't ship a standalone compiled twin of it.
-// That produced "Cannot find module" in production regardless of which
-// directory the file lived in. Nothing at report-runner's module top level
-// actually throws (readEnv returns null instead of throwing), so the static
-// import is safe here.
+// rather than via a dynamic `await import(...)` — a dynamic import was tried
+// first, on the theory that deferring it into the try/catch below would turn
+// a module-load crash into a catchable error, but that wasn't the actual
+// problem. Confirmed via Vercel's function logs: @vercel/node transpiles
+// each file individually and ships them as separate compiled .js files (it
+// does not bundle everything into one file), so relative imports are
+// resolved by Node's own ESM loader at runtime — and that loader, unlike a
+// bundler, requires an explicit file extension. The `.js` extension below
+// (on this and every other relative import reachable from this file, e.g. in
+// report-runner.ts / aws-sns.ts) is required for that reason, even though
+// the real source files are .ts — this is Node ESM's own convention for
+// TypeScript projects, not a typo. Omitting it produces
+// "Error [ERR_MODULE_NOT_FOUND]: Cannot find module ... imported from
+// .../run-schedule-now.js" in production. Nothing at report-runner's module
+// top level actually throws (readEnv returns null instead of throwing), so
+// there's no crash-on-load risk to defer against with a dynamic import here.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
@@ -40,7 +45,7 @@ import {
   recordScheduleRun,
   sendReportEmail,
   type ReportScheduleRow,
-} from "../src/lib/scheduled-reports/report-runner";
+} from "../src/lib/scheduled-reports/report-runner.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
