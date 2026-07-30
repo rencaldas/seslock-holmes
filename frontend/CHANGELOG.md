@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.0] - 2026-07-30
+### Added
+- Recipient search and filters moved from the overview page body into the topbar, staying reachable without scrolling.
+- Configurable page size for the recent activity table (5/10/50/100 rows), instead of a fixed 50.
+- Supabase credentials are now validated (URL shape, key format, and a live connection check) before being saved in onboarding and settings.
+
+### Changed
+- Redesigned the event detail page with an icon-led hero, grouped info rows with copy buttons, a collapsible raw payload viewer, and an automatic bounce-diagnosis callout.
+- The message trace timeline now highlights the event currently being viewed.
+
+### Fixed
+- Restored missing accents in Portuguese bounce diagnosis text and made keyword matching diacritic-insensitive.
+- The report export menu now closes when clicking outside of it.
+- Fixed a dark-mode contrast issue on the default badge tone.
+
 ## [0.13.0] - 2026-07-29
 ### Added
 - Supabase onboarding screen that gates the dashboard until a project URL and key are connected, with a shortcut to full settings for advanced options.
