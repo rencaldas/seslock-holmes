@@ -30,8 +30,8 @@ import {
   rowMatchesStatus,
   rowMatchesSubject,
   rowToEmailEvent,
-} from "../supabase/aws-sns";
-import { EMAIL_EVENT_LIST_COLUMNS, fetchEventRowsWithTimeFallback } from "../supabase/queries/fetch-event-rows";
+} from "../supabase/aws-sns.js";
+import { EMAIL_EVENT_LIST_COLUMNS, fetchEventRowsWithTimeFallback } from "../supabase/queries/fetch-event-rows.js";
 import {
   buildEmailReport,
   createEmailReportFilename,
@@ -39,8 +39,8 @@ import {
   emailReportToPdf,
   type EmailReport,
   type EmailReportSortBy,
-} from "../email-report";
-import type { EmailEventType } from "../supabase/types";
+} from "../email-report.js";
+import type { EmailEventType } from "../supabase/types.js";
 
 export interface ScheduleFilters {
   windowDays: number;

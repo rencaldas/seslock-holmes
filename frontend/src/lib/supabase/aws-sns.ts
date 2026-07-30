@@ -1,5 +1,5 @@
 import type { EmailEvent, EmailEventType, EmailEventRow } from "@/lib/supabase/types";
-import { classifyDiagnosticCode } from "./bounce-diagnostics";
+import { classifyDiagnosticCode } from "./bounce-diagnostics.js";
 
 const EVENT_TYPE_MAP: Record<string, EmailEventType> = {
   sent: "sent",
