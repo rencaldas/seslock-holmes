@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { getSupabaseEnv } from "@/lib/env";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { AppClockFormat, AppLanguage, AppUpdateInterval } from "@/lib/i18n/types";
 import {
@@ -21,12 +20,11 @@ import {
 
 function getInitialValues() {
   const savedSettings = loadSupabaseSettings();
-  const envSettings = getSupabaseEnv();
 
   return {
-    url: savedSettings?.url ?? envSettings?.url ?? "",
-    anonKey: savedSettings?.anonKey ?? envSettings?.anonKey ?? "",
-    eventsTable: savedSettings?.eventsTable ?? envSettings?.eventsTable ?? "aws_sns",
+    url: savedSettings?.url ?? "",
+    anonKey: savedSettings?.anonKey ?? "",
+    eventsTable: savedSettings?.eventsTable ?? "aws_sns",
     language: savedSettings?.language ?? "pt-BR",
     timeZone: savedSettings?.timeZone ?? DEFAULT_TIME_ZONE,
     clockFormat: savedSettings?.clockFormat ?? DEFAULT_CLOCK_FORMAT,
