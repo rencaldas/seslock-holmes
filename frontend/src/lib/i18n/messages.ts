@@ -452,10 +452,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         lastRunNever: "Ainda não executado",
         confirmDelete: "Excluir este agendamento? Essa ação não pode ser desfeita.",
         viewHistory: "Ver histórico",
-        forceRun: "Forçar agendamento de relatório",
-        forceRunConfirm: "Gerar e enviar este relatório agora, fora do horário programado?",
-        forceRunSuccess: "Relatório enviado.",
-        forceRunError: "Falha ao forçar o envio.",
       },
       frequencyText: {
         daily: "Diariamente às {time}",
@@ -959,10 +955,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         lastRunNever: "Not run yet",
         confirmDelete: "Delete this schedule? This can't be undone.",
         viewHistory: "View history",
-        forceRun: "Force report scheduling",
-        forceRunConfirm: "Generate and send this report right now, outside its scheduled time?",
-        forceRunSuccess: "Report sent.",
-        forceRunError: "Failed to force the send.",
       },
       frequencyText: {
         daily: "Daily at {time}",

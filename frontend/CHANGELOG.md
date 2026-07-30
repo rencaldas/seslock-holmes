@@ -2,10 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-07-30
-### Added
-- Botão "Forçar agendamento de relatório" na página de Relatórios agendados, que gera e envia o relatório de um agendamento imediatamente (útil para testes ou situações críticas), sem alterar a próxima execução programada pelo cron.
-
 ## [1.0.0] - 2026-07-30
 Primeira versão estável do dashboard, marcando o app como completo e em uso em produção.
 
