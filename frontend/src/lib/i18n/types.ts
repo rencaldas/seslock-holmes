@@ -6,6 +6,7 @@ export type TranslationBundle = {
   nav: {
     overview: string;
     investigate: string;
+    scheduledReports: string;
     faq: string;
     settings: string;
     mobileSearch: string;
@@ -399,4 +400,96 @@ export type TranslationBundle = {
     question: string;
     answer: string;
   }>;
+  scheduledReports: {
+    title: string;
+    subtitle: string;
+    newButton: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    setup: {
+      title: string;
+      description: string;
+      notConfiguredBadge: string;
+      configuredBadge: string;
+      checking: string;
+      step1Title: string;
+      step1Description: string;
+      step2Title: string;
+      step2Description: string;
+      step3Title: string;
+      step3Description: string;
+      copyButton: string;
+      copied: string;
+      recheckButton: string;
+    };
+    list: {
+      nameHeader: string;
+      frequencyHeader: string;
+      filtersHeader: string;
+      recipientsHeader: string;
+      nextRunHeader: string;
+      lastRunHeader: string;
+      actionsHeader: string;
+      edit: string;
+      delete: string;
+      pause: string;
+      resume: string;
+      active: string;
+      paused: string;
+      lastRunSuccess: string;
+      lastRunError: string;
+      lastRunNever: string;
+      confirmDelete: string;
+      viewHistory: string;
+    };
+    frequencyText: {
+      daily: string;
+      weekly: string;
+      monthly: string;
+      dayNames: [string, string, string, string, string, string, string];
+    };
+    form: {
+      createTitle: string;
+      editTitle: string;
+      nameLabel: string;
+      namePlaceholder: string;
+      windowLabel: string;
+      sortLabel: string;
+      frequencyTitle: string;
+      frequencyTypeLabel: string;
+      frequencyTypeOptions: {
+        daily: string;
+        weekly: string;
+        monthly: string;
+      };
+      timeLabel: string;
+      dayOfWeekLabel: string;
+      dayOfWeekOptions: [string, string, string, string, string, string, string];
+      dayOfMonthLabel: string;
+      timezoneLabel: string;
+      recipientsLabel: string;
+      recipientsPlaceholder: string;
+      recipientsHint: string;
+      invalidEmail: string;
+      duplicateEmail: string;
+      save: string;
+      cancel: string;
+      savedFeedback: string;
+      errorFeedback: string;
+    };
+    history: {
+      title: string;
+      emptyTitle: string;
+      emptyDescription: string;
+      generatedAtHeader: string;
+      statusHeader: string;
+      eventsHeader: string;
+      recipientsHeader: string;
+      downloadCsv: string;
+      downloadPdf: string;
+      downloadJson: string;
+      errorMessage: string;
+      close: string;
+    };
+  };
 };

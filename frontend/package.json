@@ -1,7 +1,7 @@
 {
   "name": "seslock-holmes",
   "private": true,
-  "version": "0.14.0",
+  "version": "0.15.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.api.json --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
+    "@vercel/node": "^5.9.2",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

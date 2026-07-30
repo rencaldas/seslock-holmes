@@ -4,5 +4,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/send-scheduled-reports",
+      "schedule": "0 23 * * *"
+    }
   ]
 }

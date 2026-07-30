@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.0] - 2026-07-30
+### Added
+- Nova página "Relatórios agendados" na sidebar, para configurar entregas recorrentes do relatório de emails com os mesmos filtros do Overview, um horário/frequência (diário, semanal ou mensal) e uma lista de destinatários por email.
+- Painel de Configuração guiado na nova página, que detecta se as tabelas de agendamento existem no Supabase do usuário e gera o SQL da migration pronto para copiar, sem exigir nenhuma credencial de conta inteira dentro do app.
+- Histórico de execuções por agendamento, com re-download do relatório em CSV, PDF ou JSON a partir do resultado salvo de cada envio.
+- Entrega automática dos relatórios por email (via Resend) através de uma function do Vercel disparada por um cron diário, reaproveitando a mesma hospedagem do dashboard.
+
 ## [0.14.0] - 2026-07-30
 ### Added
 - Recipient search and filters moved from the overview page body into the topbar, staying reachable without scrolling.

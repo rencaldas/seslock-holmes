@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, FileJson, FileSpreadsheet, FileText } from "lucide-react";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { Select } from "@/components/ui/select";
+import { downloadBlob } from "@/lib/download-blob";
 import {
   buildEmailReport,
   createEmailReportFilename,
@@ -13,17 +14,6 @@ import {
 import type { EmailEvent } from "@/lib/supabase/types";
 
 type ExportFormat = "pdf" | "csv" | "json";
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 export function EmailReportExport({
   events,
