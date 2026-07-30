@@ -11,6 +11,26 @@ export function reputationTone(status: OverviewReputationStatus): "success" | "w
   return "destructive";
 }
 
+export function bounceRateTone(bounceRate: number): "success" | "warning" | "destructive" {
+  if (bounceRate > 5) {
+    return "destructive";
+  }
+  if (bounceRate >= 2) {
+    return "warning";
+  }
+  return "success";
+}
+
+export function complaintRateTone(complaintRate: number): "success" | "warning" | "destructive" {
+  if (complaintRate > 0.3) {
+    return "destructive";
+  }
+  if (complaintRate > 0.1) {
+    return "warning";
+  }
+  return "success";
+}
+
 export function reputationLabel(t: ReturnType<typeof useI18n>, status: OverviewReputationStatus) {
   switch (status) {
     case "healthy":

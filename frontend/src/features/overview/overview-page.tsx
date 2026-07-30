@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
+import overviewLogo from "@/assets/overview-logo.png";
+import overviewLogoBlack from "@/assets/overview-logo-black.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/states/empty-state";
@@ -135,6 +137,7 @@ export function OverviewPage() {
         provider: appliedFilters.provider,
         rowLimit: appliedFilters.rowLimit,
       }),
+    placeholderData: keepPreviousData,
   });
 
   const timeSeries = useMemo(() => {
@@ -162,10 +165,17 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">{t.overview.kicker}</p>
-        <h1 className="max-w-3xl text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{t.overview.title}</h1>
-        <p className="max-w-2xl text-sm leading-6 text-ink-muted sm:text-base">{t.overview.description}</p>
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <img src={overviewLogoBlack} alt={t.app.subtitle} className="h-36 w-36 object-contain dark:hidden" />
+          <img src={overviewLogo} alt={t.app.subtitle} className="hidden h-36 w-36 object-contain dark:block" />
+          <span className="whitespace-nowrap text-xl font-bold text-ink">{t.app.subtitle}</span>
+        </div>
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">{t.overview.kicker}</p>
+          <h1 className="max-w-3xl text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{t.overview.title}</h1>
+          <p className="max-w-2xl text-sm leading-6 text-ink-muted sm:text-base">{t.overview.description}</p>
+        </div>
       </section>
 
       <div className="sticky top-16 z-20 -mx-4 bg-paper/85 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
@@ -286,7 +296,11 @@ export function OverviewPage() {
       ) : null}
 
       {overviewQuery.data ? (
-        <div className="space-y-8">
+        <div
+          className={`space-y-8 transition-opacity duration-150 ${
+            overviewQuery.isFetching && !overviewQuery.isLoading ? "opacity-60" : "opacity-100"
+          }`}
+        >
           <DomainHealthHero analytics={overviewQuery.data.analytics} />
           <TopMetrics analytics={overviewQuery.data.analytics} timeSeries={timeSeries.points} />
           <OverviewAnalyticsPanel data={overviewQuery.data} timeSeries={timeSeries} />

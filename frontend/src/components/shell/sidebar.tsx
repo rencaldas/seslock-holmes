@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { Activity, BookOpen, Search, Settings2, X } from "lucide-react";
 import overviewLogo from "@/assets/overview-logo.png";
+import overviewLogoBlack from "@/assets/overview-logo-black.png";
 import pkg from "../../../package.json";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -44,19 +45,20 @@ export function Sidebar({
           mobileOpen && "translate-x-0",
         )}
       >
-        <div className="flex items-center justify-between gap-2 px-5 pb-2 pt-5">
-          <Link to="/" onClick={onCloseMobile} className="flex items-center gap-2.5">
-            <img src={overviewLogo} alt="Seslock Holmes" className="h-9 w-9 object-contain" />
+        <div className="relative flex items-center justify-center gap-2 px-3 pb-3 pt-5">
+          <Link to="/" onClick={onCloseMobile} className="flex items-center gap-3">
+            <img src={overviewLogoBlack} alt="Seslock Holmes" className="h-14 w-14 object-contain dark:hidden" />
+            <img src={overviewLogo} alt="Seslock Holmes" className="hidden h-14 w-14 object-contain dark:block" />
             <div>
-              <p className="text-sm font-bold leading-tight text-ink">{t.app.subtitle}</p>
-              <p className="text-[11px] font-medium leading-tight text-ink-muted">v{pkg.version}</p>
+              <p className="text-lg font-bold leading-tight text-ink">{t.app.subtitle}</p>
+              <p className="text-xs font-medium leading-tight text-ink-muted">v{pkg.version}</p>
             </div>
           </Link>
           <button
             type="button"
             onClick={onCloseMobile}
             aria-label={t.shell.closeMenu}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-control text-ink-muted transition hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+            className="absolute right-3 top-5 inline-flex h-9 w-9 items-center justify-center rounded-control text-ink-muted transition hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>

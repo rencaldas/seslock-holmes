@@ -24,7 +24,7 @@ export function OverviewAnalyticsPanel({
     label: provider.domain,
     value: provider.totalCount,
     displayValue: formatCount(provider.totalCount),
-    secondary: `${formatPercent(provider.bounceRate)} bounce`,
+    secondary: `${formatPercent((provider.totalCount / Math.max(analytics.totalEventCount, 1)) * 100)} · ${formatPercent(provider.bounceRate)} bounce`,
     tone: provider.bounceRate > 5 ? "danger" : provider.bounceRate >= 2 ? "warning" : "brand",
   }));
 
@@ -75,14 +75,14 @@ export function OverviewAnalyticsPanel({
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ChartCard title={t.overview.analytics.topProvidersTitle} description={t.overview.analytics.topProvidersDescription}>
-          <BarList items={providerItems} emptyLabel={t.overview.analytics.noData} />
+          <BarList items={providerItems} emptyLabel={t.overview.analytics.noData} total={analytics.totalEventCount} />
         </ChartCard>
 
         <ChartCard
           title={t.overview.analytics.topBounceReasonsTitle}
           description={t.overview.analytics.topBounceReasonsDescription}
         >
-          <BarList items={bounceReasonItems} emptyLabel={t.overview.analytics.noData} />
+          <BarList items={bounceReasonItems} emptyLabel={t.overview.analytics.noData} total={analytics.bouncedCount} />
         </ChartCard>
       </div>
 
