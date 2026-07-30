@@ -21,8 +21,14 @@ export const REQUIRED_VERCEL_ENV_VARS: RequiredEnvVar[] = [
       "Painel do Supabase → Project Settings → API → service_role key. Precisa desse nível de acesso para ler todos os agendamentos e gravar o histórico, ignorando o RLS da anon key.",
   },
   {
-    name: "RESEND_API_KEY",
-    description: "Criada em resend.com, depois de verificar um domínio de envio.",
+    name: "GMAIL_USER",
+    description:
+      "O endereço Gmail que vai aparecer como remetente dos relatórios (ex.: seuemail@gmail.com). Precisa ter a Verificação em 2 etapas ativada na conta Google.",
+  },
+  {
+    name: "GMAIL_APP_PASSWORD",
+    description:
+      "Senha de app gerada em myaccount.google.com/apppasswords para esse Gmail (16 caracteres, diferente da senha normal da conta). Usada só para autenticar o envio via SMTP.",
   },
   {
     name: "CRON_SECRET",
