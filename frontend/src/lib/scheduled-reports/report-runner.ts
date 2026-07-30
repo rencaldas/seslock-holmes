@@ -1,15 +1,21 @@
-// Shared by both /api/send-scheduled-reports.ts (Vercel Cron) and
-// /api/run-schedule-now.ts (manual "force run" trigger from the app): builds
-// the report for a schedule, emails it via Gmail SMTP, and records the run.
+// Server-only module (Node.js, not for the browser bundle) shared by both
+// /api/send-scheduled-reports.ts (Vercel Cron) and /api/run-schedule-now.ts
+// (manual "force run" trigger from the app): builds the report for a
+// schedule, emails it via Gmail SMTP, and records the run.
+//
+// Lives under src/lib instead of api/ on purpose: Vercel's Serverless
+// Functions build excludes any file or directory whose name starts with `_`
+// from the deployed bundle entirely — not just from routing — so an earlier
+// api/_lib/scheduled-report-runner.ts here made both endpoints fail with
+// "Cannot find module" at runtime. src/lib is already known-good: it's where
+// email-report.ts and the other modules this file reuses already live, and
+// they're traced and included correctly by Vercel's Node builder via
+// relative imports from api/*.ts.
 //
 // Sends through a real Gmail account (SMTP + App Password) instead of a
 // transactional email API, since those all require verifying a domain the
 // sender owns — not an option here. Gmail's daily sending limit (~500/day
 // for a regular account) comfortably covers a handful of scheduled reports.
-//
-// A leading underscore keeps this directory out of Vercel's file-based API
-// routing (only api/*.ts and api/**/*.ts *without* an underscore-prefixed
-// segment become routes) while still letting the two handlers import it.
 //
 // Only relative imports are used below (including inside the reused
 // src/lib/* modules) because Vercel's Node.js function bundler does not
@@ -24,8 +30,8 @@ import {
   rowMatchesStatus,
   rowMatchesSubject,
   rowToEmailEvent,
-} from "../../src/lib/supabase/aws-sns";
-import { EMAIL_EVENT_LIST_COLUMNS, fetchEventRowsWithTimeFallback } from "../../src/lib/supabase/queries/fetch-event-rows";
+} from "../supabase/aws-sns";
+import { EMAIL_EVENT_LIST_COLUMNS, fetchEventRowsWithTimeFallback } from "../supabase/queries/fetch-event-rows";
 import {
   buildEmailReport,
   createEmailReportFilename,
@@ -33,8 +39,8 @@ import {
   emailReportToPdf,
   type EmailReport,
   type EmailReportSortBy,
-} from "../../src/lib/email-report";
-import type { EmailEventType } from "../../src/lib/supabase/types";
+} from "../email-report";
+import type { EmailEventType } from "../supabase/types";
 
 export interface ScheduleFilters {
   windowDays: number;

@@ -17,17 +17,16 @@
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
 // browser build.
 //
-// The `./_lib/scheduled-report-runner` import is done dynamically (inside
-// the try/catch below) rather than statically at the top of the file. A
-// static import that throws at module-load time — e.g. because a dependency
-// failed to bundle — crashes the whole function invocation before our own
-// code ever runs, and Vercel then returns a bare platform 500
-// (FUNCTION_INVOCATION_FAILED, no JSON body) that the frontend can't show a
-// real reason for. Deferring the import into the try/catch turns that into
-// an ordinary catchable error instead.
+// The report-runner import is done dynamically (inside the try/catch below)
+// rather than statically at the top of the file. A static import that
+// throws at module-load time — e.g. because a dependency failed to bundle —
+// crashes the whole function invocation before our own code ever runs, and
+// Vercel then returns a bare platform 500 (FUNCTION_INVOCATION_FAILED, no
+// JSON body) that the frontend can't show a real reason for. Deferring the
+// import into the try/catch turns that into an ordinary catchable error.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { ReportScheduleRow } from "./_lib/scheduled-report-runner";
+import type { ReportScheduleRow } from "../src/lib/scheduled-reports/report-runner";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
@@ -43,7 +42,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       recordLastRunOnly,
       recordScheduleRun,
       sendReportEmail,
-    } = await import("./_lib/scheduled-report-runner");
+    } = await import("../src/lib/scheduled-reports/report-runner");
     const { createClient } = await import("@supabase/supabase-js");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
