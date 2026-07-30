@@ -15,4 +15,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  server: {
+    fs: {
+      // Lets the Scheduled reports setup panel import the SQL migration
+      // straight from supabase/migrations (repo root, outside this Vite
+      // project) via `?raw`, so it never drifts from the file that's
+      // actually meant to be run.
+      allow: [path.resolve(__dirname, ".."), path.resolve(__dirname)],
+    },
+  },
 });

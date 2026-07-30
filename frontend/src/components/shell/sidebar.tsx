@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Activity, BookOpen, Search, Settings2, X } from "lucide-react";
+import { Activity, BookOpen, CalendarClock, Search, Settings2, X } from "lucide-react";
 import overviewLogo from "@/assets/overview-logo.png";
 import overviewLogoBlack from "@/assets/overview-logo-black.png";
 import pkg from "../../../package.json";
@@ -24,6 +24,7 @@ export function Sidebar({
   const navItems = [
     { to: "/", label: t.nav.overview, icon: Activity, end: true },
     { to: "/investigate", label: t.nav.investigate, icon: Search, end: false },
+    { to: "/scheduled-reports", label: t.nav.scheduledReports, icon: CalendarClock, end: false },
     { to: "/faq", label: t.nav.faq, icon: BookOpen, end: false },
     { to: "/settings", label: t.nav.settings, icon: Settings2, end: false },
   ];
