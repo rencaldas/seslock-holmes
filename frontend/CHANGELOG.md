@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-07-30
+Primeira versão estável do dashboard, marcando o app como completo e em uso em produção.
+
+### Fixed
+- Ajustada a largura das colunas do painel de filtros e do overlay de busca do Overview, que ficavam espremidos em telas médias.
+
 ## [0.15.0] - 2026-07-30
 ### Added
 - Nova página "Relatórios agendados" na sidebar, para configurar entregas recorrentes do relatório de emails com os mesmos filtros do Overview, um horário/frequência (diário, semanal ou mensal) e uma lista de destinatários por email.
