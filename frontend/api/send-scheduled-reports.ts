@@ -13,35 +13,35 @@
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
 // browser build.
 //
-// The report-runner import is done dynamically (inside the try/catch below)
-// rather than statically at the top of the file — see the matching comment
-// in run-schedule-now.ts for why: a static import that fails at module-load
-// time crashes the whole invocation before the CRON_SECRET check even runs,
-// and Vercel returns a bare platform 500 with no JSON body. Deferring the
-// import makes that failure catchable instead.
+// report-runner is imported statically (like the other local api/* imports)
+// so Vercel's build bundles it into the compiled function output — see the
+// matching comment in run-schedule-now.ts for why a dynamic `await
+// import(...)` of this same local file was tried and reverted: it resolves
+// against the deployed filesystem at runtime instead of being inlined at
+// build time, which produced "Cannot find module" in production regardless
+// of which directory the file lived in.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { ReportScheduleRow } from "../src/lib/scheduled-reports/report-runner";
+import { createClient } from "@supabase/supabase-js";
+import {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  advanceNextRun,
+  buildReportForSchedule,
+  readEnv,
+  recordScheduleRun,
+  sendReportEmail,
+  type ReportScheduleRow,
+} from "../src/lib/scheduled-reports/report-runner";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
-    const { readEnv } = await import("../src/lib/scheduled-reports/report-runner");
     const CRON_SECRET = readEnv("CRON_SECRET");
 
     if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
-
-    const {
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
-      advanceNextRun,
-      buildReportForSchedule,
-      recordScheduleRun,
-      sendReportEmail,
-    } = await import("../src/lib/scheduled-reports/report-runner");
-    const { createClient } = await import("@supabase/supabase-js");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       response.status(500).json({ error: "Supabase não configurado (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)." });

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-07-30
+### Fixed
+- Botão "Forçar agendamento de relatório" voltou a funcionar: o módulo compartilhado dos relatórios agendados estava sendo importado dinamicamente pelas duas funções da API, o que a Vercel não empacota corretamente e derrubava o envio com "Cannot find module" em produção.
+
 ## [1.1.0] - 2026-07-30
 ### Added
 - Botão "Forçar agendamento de relatório" na página de Relatórios agendados, que gera e envia o relatório de um agendamento imediatamente (útil para testes ou situações críticas), sem alterar a próxima execução programada pelo cron.
