@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-07-30
+### Fixed
+- Botão "Forçar agendamento de relatório": a correção da versão anterior não foi suficiente — os imports internos do módulo de relatórios agendados ainda precisavam da extensão `.js` explícita para o Node conseguir resolvê-los em produção. Confirmado pelos logs reais da function na Vercel.
+
 ## [1.1.1] - 2026-07-30
 ### Fixed
 - Botão "Forçar agendamento de relatório" voltou a funcionar: o módulo compartilhado dos relatórios agendados estava sendo importado dinamicamente pelas duas funções da API, o que a Vercel não empacota corretamente e derrubava o envio com "Cannot find module" em produção.
