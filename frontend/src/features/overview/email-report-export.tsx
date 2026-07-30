@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileJson, FileSpreadsheet, FileText } from "lucide-react";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { Select } from "@/components/ui/select";
@@ -36,6 +36,18 @@ export function EmailReportExport({
   const language = useAppLanguage();
   const menuRef = useRef<HTMLDetailsElement>(null);
   const [sortBy, setSortBy] = useState<EmailReportSortBy>("email");
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const menu = menuRef.current;
+      if (!menu?.open) return;
+      if (menu.contains(event.target as Node)) return;
+      menu.removeAttribute("open");
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const sortOptions: { value: EmailReportSortBy; label: string }[] = [
     { value: "email", label: t.overview.exportSortEmail },
