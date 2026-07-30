@@ -15,7 +15,7 @@ export function Badge({ className, tone = "default", children, ...props }: Badge
           ? "bg-danger-soft text-danger"
           : tone === "muted"
             ? "bg-slate-100 text-ink-muted dark:bg-slate-800"
-            : "bg-ink text-white dark:bg-slate-100 dark:text-ink";
+            : "bg-ink text-white dark:bg-slate-100 dark:text-slate-900";
 
   return (
     <span

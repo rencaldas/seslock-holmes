@@ -313,6 +313,14 @@ export type TranslationBundle = {
     reportingMta: string;
     complaintFeedback: string;
     notAvailable: string;
+    copy: string;
+    copied: string;
+    showPayload: string;
+    hidePayload: string;
+    copyPayload: string;
+    viewRecipientInvestigation: string;
+    diagnosisTitle: string;
+    currentEvent: string;
   };
   settings: {
     title: string;
