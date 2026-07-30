@@ -41,7 +41,9 @@ export function ScheduledReportsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
-  const [runNowFeedback, setRunNowFeedback] = useState<Record<string, "success" | "error">>({});
+  const [runNowFeedback, setRunNowFeedback] = useState<
+    Record<string, { status: "success" } | { status: "error"; message: string }>
+  >({});
 
   const schedulesQuery = useQuery({
     queryKey: ["scheduled-reports", supabase.eventsTable],
@@ -89,11 +91,12 @@ export function ScheduledReportsPage() {
       });
     },
     onSuccess: (_data, id) => {
-      setRunNowFeedback((current) => ({ ...current, [id]: "success" }));
+      setRunNowFeedback((current) => ({ ...current, [id]: { status: "success" } }));
       invalidate();
     },
-    onError: (_error, id) => {
-      setRunNowFeedback((current) => ({ ...current, [id]: "error" }));
+    onError: (error, id) => {
+      const message = error instanceof Error ? error.message : list.forceRunError;
+      setRunNowFeedback((current) => ({ ...current, [id]: { status: "error", message } }));
     },
   });
 
@@ -254,9 +257,11 @@ export function ScheduledReportsPage() {
                         </div>
                         {runNowFeedback[schedule.id] ? (
                           <p
-                            className={`mt-1 text-xs ${runNowFeedback[schedule.id] === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-danger"}`}
+                            className={`mt-1 max-w-xs text-xs ${runNowFeedback[schedule.id]!.status === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-danger"}`}
                           >
-                            {runNowFeedback[schedule.id] === "success" ? list.forceRunSuccess : list.forceRunError}
+                            {runNowFeedback[schedule.id]!.status === "success"
+                              ? list.forceRunSuccess
+                              : `${list.forceRunError} ${(runNowFeedback[schedule.id] as { message: string }).message}`}
                           </p>
                         ) : null}
                       </TableCell>
