@@ -13,19 +13,19 @@
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
 // browser build.
 //
-// The `./_lib/scheduled-report-runner` import is done dynamically (inside
-// the try/catch below) rather than statically at the top of the file — see
-// the matching comment in run-schedule-now.ts for why: a static import that
-// fails at module-load time crashes the whole invocation before the
-// CRON_SECRET check even runs, and Vercel returns a bare platform 500 with
-// no JSON body. Deferring the import makes that failure catchable instead.
+// The report-runner import is done dynamically (inside the try/catch below)
+// rather than statically at the top of the file — see the matching comment
+// in run-schedule-now.ts for why: a static import that fails at module-load
+// time crashes the whole invocation before the CRON_SECRET check even runs,
+// and Vercel returns a bare platform 500 with no JSON body. Deferring the
+// import makes that failure catchable instead.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { ReportScheduleRow } from "./_lib/scheduled-report-runner";
+import type { ReportScheduleRow } from "../src/lib/scheduled-reports/report-runner";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
-    const { readEnv } = await import("./_lib/scheduled-report-runner");
+    const { readEnv } = await import("../src/lib/scheduled-reports/report-runner");
     const CRON_SECRET = readEnv("CRON_SECRET");
 
     if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
@@ -40,7 +40,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       buildReportForSchedule,
       recordScheduleRun,
       sendReportEmail,
-    } = await import("./_lib/scheduled-report-runner");
+    } = await import("../src/lib/scheduled-reports/report-runner");
     const { createClient } = await import("@supabase/supabase-js");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
