@@ -343,6 +343,11 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       savedDownload: "Configurações salvas no navegador e `.env.local` preparado para download.",
       localCleared: "Configurações locais removidas.",
       missingSupabase: "Informe a URL do Supabase e a chave anon/publishable.",
+      invalidUrl: "Essa URL não parece válida. Use o formato https://seu-projeto.supabase.co.",
+      invalidKey: "Essa chave não parece válida. Copie a chave anon/publishable completa do painel do Supabase.",
+      credentialsRejected: "O Supabase recusou essas credenciais. Confira se a URL e a chave pertencem ao mesmo projeto.",
+      connectionFailed: "Não foi possível conectar a esse endereço. Confira a URL do projeto e sua conexão com a internet.",
+      validating: "Verificando credenciais...",
       missingSupport: "O painel não conseguiu descobrir automaticamente a tabela ou view de eventos do SES. Informe o nome da relação para continuar.",
       browserUnsupported: "Seu navegador não suporta gravação direta de arquivos locais.",
       languageOptions: {
@@ -739,6 +744,11 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       savedDownload: "Settings saved in the browser and `.env.local` prepared for download.",
       localCleared: "Local settings removed.",
       missingSupabase: "Enter the Supabase URL and anon/publishable key.",
+      invalidUrl: "That URL doesn't look valid. Use the format https://your-project.supabase.co.",
+      invalidKey: "That key doesn't look valid. Copy the full anon/publishable key from the Supabase dashboard.",
+      credentialsRejected: "Supabase rejected these credentials. Check that the URL and key belong to the same project.",
+      connectionFailed: "Could not connect to that address. Check the project URL and your internet connection.",
+      validating: "Checking credentials...",
       missingSupport: "The dashboard could not automatically discover the SES events table or view. Provide the relation name to continue.",
       browserUnsupported: "Your browser does not support direct local file writing.",
       languageOptions: {

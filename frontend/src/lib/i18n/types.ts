@@ -343,6 +343,11 @@ export type TranslationBundle = {
     savedDownload: string;
     localCleared: string;
     missingSupabase: string;
+    invalidUrl: string;
+    invalidKey: string;
+    credentialsRejected: string;
+    connectionFailed: string;
+    validating: string;
     missingSupport: string;
     browserUnsupported: string;
     languageOptions: {
