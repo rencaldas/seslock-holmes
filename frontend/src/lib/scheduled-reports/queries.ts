@@ -142,6 +142,19 @@ export async function setScheduleActive(client: SupabaseClient, id: string, isAc
   return rowToSchedule(data as ScheduleRow);
 }
 
+export async function runScheduleNow(scheduleId: string): Promise<void> {
+  const response = await fetch("/api/run-schedule-now", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scheduleId }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error || `Falha ao forçar o envio (HTTP ${response.status}).`);
+  }
+}
+
 export async function listRunsForSchedule(client: SupabaseClient, scheduleId: string): Promise<ReportScheduleRun[]> {
   const { data, error } = await client
     .from(REPORT_SCHEDULE_RUNS_TABLE)
