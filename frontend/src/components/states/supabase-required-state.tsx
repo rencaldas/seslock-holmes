@@ -12,6 +12,7 @@ import {
   DEFAULT_UPDATE_INTERVAL,
   saveSupabaseSettings,
 } from "@/lib/supabase/settings";
+import { validateSupabaseCredentials } from "@/lib/supabase/validate";
 import overviewLogo from "@/assets/overview-logo.png";
 import overviewLogoBlack from "@/assets/overview-logo-black.png";
 
@@ -70,7 +71,7 @@ export function SupabaseRequiredState() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  function handleConnect() {
+  async function handleConnect() {
     const trimmedUrl = url.trim();
     const trimmedKey = anonKey.trim();
 
@@ -81,6 +82,14 @@ export function SupabaseRequiredState() {
 
     setError(null);
     setIsSaving(true);
+
+    const validation = await validateSupabaseCredentials(trimmedUrl, trimmedKey);
+    if (!validation.valid) {
+      setError(t.settings[validation.errorCode ?? "connectionFailed"]);
+      setIsSaving(false);
+      return;
+    }
+
     saveSupabaseSettings({
       url: trimmedUrl,
       anonKey: trimmedKey,

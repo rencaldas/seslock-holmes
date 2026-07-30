@@ -17,6 +17,7 @@ import {
   saveSupabaseSettings,
   writeSupabaseEnvFileToProject,
 } from "@/lib/supabase/settings";
+import { validateSupabaseCredentials } from "@/lib/supabase/validate";
 
 function getInitialValues() {
   const savedSettings = loadSupabaseSettings();
@@ -64,6 +65,11 @@ export function SettingsPage() {
     try {
       if (!settings.url || !settings.anonKey) {
         throw new Error(t.settings.missingSupabase);
+      }
+
+      const validation = await validateSupabaseCredentials(settings.url, settings.anonKey);
+      if (!validation.valid) {
+        throw new Error(t.settings[validation.errorCode ?? "connectionFailed"]);
       }
 
       saveSupabaseSettings(settings);

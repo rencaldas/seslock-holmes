@@ -80,6 +80,7 @@ export type TranslationBundle = {
     applyFilters: string;
     recentActivityTitle: string;
     pageLabel: string;
+    pageSizeLabel: string;
     previous: string;
     next: string;
     exportReport: string;
@@ -312,6 +313,14 @@ export type TranslationBundle = {
     reportingMta: string;
     complaintFeedback: string;
     notAvailable: string;
+    copy: string;
+    copied: string;
+    showPayload: string;
+    hidePayload: string;
+    copyPayload: string;
+    viewRecipientInvestigation: string;
+    diagnosisTitle: string;
+    currentEvent: string;
   };
   settings: {
     title: string;
@@ -343,6 +352,11 @@ export type TranslationBundle = {
     savedDownload: string;
     localCleared: string;
     missingSupabase: string;
+    invalidUrl: string;
+    invalidKey: string;
+    credentialsRejected: string;
+    connectionFailed: string;
+    validating: string;
     missingSupport: string;
     browserUnsupported: string;
     languageOptions: {

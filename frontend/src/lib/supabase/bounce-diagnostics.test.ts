@@ -7,14 +7,14 @@ describe("classifyDiagnosticCode", () => {
       "smtp; 550 5.7.515 Access denied, sending domain RAMADA.COM.BR doesn't meet the required authentication level. Spf= Pass , Dkim= Pass , DMARC= Fail",
     );
 
-    expect(diagnosis?.category).toBe("Autenticacao do remetente");
+    expect(diagnosis?.category).toBe("Autenticação do remetente");
     expect(diagnosis?.severity).toBe("high");
   });
 
   it("classifies unknown recipients and invalid recipient text as a cadastro problem", () => {
     const diagnosis = classifyDiagnosticCode("smtp; 550 Invalid recipient: <nfe.fornecedor@example.com>");
 
-    expect(diagnosis?.cause).toBe("Endereco inexistente ou destinatario nao encontrado");
+    expect(diagnosis?.cause).toBe("Endereço inexistente ou destinatário não encontrado");
     expect(diagnosis?.severity).toBe("high");
   });
 
@@ -29,6 +29,6 @@ describe("classifyDiagnosticCode", () => {
     const searchText = getDiagnosticSearchText("smtp; 552 1 Requested mail action aborted, mailbox not found");
 
     expect(searchText).toContain("mailbox not found");
-    expect(searchText).toContain("endereco inexistente");
+    expect(searchText).toContain("endereço inexistente");
   });
 });

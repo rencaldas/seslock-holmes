@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
@@ -52,15 +53,14 @@ export function EventDetailPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.eventDetail.kicker}</p>
-          <h2 className="text-3xl font-semibold text-slate-950 dark:text-slate-50">{t.eventDetail.title}</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">{t.eventDetail.kicker}</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">{t.eventDetail.title}</h1>
         </div>
-        <Link
-          to={backLink}
-          className="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t.eventDetail.backToInvestigation}
+        <Link to={backLink}>
+          <Button type="button" variant="secondary">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t.eventDetail.backToInvestigation}
+          </Button>
         </Link>
       </div>
 
@@ -80,7 +80,7 @@ export function EventDetailPage() {
         selectedEvent ? (
           <div className="space-y-6">
             <EventDetailPanels event={selectedEvent} />
-            <MessageTraceTimeline events={detailQuery.data.traceEvents} />
+            <MessageTraceTimeline events={detailQuery.data.traceEvents} selectedEventId={selectedEvent.id} />
           </div>
         ) : (
           <EmptyState
