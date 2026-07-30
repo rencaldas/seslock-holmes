@@ -48,6 +48,17 @@ export type TranslationBundle = {
     setupTried: string;
     noAvailableData: string;
   };
+  supabaseRequired: {
+    title: string;
+    description: string;
+    formHint: string;
+    connectButton: string;
+    connecting: string;
+    advancedHint: string;
+    advancedButton: string;
+    findUrlLink: string;
+    findKeyLink: string;
+  };
   overview: {
     kicker: string;
     title: string;
@@ -90,9 +101,12 @@ export type TranslationBundle = {
     tableRecipient: string;
     tableOrigin: string;
     tableActions: string;
+    tableFromLabel: string;
+    tableToLabel: string;
     details: string;
     copyId: string;
     copyRecipient: string;
+    copySender: string;
     rawPayload: string;
     noActivityTitle: string;
     noActivityDescription: string;

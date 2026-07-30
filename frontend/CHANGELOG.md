@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2026-07-29
+### Added
+- Supabase onboarding screen that gates the dashboard until a project URL and key are connected, with a shortcut to full settings for advanced options.
+- A light-mode variant of the logo, now shown in the sidebar, dashboard header, and onboarding screen.
+- Bounce and complaint stat tiles now change color and show a warning icon once they cross unhealthy thresholds.
+- Recent activity rows show separate "De"/"Para" (from/to) lines and a compact actions menu with a dedicated copy-sender option.
+
+### Changed
+- Top providers and bounce reasons bars now show a true percentage of the total instead of scaling relative to the largest item.
+- The overview dashboard keeps the previous data visible (dimmed) while a new query is fetching, instead of flashing a loading state.
+
 ## [0.7.0] - 2026-07-10
 ### Added
 - Bounce diagnostic search mode in the investigation flow, allowing operators to search failure causes and recommendations directly.

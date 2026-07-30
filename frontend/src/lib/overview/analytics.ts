@@ -37,6 +37,7 @@ export interface OverviewReputationSummary {
 }
 
 export interface OverviewAnalytics {
+  totalEventCount: number;
   deliveredCount: number;
   bouncedCount: number;
   complaintCount: number;
@@ -408,6 +409,7 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
     .slice(0, 8);
 
   return {
+    totalEventCount: totalCount,
     deliveredCount,
     bouncedCount,
     complaintCount,

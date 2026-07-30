@@ -40,7 +40,7 @@ export function Tooltip({
           role="tooltip"
           id={id}
           className={cn(
-            "pointer-events-none absolute z-50 w-max max-w-[240px] rounded-control bg-ink px-3 py-2 text-xs font-medium leading-snug text-white shadow-hover dark:bg-slate-100 dark:text-ink",
+            "pointer-events-none absolute z-50 w-max max-w-[240px] rounded-control bg-slate-900 px-3 py-2 text-xs font-medium leading-snug text-white shadow-hover dark:bg-slate-100 dark:text-slate-900",
             SIDE_CLASSES[side],
           )}
         >
