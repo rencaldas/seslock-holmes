@@ -100,7 +100,7 @@ export function OverviewHeaderSearch() {
             </span>
           ) : null}
         </summary>
-        <div className="fixed left-1/2 top-20 z-30 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 overflow-y-auto sm:w-[min(600px,92vw)] md:w-[min(720px,90vw)] lg:w-[700px] xl:w-[900px]">
+        <div className="fixed left-1/2 top-20 z-30 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 overflow-y-auto sm:w-[min(680px,96vw)] md:w-[min(960px,96vw)] lg:w-[min(1050px,98vw)] xl:w-[1100px]">
           <OverviewFilters
             value={filters}
             onChange={(next) => setFilters((current) => ({ ...current, ...next }))}

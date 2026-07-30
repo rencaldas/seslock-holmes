@@ -50,7 +50,8 @@ export function OverviewFilters({
 
   return (
     <div className={cn(
-      "grid gap-4 rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft md:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]",
+      "grid gap-4 overflow-x-auto rounded-3xl border border-slate-700 bg-slate-950/95 p-5 shadow-soft",
+      "md:grid-cols-[minmax(170px,1.4fr)_minmax(178px,1.1fr)_minmax(160px,1.4fr)_minmax(140px,1.1fr)_minmax(100px,0.8fr)_minmax(130px,auto)]",
       className,
     )}>
       <div className="space-y-2 md:col-start-1 md:row-span-2 md:row-start-1">
