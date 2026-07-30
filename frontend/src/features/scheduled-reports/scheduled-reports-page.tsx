@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { History, Pause, Pencil, Play, Trash2 } from "lucide-react";
+import { History, Pause, Pencil, Play, Trash2, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
@@ -14,6 +14,7 @@ import {
   createSchedule,
   deleteSchedule,
   listSchedules,
+  runScheduleNow,
   setScheduleActive,
   updateSchedule,
 } from "@/lib/scheduled-reports/queries";
@@ -40,6 +41,9 @@ export function ScheduledReportsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [runNowFeedback, setRunNowFeedback] = useState<
+    Record<string, { status: "success" } | { status: "error"; message: string }>
+  >({});
 
   const schedulesQuery = useQuery({
     queryKey: ["scheduled-reports", supabase.eventsTable],
@@ -76,6 +80,24 @@ export function ScheduledReportsPage() {
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => setScheduleActive(supabase.client!, id, isActive),
     onSuccess: invalidate,
+  });
+
+  const runNowMutation = useMutation({
+    mutationFn: (id: string) => runScheduleNow(id),
+    onMutate: (id) => {
+      setRunNowFeedback((current) => {
+        const { [id]: _removed, ...rest } = current;
+        return rest;
+      });
+    },
+    onSuccess: (_data, id) => {
+      setRunNowFeedback((current) => ({ ...current, [id]: { status: "success" } }));
+      invalidate();
+    },
+    onError: (error, id) => {
+      const message = error instanceof Error ? error.message : list.forceRunError;
+      setRunNowFeedback((current) => ({ ...current, [id]: { status: "error", message } }));
+    },
   });
 
   if (!supabase.ready || !supabase.client) {
@@ -210,6 +232,19 @@ export function ScheduledReportsPage() {
                           </Button>
                           <Button
                             variant="ghost"
+                            disabled={runNowMutation.isPending && runNowMutation.variables === schedule.id}
+                            onClick={() => {
+                              if (window.confirm(list.forceRunConfirm)) {
+                                runNowMutation.mutate(schedule.id);
+                              }
+                            }}
+                            aria-label={list.forceRun}
+                            title={list.forceRun}
+                          >
+                            <Zap className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
                             onClick={() => {
                               if (window.confirm(list.confirmDelete)) {
                                 deleteMutation.mutate(schedule.id);
@@ -220,6 +255,15 @@ export function ScheduledReportsPage() {
                             <Trash2 className="h-4 w-4 text-danger" />
                           </Button>
                         </div>
+                        {runNowFeedback[schedule.id] ? (
+                          <p
+                            className={`mt-1 max-w-xs text-xs ${runNowFeedback[schedule.id]!.status === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-danger"}`}
+                          >
+                            {runNowFeedback[schedule.id]!.status === "success"
+                              ? list.forceRunSuccess
+                              : `${list.forceRunError} ${(runNowFeedback[schedule.id] as { message: string }).message}`}
+                          </p>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}

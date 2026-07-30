@@ -441,6 +441,10 @@ export type TranslationBundle = {
       lastRunNever: string;
       confirmDelete: string;
       viewHistory: string;
+      forceRun: string;
+      forceRunConfirm: string;
+      forceRunSuccess: string;
+      forceRunError: string;
     };
     frequencyText: {
       daily: string;
