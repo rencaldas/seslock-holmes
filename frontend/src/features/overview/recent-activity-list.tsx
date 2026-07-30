@@ -59,7 +59,7 @@ function EventActionsMenu({ event }: { event: EmailEvent }) {
       >
         <MoreHorizontal className="h-4 w-4" />
       </summary>
-      <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-card border border-slate-200 bg-white p-1.5 shadow-hover dark:border-slate-700 dark:bg-slate-900">
+      <div className="absolute right-0 z-30 mt-2 w-56 space-y-1 overflow-hidden rounded-card border border-slate-200 bg-white p-1.5 shadow-hover dark:border-slate-700 dark:bg-slate-900">
         <button
           type="button"
           className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -185,7 +185,7 @@ export function RecentActivityList({
                   </TableCell>
                   <TableCell>{getOriginLabel(event)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-3">
                       <Link to={`/events/${event.id}`} target="_blank" rel="noreferrer noopener">
                         <Button type="button" variant="secondary" className="h-8 px-3 text-xs">
                           <Eye className="mr-1.5 h-3.5 w-3.5" />

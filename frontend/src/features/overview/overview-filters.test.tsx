@@ -133,7 +133,7 @@ describe("OverviewFilters", () => {
       const provider = container.querySelector<HTMLInputElement>("#overview-provider");
       const subject = container.querySelector<HTMLInputElement>("#overview-subject");
 
-      expect(rowLimit?.parentElement?.className).toContain("md:col-start-5");
+      expect(rowLimit?.parentElement?.parentElement?.className).toContain("md:col-start-5");
       expect(provider?.parentElement?.className).toContain("md:col-start-3");
       expect(provider?.parentElement?.className).toContain("md:row-start-2");
       expect(subject?.parentElement?.className).toContain("md:col-start-2");
