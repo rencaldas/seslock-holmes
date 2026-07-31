@@ -211,7 +211,7 @@ export function ScheduledReportsPage() {
             ) : null}
 
             {schedules.length ? (
-              <div className="overflow-x-auto rounded-panel border border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto rounded-panel border border-slate-200 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900">
                 <Table>
                   <TableHeader>
                     <TableRow>

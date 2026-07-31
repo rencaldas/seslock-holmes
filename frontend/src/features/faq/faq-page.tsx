@@ -81,24 +81,24 @@ export function FaqPage() {
               <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Supabase</span>
             </div>
           </div>
-          <Card className="border-slate-800 bg-slate-950 text-white shadow-none">
+          <Card className="border-slate-200 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
             <CardHeader className="border-b-0 px-6 py-4">
-              <CardTitle className="text-white">{t.faq.searchHelpTitle}</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-slate-950 dark:text-slate-50">{t.faq.searchHelpTitle}</CardTitle>
+              <CardDescription className="text-slate-500 dark:text-slate-400">
                 {t.faq.searchPlaceholder}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 py-5">
-              <div className="flex items-center gap-3 rounded-3xl bg-slate-900/95 px-4 py-4 shadow-lg shadow-slate-900/10">
-                <Search className="h-5 w-5 text-slate-300" />
+              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/95">
+                <Search className="h-5 w-5 text-slate-400 dark:text-slate-300" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={t.faq.searchPlaceholder}
-                  className="border-slate-800 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-slate-600 focus:ring-slate-600/20"
+                  className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:ring-slate-400/20 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-600 dark:focus:ring-slate-600/20"
                 />
               </div>
-              <div className="mt-6 text-sm leading-7 text-slate-300">
+              <div className="mt-6 text-sm leading-7 text-slate-600 dark:text-slate-300">
                 <p>{t.faq.searchHelpDescription}</p>
               </div>
             </CardContent>
