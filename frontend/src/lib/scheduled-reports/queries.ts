@@ -142,14 +142,11 @@ export async function setScheduleActive(client: SupabaseClient, id: string, isAc
   return rowToSchedule(data as ScheduleRow);
 }
 
-export async function runScheduleNow(
-  scheduleId: string,
-  connection?: { connectionId: string; token: string },
-): Promise<void> {
+export async function runScheduleNow(scheduleId: string): Promise<void> {
   const response = await fetch("/api/run-schedule-now", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scheduleId, ...connection }),
+    body: JSON.stringify({ scheduleId }),
   });
 
   if (!response.ok) {
