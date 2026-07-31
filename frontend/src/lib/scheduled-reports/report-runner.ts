@@ -40,7 +40,7 @@ import {
   type EmailReport,
   type EmailReportSortBy,
 } from "../email-report.js";
-import type { EmailEventType } from "../supabase/types.js";
+import { PROBLEM_EVENT_TYPES, type EmailEventType } from "../supabase/types.js";
 
 // Hosted as a real static asset (public/email-logo.png -> served at the
 // site root, no build hash) rather than embedded as a base64 data URI.
@@ -131,6 +131,104 @@ function escapeHtml(value: string) {
 
 function capitalize(value: string) {
   return value.length ? value[0]!.toUpperCase() + value.slice(1) : value;
+}
+
+// Only the "problem" statuses (or "all", which mixes them in) warrant the
+// plain-language action guidance below — a schedule filtered down to just
+// "sent" or "delivered" is a clean-bill-of-health report with nothing for an
+// admin to chase, and showing an alert box there would just be noise.
+function reportNeedsActionGuidance(status: ReportScheduleRow["filters"]["status"]) {
+  return status === "all" || PROBLEM_EVENT_TYPES.includes(status as EmailEventType);
+}
+
+// Threshold for the "recurring problem" badge below: a client who bounced
+// once yesterday isn't urgent, but one whose problem events span 30+ days
+// (with more than one occurrence, so a single message's retry storm doesn't
+// count) has been silently missing emails for a month — that's who an admin
+// with limited time should contact first.
+const RECURRING_PROBLEM_DAYS = 30;
+const RECURRING_PROBLEM_LIST_LIMIT = 5;
+
+function findRecurringProblemRecipients(report: EmailReport) {
+  return report.recipients
+    .map((recipient) => {
+      const problemCount = PROBLEM_EVENT_TYPES.reduce(
+        (sum, type) => sum + recipient.eventCounts[type],
+        0,
+      );
+      const spanDays =
+        (new Date(recipient.lastEventAt).getTime() - new Date(recipient.firstEventAt).getTime()) /
+        (24 * 60 * 60 * 1000);
+      return { email: recipient.email, problemCount, spanDays };
+    })
+    .filter((entry) => entry.problemCount >= 2 && entry.spanDays >= RECURRING_PROBLEM_DAYS)
+    .sort((a, b) => b.spanDays - a.spanDays);
+}
+
+function formatRecurringProblemList(recurring: ReturnType<typeof findRecurringProblemRecipients>) {
+  const shown = recurring.slice(0, RECURRING_PROBLEM_LIST_LIMIT).map((entry) => entry.email);
+  const remaining = recurring.length - shown.length;
+  return remaining > 0 ? `${shown.join(", ")} e mais ${remaining}` : shown.join(", ");
+}
+
+// Written for the non-technical admin who receives this report and isn't
+// familiar with terms like "bounce" or "SNS event" — spells out in plain
+// Portuguese what a problem event usually means, what to do about it, and
+// what happens if nobody does. Requested directly by the business side after
+// admins receiving these reports didn't know what action, if any, they were
+// expected to take with the numbers.
+function renderActionGuidanceHtml(schedule: ReportScheduleRow, report: EmailReport) {
+  if (!reportNeedsActionGuidance(schedule.filters.status)) return "";
+
+  const recurring = findRecurringProblemRecipients(report);
+  const recurringBadgeHtml = recurring.length
+    ? `<div style="margin-bottom:10px;">
+                <span style="display:inline-block;background-color:#fee2e2;color:#991b1b;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;">⚠ ${recurring.length} cliente${recurring.length > 1 ? "s" : ""} com problema recorrente há mais de ${RECURRING_PROBLEM_DAYS} dias</span>
+                <p style="margin:8px 0 0;color:#7c2d12;font-size:12px;line-height:1.6;">Priorize o contato com: ${escapeHtml(formatRecurringProblemList(recurring))}.</p>
+              </div>`
+    : "";
+
+  return `<tr>
+      <td style="padding:20px 32px 4px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+          <tr><td style="padding:16px 18px;">
+            <div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:8px;">O que fazer com este relatório</div>
+            ${recurringBadgeHtml}
+            <p style="margin:0 0 8px;color:#7c2d12;font-size:13px;line-height:1.6;">
+              Quando um email aparece como <strong>devolvido (bounce)</strong>, <strong>rejeitado</strong> ou com <strong>reclamação</strong>, geralmente é porque o endereço de email do cliente está incorreto, desatualizado, ou a caixa de entrada dele está cheia ou bloqueando esse remetente.
+            </p>
+            <p style="margin:0 0 8px;color:#7c2d12;font-size:13px;line-height:1.6;">
+              <strong>Ação recomendada:</strong> entre em contato com esses clientes por outro canal (telefone, WhatsApp, etc.) para confirmar e corrigir o email cadastrado.
+            </p>
+            <p style="margin:0;color:#7c2d12;font-size:13px;line-height:1.6;">
+              Se isso não for corrigido, o cliente pode continuar sem receber notas fiscais, documentos e notificações importantes. O motivo específico e uma recomendação para cada destinatário estão nos anexos CSV/PDF deste email.
+            </p>
+          </td></tr>
+        </table>
+      </td>
+    </tr>`;
+}
+
+function renderActionGuidanceText(schedule: ReportScheduleRow, report: EmailReport) {
+  if (!reportNeedsActionGuidance(schedule.filters.status)) return [];
+
+  const recurring = findRecurringProblemRecipients(report);
+  const lines: string[] = ["", "O QUE FAZER COM ESTE RELATÓRIO"];
+
+  if (recurring.length) {
+    lines.push(
+      `⚠ ${recurring.length} cliente(s) com problema recorrente há mais de ${RECURRING_PROBLEM_DAYS} dias.`,
+      `Priorize o contato com: ${formatRecurringProblemList(recurring)}.`,
+    );
+  }
+
+  lines.push(
+    "Quando um email aparece como devolvido (bounce), rejeitado ou com reclamação, geralmente é porque o endereço de email do cliente está incorreto, desatualizado, ou a caixa de entrada dele está cheia ou bloqueando esse remetente.",
+    "Ação recomendada: entre em contato com esses clientes por outro canal (telefone, WhatsApp, etc.) para confirmar e corrigir o email cadastrado.",
+    "Se isso não for corrigido, o cliente pode continuar sem receber notas fiscais, documentos e notificações importantes. O motivo específico e uma recomendação para cada destinatário estão nos anexos CSV/PDF deste email.",
+  );
+
+  return lines;
 }
 
 function reportSubtitle(schedule: ReportScheduleRow, report: EmailReport, forced: boolean) {
@@ -255,6 +353,7 @@ function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${statCards}</tr></table>
       </td>
     </tr>
+    ${renderActionGuidanceHtml(schedule, report)}
     ${renderFiltersHtml(report.query)}
     <tr>
       <td style="padding:20px 32px 4px;">
@@ -298,6 +397,7 @@ function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced
     `Eventos: ${report.summary.totalEvents.toLocaleString("pt-BR")}`,
     `Mensagens únicas: ${report.summary.uniqueMessages.toLocaleString("pt-BR")}`,
     `Destinatários: ${report.summary.uniqueRecipients.toLocaleString("pt-BR")}`,
+    ...renderActionGuidanceText(schedule, report),
   ];
 
   const filterEntries = Object.entries(report.query);
