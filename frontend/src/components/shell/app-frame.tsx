@@ -8,7 +8,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const { isOpen: mobileNavOpen, open: openMobileNav, close: closeMobileNav } = useDisclosure(false);
 
   return (
-    <div className="flex min-h-screen bg-paper">
+    <div className="flex min-h-screen bg-transparent">
       <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={closeMobileNav} />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Topbar onOpenMobileNav={openMobileNav} />

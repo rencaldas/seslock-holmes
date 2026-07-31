@@ -8,7 +8,6 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { SetupState } from "@/components/states/setup-state";
 import { EventDetailPanels } from "@/features/event-detail/event-detail-panels";
-import { MessageTraceTimeline } from "@/features/message-trace/message-trace-timeline";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchMessageTrace } from "@/lib/supabase/queries/message-trace";
@@ -78,10 +77,7 @@ export function EventDetailPage() {
 
       {detailQuery.data ? (
         selectedEvent ? (
-          <div className="space-y-6">
-            <EventDetailPanels event={selectedEvent} />
-            <MessageTraceTimeline events={detailQuery.data.traceEvents} selectedEventId={selectedEvent.id} />
-          </div>
+          <EventDetailPanels event={selectedEvent} traceEvents={detailQuery.data.traceEvents} />
         ) : (
           <EmptyState
             title={t.eventDetail.notFoundTitle}

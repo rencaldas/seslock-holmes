@@ -5,11 +5,19 @@ import { getAwsSnsOccurredAt, rowToEmailEvent } from "@/lib/supabase/aws-sns";
 
 const TRACE_KEY_COLUMNS = ["id", "messageId", "snsMessageId"] as const;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function quoteFilterValue(value: string) {
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 async function fetchOneByColumn(client: SupabaseClient, eventTable: string, column: "id" | "messageId" | "snsMessageId", value: string) {
+  // The "id" column is a Postgres uuid; comparing it against a non-uuid value
+  // (e.g. an SES message id) throws instead of just not matching.
+  if (column === "id" && !UUID_PATTERN.test(value)) {
+    return null;
+  }
+
   const { data, error } = await client.from(eventTable).select("*").eq(column, value).maybeSingle();
   if (error) {
     if (error.message.includes("relation") && error.message.includes("does not exist")) {
@@ -23,7 +31,9 @@ async function fetchOneByColumn(client: SupabaseClient, eventTable: string, colu
 }
 
 async function fetchTraceRows(client: SupabaseClient, eventTable: string, traceKey: string) {
-  const orFilter = TRACE_KEY_COLUMNS.map((column) => `${column}.eq.${quoteFilterValue(traceKey)}`).join(",");
+  const isUuid = UUID_PATTERN.test(traceKey);
+  const columns = isUuid ? TRACE_KEY_COLUMNS : TRACE_KEY_COLUMNS.filter((column) => column !== "id");
+  const orFilter = columns.map((column) => `${column}.eq.${quoteFilterValue(traceKey)}`).join(",");
   const { data, error } = await client.from(eventTable).select("*").or(orFilter);
   if (error) {
     throw new Error(error.message);
@@ -49,7 +59,9 @@ export async function fetchMessageTrace(
   }
 
   const selectedEvent = rowToEmailEvent(selectedRow);
-  const traceKey = selectedEvent.snsMessageId || selectedEvent.messageId || selectedEvent.id;
+  // messageId is the SES id shared by every lifecycle event (Send, Delivery, Bounce, ...);
+  // snsMessageId is unique per SNS notification and would only ever match itself.
+  const traceKey = selectedEvent.messageId || selectedEvent.snsMessageId || selectedEvent.id;
   const traceRows = await fetchTraceRows(client, eventTable, traceKey);
   const traceEvents = traceRows
     .sort((a, b) => getAwsSnsOccurredAt(a).localeCompare(getAwsSnsOccurredAt(b)))

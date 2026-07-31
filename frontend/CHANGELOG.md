@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-07-31
+### Added
+- Cada evento no "Rastreamento da mensagem" (página de detalhes do evento) agora mostra os dados mais relevantes do próprio card, sem precisar entrar em cada evento: origem/IP/configuration set no envio, tempo de processamento e resposta SMTP na entrega, tipo/subtipo de bounce e diagnostic code no bounce, tipo de feedback na reclamação, e o motivo da falha em atrasos, rejeições e falhas de renderização.
+### Changed
+- O card de "Rastreamento da mensagem" passou a ser exibido dentro do painel de detalhes do evento, logo após o resumo, em vez de abaixo dele.
+- Resultados da investigação por destinatário redesenhados como cartões com borda de destaque colorida conforme o status do evento (entregue, bounce, reclamação, etc.).
+- Fundo do painel ganhou uma grade e um brilho decorativos sutis, com rodapé, FAQ e tabela de relatórios agendados adaptados para funcionar também no tema claro.
+### Fixed
+- Corrigido um erro ao abrir o rastreamento de uma mensagem a partir de um identificador que não é um UUID válido (ex.: um message ID do SES).
+- A linha do tempo do rastreamento agora prioriza o messageId (compartilhado por todos os eventos do ciclo de vida da mensagem) em vez do snsMessageId (único por notificação) ao reunir os eventos relacionados.
+
 ## [1.5.0] - 2026-07-31
 ### Added
 - Nova busca global no cabeçalho, disponível em qualquer página, com um modo "Todos os campos" e persistência do texto, modo e filtros de busca entre navegações (inclusive após recarregar a página).

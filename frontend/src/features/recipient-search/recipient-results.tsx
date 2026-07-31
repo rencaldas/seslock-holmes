@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, isProblemEventType, toneForEventType } from "@/lib/formatters/email";
 import { getOriginLabel } from "@/lib/formatters/event";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { cn } from "@/lib/utils";
 import type { RecipientInvestigationResult } from "@/lib/supabase/types";
 
 function diagnosisTone(severity: string): "destructive" | "warning" | "muted" {
@@ -20,6 +21,24 @@ function diagnosisTone(severity: string): "destructive" | "warning" | "muted" {
   }
 
   return "muted";
+}
+
+function accentBorderForEventType(eventType: RecipientInvestigationResult["events"][number]["eventType"]) {
+  switch (eventType) {
+    case "delivered":
+      return "border-l-success";
+    case "sent":
+      return "border-l-slate-300 dark:border-l-slate-600";
+    case "bounced":
+    case "rejected":
+    case "rendering_failure":
+      return "border-l-danger";
+    case "complained":
+    case "delayed":
+      return "border-l-warning";
+    default:
+      return "border-l-slate-300 dark:border-l-slate-600";
+  }
 }
 
 function FieldLabel({
@@ -68,11 +87,14 @@ export function RecipientResults({
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="space-y-4 p-4 sm:p-6">
           {data.events.map((event) => (
             <div
               key={event.id}
-              className="grid grid-cols-1 gap-6 px-6 py-6 transition-colors hover:bg-slate-50/60 lg:grid-cols-5 dark:hover:bg-slate-800/30"
+              className={cn(
+                "grid grid-cols-1 gap-6 rounded-2xl border border-l-4 border-slate-200 bg-white px-6 py-6 shadow-sm transition-shadow hover:shadow-md lg:grid-cols-5 dark:border-slate-800 dark:bg-slate-900/60",
+                accentBorderForEventType(event.eventType),
+              )}
             >
               <div className="space-y-5 lg:col-span-2">
                 <div className="flex items-start justify-between gap-4">

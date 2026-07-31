@@ -40,6 +40,7 @@ import { getOriginLabel } from "@/lib/formatters/event";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useDisclosure } from "@/lib/hooks/use-disclosure";
 import { cn } from "@/lib/utils";
+import { MessageTraceTimeline } from "@/features/message-trace/message-trace-timeline";
 import type { EmailEvent } from "@/lib/supabase/types";
 import type { BounceDiagnosisSeverity } from "@/lib/supabase/bounce-diagnostics";
 
@@ -214,7 +215,7 @@ function EventHero({ event }: { event: EmailEvent }) {
               </Badge>
               <span className="text-sm text-ink-muted">{formatDateTime(event.occurredAt)}</span>
             </div>
-            <h3 className="mt-2 truncate text-xl font-bold text-ink" title={event.subject || t.eventDetail.notAvailable}>
+            <h3 className="mt-2 line-clamp-2 break-words text-xl font-bold text-ink" title={event.subject || t.eventDetail.notAvailable}>
               {event.subject || t.eventDetail.notAvailable}
             </h3>
             {event.recipientEmail ? (
@@ -321,7 +322,7 @@ function RawPayloadCard({ event }: { event: EmailEvent }) {
 
   return (
     <Card className="lg:col-span-2" id="raw-payload">
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
+      <CardHeader className={cn("flex flex-row items-center justify-between gap-3", !isOpen && "border-b-0")}>
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-ink-muted dark:bg-slate-800">
             <Braces className="h-4 w-4" />
@@ -358,7 +359,7 @@ function RawPayloadCard({ event }: { event: EmailEvent }) {
   );
 }
 
-export function EventDetailPanels({ event }: { event: EmailEvent }) {
+export function EventDetailPanels({ event, traceEvents }: { event: EmailEvent; traceEvents: EmailEvent[] }) {
   const t = useI18n();
 
   const otherRecipients = extractRecipientList(event.recipientInfo).filter(
@@ -378,6 +379,8 @@ export function EventDetailPanels({ event }: { event: EmailEvent }) {
   return (
     <div className="space-y-6">
       <EventHero event={event} />
+
+      <MessageTraceTimeline events={traceEvents} selectedEventId={event.id} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard title={t.eventDetail.originInfo} className={otherRecipients.length ? undefined : "lg:col-span-2"}>
