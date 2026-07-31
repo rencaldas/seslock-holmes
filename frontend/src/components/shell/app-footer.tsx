@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import pkg from "../../../package.json";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { formatDisplayDateTime, SUPABASE_SETTINGS_UPDATED_EVENT } from "@/lib/supabase/settings";
 
@@ -56,7 +55,7 @@ export function AppFooter() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.footer.projectInfo}</p>
             <div className="text-sm leading-7 text-slate-700 dark:text-slate-200">
               <p>
-                {t.footer.projectVersion}: <span className="font-semibold text-ink">v{pkg.version}</span>
+                {t.footer.projectVersion}: <span className="font-semibold text-ink">v{__APP_VERSION__}</span>
               </p>
               <p>
                 {t.footer.lastUpdated}: <span className="font-medium text-ink">{lastUpdated}</span>

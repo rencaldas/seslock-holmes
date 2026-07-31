@@ -2,7 +2,6 @@ import { Link, NavLink } from "react-router-dom";
 import { Activity, BookOpen, CalendarClock, Search, Settings2, X } from "lucide-react";
 import overviewLogo from "@/assets/overview-logo.png";
 import overviewLogoBlack from "@/assets/overview-logo-black.png";
-import pkg from "../../../package.json";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
@@ -52,7 +51,7 @@ export function Sidebar({
             <img src={overviewLogo} alt="Seslock Holmes" className="hidden h-14 w-14 object-contain dark:block" />
             <div>
               <p className="text-lg font-bold leading-tight text-ink">{t.app.subtitle}</p>
-              <p className="text-xs font-medium leading-tight text-ink-muted">v{pkg.version}</p>
+              <p className="text-xs font-medium leading-tight text-ink-muted">v{__APP_VERSION__}</p>
             </div>
           </Link>
           <button

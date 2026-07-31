@@ -1,13 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Lido aqui e injetado como constante para que a UI mostre a versão sem
+// `import pkg from "package.json"`, que arrastava o manifesto inteiro —
+// dependências, devDependencies e suas versões exatas — para dentro do bundle
+// público.
+const { version } = JSON.parse(
+  readFileSync(path.resolve(__dirname, "package.json"), "utf8"),
+) as { version: string };
+
 export default defineConfig({
   define: {
     __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __APP_VERSION__: JSON.stringify(version),
   },
   plugins: [react()],
   resolve: {
