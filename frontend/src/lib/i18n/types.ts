@@ -418,6 +418,11 @@ export type TranslationBundle = {
     adminTokenMissingTitle: string;
     adminTokenMissingDescription: string;
     adminTokenMissingLink: string;
+    tabs: {
+      schedules: string;
+      connection: string;
+      setup: string;
+    };
     setup: {
       title: string;
       description: string;

@@ -431,6 +431,11 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       adminTokenMissingDescription:
         "Este site está usando o projeto Supabase padrão. Para gerenciar os agendamentos dele com segurança, defina o mesmo token da variável ADMIN_API_TOKEN (Vercel) em Configurações.",
       adminTokenMissingLink: "Ir para Configurações",
+      tabs: {
+        schedules: "Agendamentos",
+        connection: "Entrega automática",
+        setup: "Configuração",
+      },
       setup: {
         title: "Configuração necessária",
         description: "O Supabase guarda os agendamentos; quem dispara o envio periódico é um workflow do GitHub Actions deste repositório, com o Vercel (onde este dashboard já está hospedado) como reforço diário. Siga os passos abaixo uma única vez.",
@@ -990,6 +995,11 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       adminTokenMissingDescription:
         "This site is using the default Supabase project. To manage its schedules securely, set the same token as the ADMIN_API_TOKEN (Vercel) variable in Settings.",
       adminTokenMissingLink: "Go to Settings",
+      tabs: {
+        schedules: "Schedules",
+        connection: "Automatic delivery",
+        setup: "Setup",
+      },
       setup: {
         title: "Setup required",
         description: "Supabase stores the schedules; the periodic trigger is a GitHub Actions workflow in this repo, with Vercel (where this dashboard is already hosted) as a daily backup. Follow these steps once.",
