@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-07-31
+### Added
+- Nova busca global no cabeçalho, disponível em qualquer página, com um modo "Todos os campos" e persistência do texto, modo e filtros de busca entre navegações (inclusive após recarregar a página).
+- Resultados da investigação por destinatário redesenhados em cartões, com uma descrição em linguagem simples para cada status de evento (enviado, entregue, devolvido, etc.).
+- Página de Relatórios agendados reorganizada em abas ("Agendamentos", "Entrega automática" e "Configuração"), em vez de empilhar tudo na mesma tela.
+- Emails de relatório agendado agora trazem uma seção "O que fazer com este relatório" quando o filtro inclui eventos de problema, explicando em linguagem simples o que um bounce/rejeição/reclamação costuma significar e destacando clientes com problema recorrente há mais de 30 dias.
+### Changed
+- O modo de busca "Origem" foi renomeado para "Provedor" e agora busca pelo domínio do email do destinatário (ex.: gmail.com), em vez dos campos de origem do envio.
+
 ## [1.4.0] - 2026-07-31
 ### Added
 - Disparo periódico dos relatórios agendados agora passa por um workflow do GitHub Actions (a cada 15 minutos), além do cron da Vercel — que fica só como reforço diário. Antes, o cron da Vercel era o único disparo e rodava só 1x por dia (23:00 UTC), então um agendamento configurado para um horário como "12:00" só saía horas depois, à noite; agora sai perto do horário configurado.
