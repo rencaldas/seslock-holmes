@@ -343,6 +343,9 @@ export type TranslationBundle = {
     keyPlaceholder: string;
     tableLabel: string;
     tablePlaceholder: string;
+    adminTokenLabel: string;
+    adminTokenPlaceholder: string;
+    adminTokenHint: string;
     warning: string;
     saveBrowser: string;
     saveProject: string;
@@ -406,6 +409,9 @@ export type TranslationBundle = {
     newButton: string;
     emptyTitle: string;
     emptyDescription: string;
+    adminTokenMissingTitle: string;
+    adminTokenMissingDescription: string;
+    adminTokenMissingLink: string;
     setup: {
       title: string;
       description: string;
@@ -414,6 +420,8 @@ export type TranslationBundle = {
       checking: string;
       step1Title: string;
       step1Description: string;
+      hubStepTitle: string;
+      hubStepDescription: string;
       step2Title: string;
       step2Description: string;
       step3Title: string;
@@ -422,7 +430,40 @@ export type TranslationBundle = {
       copied: string;
       recheckButton: string;
     };
+    connection: {
+      title: string;
+      description: string;
+      supabaseUrlLabel: string;
+      supabaseUrlPlaceholder: string;
+      serviceRoleKeyLabel: string;
+      serviceRoleKeyHint: string;
+      gmailUserLabel: string;
+      gmailAppPasswordLabel: string;
+      gmailAppPasswordHint: string;
+      fromNameLabel: string;
+      labelLabel: string;
+      registerButton: string;
+      registering: string;
+      missingFields: string;
+      tokenWarningTitle: string;
+      tokenWarningDescription: string;
+      copyToken: string;
+      copied: string;
+      doneButton: string;
+      connectedTitle: string;
+      unnamedConnection: string;
+      statusActive: string;
+      statusInactive: string;
+      lastCheckedLabel: string;
+      lastCheckedNever: string;
+      lastErrorLabel: string;
+      removeButton: string;
+      removeConfirm: string;
+      removing: string;
+      errorFeedback: string;
+    };
     list: {
+      sectionTitle: string;
       nameHeader: string;
       frequencyHeader: string;
       filtersHeader: string;

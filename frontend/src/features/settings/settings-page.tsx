@@ -26,6 +26,7 @@ function getInitialValues() {
     url: savedSettings?.url ?? "",
     anonKey: savedSettings?.anonKey ?? "",
     eventsTable: savedSettings?.eventsTable ?? "aws_sns",
+    adminToken: savedSettings?.adminToken ?? "",
     language: savedSettings?.language ?? "pt-BR",
     timeZone: savedSettings?.timeZone ?? DEFAULT_TIME_ZONE,
     clockFormat: savedSettings?.clockFormat ?? DEFAULT_CLOCK_FORMAT,
@@ -39,6 +40,7 @@ export function SettingsPage() {
   const [url, setUrl] = useState(initialValues.url);
   const [anonKey, setAnonKey] = useState(initialValues.anonKey);
   const [eventsTable, setEventsTable] = useState(initialValues.eventsTable);
+  const [adminToken, setAdminToken] = useState(initialValues.adminToken);
   const [language, setLanguage] = useState<AppLanguage>(initialValues.language);
   const [timeZone, setTimeZone] = useState(initialValues.timeZone);
   const [clockFormat, setClockFormat] = useState<AppClockFormat>(initialValues.clockFormat);
@@ -56,20 +58,31 @@ export function SettingsPage() {
       url: url.trim(),
       anonKey: anonKey.trim(),
       eventsTable: eventsTable.trim() || "aws_sns",
+      adminToken: adminToken.trim() || undefined,
       language,
       timeZone,
       clockFormat,
       updateInterval,
     };
 
-    try {
-      if (!settings.url || !settings.anonKey) {
-        throw new Error(t.settings.missingSupabase);
-      }
+    // Leaving URL/anon key blank is valid — it means "keep using this
+    // deployment's own default Supabase project", which is exactly the case
+    // the admin token exists for (see the adminTokenHint copy below). Only
+    // require/validate real Supabase credentials when the caller is
+    // actually overriding the project, or explicitly writing an env file
+    // (which is meaningless without them).
+    const hasOwnProjectOverride = Boolean(settings.url || settings.anonKey);
 
-      const validation = await validateSupabaseCredentials(settings.url, settings.anonKey);
-      if (!validation.valid) {
-        throw new Error(t.settings[validation.errorCode ?? "connectionFailed"]);
+    try {
+      if (mode !== "browser" || hasOwnProjectOverride) {
+        if (!settings.url || !settings.anonKey) {
+          throw new Error(t.settings.missingSupabase);
+        }
+
+        const validation = await validateSupabaseCredentials(settings.url, settings.anonKey);
+        if (!validation.valid) {
+          throw new Error(t.settings[validation.errorCode ?? "connectionFailed"]);
+        }
       }
 
       saveSupabaseSettings(settings);
@@ -96,6 +109,7 @@ export function SettingsPage() {
     setTimeZone(DEFAULT_TIME_ZONE);
     setClockFormat(DEFAULT_CLOCK_FORMAT);
     setUpdateInterval(DEFAULT_UPDATE_INTERVAL);
+    setAdminToken("");
     setFeedback(t.settings.localCleared);
     setError(null);
   }
@@ -215,6 +229,18 @@ export function SettingsPage() {
               value={eventsTable}
               onChange={(event) => setEventsTable(event.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="admin-token">{t.settings.adminTokenLabel}</Label>
+            <Input
+              id="admin-token"
+              type="password"
+              placeholder={t.settings.adminTokenPlaceholder}
+              value={adminToken}
+              onChange={(event) => setAdminToken(event.target.value)}
+            />
+            <p className="text-xs text-ink-muted">{t.settings.adminTokenHint}</p>
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">

@@ -1,13 +1,24 @@
 // Vercel Cron Job target — see the `crons` entry in ../vercel.json. On every
-// invocation it processes every `report_schedules` row whose `next_run_at`
+// invocation it processes every `report_schedules` row (across every
+// registered project, not just this deployment's own) whose `next_run_at`
 // has passed: re-runs the same filtered query the Overview page would run,
-// builds the report, emails it via Gmail SMTP, and records the run so the
-// app can show it in-page without the browser needing to be open.
+// builds the report, emails it via Gmail SMTP, and records the run so each
+// project's own app can show it in-page without a browser needing to be open.
+//
+// Multi-tenant: this always processes THIS deployment's own default project
+// (env vars below — unchanged from before, so nothing breaks for the owner),
+// PLUS every active row in `report_connections` — the registry any visitor
+// can add themselves to from the "Scheduled reports" page, pointing at their
+// OWN Supabase project and Gmail account (see api/connections.ts). Each
+// project's schedules are only ever fetched/updated using that project's own
+// service role key, so no two tenants can see or affect each other's data.
 //
 // Required env vars (Vercel Project Settings > Environment Variables):
-// SUPABASE_SERVICE_ROLE_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, CRON_SECRET.
+// SUPABASE_SERVICE_ROLE_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, CRON_SECRET,
+// CONNECTIONS_ENCRYPTION_KEY (needed to decrypt other tenants' credentials).
 // Reuses whichever Supabase URL the frontend already has configured
-// (VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL).
+// (VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL) as both its own default
+// project AND the hub that stores report_connections.
 //
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
@@ -25,13 +36,22 @@ import { createClient } from "@supabase/supabase-js";
 import {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
-  advanceNextRun,
-  buildReportForSchedule,
+  GMAIL_USER,
+  GMAIL_APP_PASSWORD,
+  GMAIL_FROM_NAME,
   readEnv,
-  recordScheduleRun,
-  sendReportEmail,
-  type ReportScheduleRow,
+  runDueSchedules,
 } from "../src/lib/scheduled-reports/report-runner.js";
+import { decryptSecret } from "../src/lib/scheduled-reports/crypto.js";
+
+interface ConnectionRow {
+  id: string;
+  supabase_url: string;
+  supabase_service_role_key_encrypted: string;
+  gmail_user: string;
+  gmail_app_password_encrypted: string;
+  gmail_from_name: string | null;
+}
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
@@ -47,73 +67,65 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return;
     }
 
-    const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const hubClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const projects: Array<{ label: string; results: Awaited<ReturnType<typeof runDueSchedules>> | null; error?: string }> = [];
 
-    const { data: dueSchedules, error } = await client
-      .from("report_schedules")
+    if (GMAIL_USER && GMAIL_APP_PASSWORD) {
+      try {
+        const results = await runDueSchedules(hubClient, {
+          gmailUser: GMAIL_USER,
+          gmailAppPassword: GMAIL_APP_PASSWORD,
+          gmailFromName: GMAIL_FROM_NAME,
+        });
+        projects.push({ label: "default", results });
+      } catch (defaultError) {
+        const message = defaultError instanceof Error ? defaultError.message : String(defaultError);
+        console.error("send-scheduled-reports: default project failed", defaultError);
+        projects.push({ label: "default", results: null, error: message });
+      }
+    }
+
+    const { data: connections, error: connectionsError } = await hubClient
+      .from("report_connections")
       .select("*")
-      .eq("is_active", true)
-      .lte("next_run_at", new Date().toISOString());
+      .eq("is_active", true);
 
-    if (error) {
-      response.status(500).json({ error: error.message });
-      return;
+    if (connectionsError) {
+      console.error("send-scheduled-reports: failed to load report_connections", connectionsError);
     }
 
-    async function claimSchedule(schedule: ReportScheduleRow) {
-      // Simple guard against overlapping cron ticks processing the same
-      // schedule twice: push next_run_at forward before doing the (slower)
-      // real work, then overwrite it with the real computed value once the
-      // run finishes.
-      const { data, error: claimError } = await client
-        .from("report_schedules")
-        .update({ next_run_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() })
-        .eq("id", schedule.id)
-        .lte("next_run_at", new Date().toISOString())
-        .select("id")
-        .maybeSingle();
-
-      if (claimError) throw claimError;
-      return Boolean(data);
-    }
-
-    // Recording the run + advancing next_run_at is bookkeeping around the
-    // actual send — a write failure here must not crash the loop and skip
-    // every remaining schedule, so it's logged and swallowed rather than
-    // left to throw.
-    async function finishRunSafely(
-      schedule: ReportScheduleRow,
-      status: "success" | "error",
-      report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined,
-      errorMessage: string | undefined,
-    ) {
+    for (const connection of (connections ?? []) as ConnectionRow[]) {
       try {
-        await recordScheduleRun(client, schedule, status, report, errorMessage);
-        await advanceNextRun(client, schedule, status, errorMessage);
-      } catch (recordError) {
-        console.error(`send-scheduled-reports: failed to record run for schedule ${schedule.id}`, recordError);
+        const serviceRoleKey = decryptSecret(connection.supabase_service_role_key_encrypted);
+        const gmailAppPassword = decryptSecret(connection.gmail_app_password_encrypted);
+        const tenantClient = createClient(connection.supabase_url, serviceRoleKey);
+
+        const results = await runDueSchedules(tenantClient, {
+          gmailUser: connection.gmail_user,
+          gmailAppPassword,
+          gmailFromName: connection.gmail_from_name ?? undefined,
+        });
+
+        projects.push({ label: connection.id, results });
+        await hubClient
+          .from("report_connections")
+          .update({ last_checked_at: new Date().toISOString(), last_error: null })
+          .eq("id", connection.id);
+      } catch (connectionError) {
+        // A single bad/revoked tenant connection must not stop the loop for
+        // everyone else's schedules.
+        const message = connectionError instanceof Error ? connectionError.message : String(connectionError);
+        console.error(`send-scheduled-reports: connection ${connection.id} failed`, connectionError);
+        projects.push({ label: connection.id, results: null, error: message });
+        await hubClient
+          .from("report_connections")
+          .update({ last_checked_at: new Date().toISOString(), last_error: message })
+          .eq("id", connection.id);
       }
     }
 
-    const results: Array<{ id: string; status: string; error?: string }> = [];
-
-    for (const schedule of (dueSchedules ?? []) as ReportScheduleRow[]) {
-      const claimed = await claimSchedule(schedule);
-      if (!claimed) continue;
-
-      try {
-        const report = await buildReportForSchedule(client, schedule);
-        await sendReportEmail(schedule, report);
-        await finishRunSafely(schedule, "success", report, undefined);
-        results.push({ id: schedule.id, status: "success" });
-      } catch (runError) {
-        const message = runError instanceof Error ? runError.message : String(runError);
-        await finishRunSafely(schedule, "error", undefined, message);
-        results.push({ id: schedule.id, status: "error", error: message });
-      }
-    }
-
-    response.status(200).json({ processed: results.length, results });
+    const processed = projects.reduce((total, project) => total + (project.results?.length ?? 0), 0);
+    response.status(200).json({ processed, projects });
   } catch (unexpectedError) {
     console.error("send-scheduled-reports: unexpected failure", unexpectedError);
     const message = unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);

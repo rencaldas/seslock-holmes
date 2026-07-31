@@ -8,16 +8,18 @@ import { createEmailReportFilename, emailReportToCsv, emailReportToJson, emailRe
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { listRunsForSchedule } from "@/lib/scheduled-reports/queries";
+import { adminListRunsForSchedule } from "@/lib/scheduled-reports/admin-queries";
 
 export function ScheduleHistory({ scheduleId, scheduleName, onClose }: { scheduleId: string; scheduleName: string; onClose: () => void }) {
   const t = useI18n();
   const history = t.scheduledReports.history;
   const supabase = useSupabase();
+  const { isDefaultProject, adminToken } = supabase;
 
   const runsQuery = useQuery({
     queryKey: ["scheduled-report-runs", scheduleId],
-    enabled: Boolean(supabase.client),
-    queryFn: () => listRunsForSchedule(supabase.client!, scheduleId),
+    enabled: isDefaultProject ? Boolean(adminToken) : Boolean(supabase.client),
+    queryFn: () => (isDefaultProject ? adminListRunsForSchedule(adminToken!, scheduleId) : listRunsForSchedule(supabase.client!, scheduleId)),
   });
 
   const runs = runsQuery.data ?? [];

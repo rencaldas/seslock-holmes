@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { History, Pause, Pencil, Play, Trash2, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +19,17 @@ import {
   setScheduleActive,
   updateSchedule,
 } from "@/lib/scheduled-reports/queries";
+import {
+  adminCreateSchedule,
+  adminDeleteSchedule,
+  adminListSchedules,
+  adminSetScheduleActive,
+  adminUpdateSchedule,
+} from "@/lib/scheduled-reports/admin-queries";
+import { loadStoredConnection, type StoredConnection } from "@/lib/scheduled-reports/connection-settings";
 import type { ReportSchedule, ScheduleInput } from "@/lib/scheduled-reports/types";
 import { SetupPanel } from "@/features/scheduled-reports/setup-panel";
+import { ConnectionPanel } from "@/features/scheduled-reports/connection-panel";
 import { ScheduleForm } from "@/features/scheduled-reports/schedule-form";
 import { ScheduleHistory } from "@/features/scheduled-reports/schedule-history";
 
@@ -36,19 +46,29 @@ export function ScheduledReportsPage() {
   const t = useI18n();
   const list = t.scheduledReports.list;
   const supabase = useSupabase();
+  const { isDefaultProject, adminToken } = supabase;
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [connection, setConnection] = useState<StoredConnection | null>(() => loadStoredConnection());
   const [runNowFeedback, setRunNowFeedback] = useState<
     Record<string, { status: "success" } | { status: "error"; message: string }>
   >({});
 
+  // The default project's report_schedules table denies the anon role
+  // entirely (see the 20260730140000 migration), so managing it requires an
+  // ADMIN_API_TOKEN the owner sets once in Settings — a visitor bringing
+  // their own Supabase project never needs one, since they talk to their own
+  // project directly with their own anon key.
+  const canManageSchedules = isDefaultProject ? Boolean(adminToken) : Boolean(supabase.client);
+
   const schedulesQuery = useQuery({
-    queryKey: ["scheduled-reports", supabase.eventsTable],
-    enabled: Boolean(supabase.client),
-    queryFn: () => listSchedules(supabase.client!),
+    queryKey: ["scheduled-reports", supabase.eventsTable, isDefaultProject, adminToken],
+    enabled: canManageSchedules,
+    queryFn: () => (isDefaultProject ? adminListSchedules(adminToken!) : listSchedules(supabase.client!)),
   });
 
   function invalidate() {
@@ -56,7 +76,8 @@ export function ScheduledReportsPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: (input: ScheduleInput) => createSchedule(supabase.client!, input),
+    mutationFn: (input: ScheduleInput) =>
+      isDefaultProject ? adminCreateSchedule(adminToken!, input) : createSchedule(supabase.client!, input),
     onSuccess: () => {
       invalidate();
       setFormOpen(false);
@@ -64,7 +85,8 @@ export function ScheduledReportsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ScheduleInput }) => updateSchedule(supabase.client!, id, input),
+    mutationFn: ({ id, input }: { id: string; input: ScheduleInput }) =>
+      isDefaultProject ? adminUpdateSchedule(adminToken!, id, input) : updateSchedule(supabase.client!, id, input),
     onSuccess: () => {
       invalidate();
       setFormOpen(false);
@@ -73,17 +95,19 @@ export function ScheduledReportsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteSchedule(supabase.client!, id),
+    mutationFn: (id: string) => (isDefaultProject ? adminDeleteSchedule(adminToken!, id) : deleteSchedule(supabase.client!, id)),
     onSuccess: invalidate,
   });
 
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => setScheduleActive(supabase.client!, id, isActive),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      isDefaultProject ? adminSetScheduleActive(adminToken!, id, isActive) : setScheduleActive(supabase.client!, id, isActive),
     onSuccess: invalidate,
   });
 
   const runNowMutation = useMutation({
-    mutationFn: (id: string) => runScheduleNow(id),
+    mutationFn: (id: string) =>
+      runScheduleNow(id, !isDefaultProject && connection ? { connectionId: connection.connectionId, token: connection.token } : undefined),
     onMutate: (id) => {
       setRunNowFeedback((current) => {
         const { [id]: _removed, ...rest } = current;
@@ -114,12 +138,17 @@ export function ScheduledReportsPage() {
         <p className="max-w-2xl text-sm leading-6 text-ink-muted">{t.scheduledReports.subtitle}</p>
       </section>
 
-      <SetupPanel collapsedByDefault={!tableUnavailable && schedules.length > 0} />
-
-      {!tableUnavailable ? (
+      {isDefaultProject && !adminToken ? (
+        <EmptyState
+          title={t.scheduledReports.adminTokenMissingTitle}
+          description={t.scheduledReports.adminTokenMissingDescription}
+          actionLabel={t.scheduledReports.adminTokenMissingLink}
+          onAction={() => navigate("/settings")}
+        />
+      ) : !tableUnavailable ? (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-ink">{list.nameHeader}</h2>
+            <h2 className="text-lg font-bold text-ink">{list.sectionTitle}</h2>
             {!formOpen ? (
               <Button
                 onClick={() => {
@@ -208,6 +237,7 @@ export function ScheduledReportsPage() {
                         <div className="flex flex-wrap gap-1">
                           <Button
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             onClick={() => {
                               setEditing(schedule);
                               setFormOpen(true);
@@ -218,6 +248,7 @@ export function ScheduledReportsPage() {
                           </Button>
                           <Button
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             onClick={() => toggleActiveMutation.mutate({ id: schedule.id, isActive: !schedule.isActive })}
                             aria-label={schedule.isActive ? list.pause : list.resume}
                           >
@@ -225,6 +256,7 @@ export function ScheduledReportsPage() {
                           </Button>
                           <Button
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             onClick={() => setHistoryId((current) => (current === schedule.id ? null : schedule.id))}
                             aria-label={list.viewHistory}
                           >
@@ -232,6 +264,7 @@ export function ScheduledReportsPage() {
                           </Button>
                           <Button
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             disabled={runNowMutation.isPending && runNowMutation.variables === schedule.id}
                             onClick={() => {
                               if (window.confirm(list.forceRunConfirm)) {
@@ -245,6 +278,7 @@ export function ScheduledReportsPage() {
                           </Button>
                           <Button
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             onClick={() => {
                               if (window.confirm(list.confirmDelete)) {
                                 deleteMutation.mutate(schedule.id);
@@ -281,6 +315,10 @@ export function ScheduledReportsPage() {
           ) : null}
         </section>
       ) : null}
+
+      {!isDefaultProject ? <ConnectionPanel connection={connection} onConnectionChange={setConnection} /> : null}
+
+      <SetupPanel collapsedByDefault />
     </div>
   );
 }
