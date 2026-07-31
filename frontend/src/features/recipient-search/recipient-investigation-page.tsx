@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -7,50 +6,18 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { SetupState } from "@/components/states/setup-state";
-import { RecipientSearchForm } from "@/features/recipient-search/recipient-search-form";
 import { RecipientResults } from "@/features/recipient-search/recipient-results";
 import { RelatedEmailSuggestions } from "@/features/recipient-search/related-email-suggestions";
+import { useFilters } from "@/lib/filters/filters-context";
 import { normalizeEmail } from "@/lib/formatters/email";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { parseSearchMode } from "@/lib/recipient-search/search-mode";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchRecipientInvestigation } from "@/lib/supabase/queries/recipient-investigation";
-import type { RecentActivitySort, RecipientSearchMode } from "@/lib/supabase/types";
-import { parseTimeFilterState } from "@/lib/time-filters";
-import { parseRowLimit } from "@/lib/row-limits";
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
-function parseSearchMode(value: string | null): RecipientSearchMode {
-  return value === "sender" || value === "origin" || value === "diagnostic" ? value : "recipient";
-}
-
-function parseRecentActivitySort(value: string | null): RecentActivitySort {
-  return value === "time-asc" || value === "recipient-asc" || value === "recipient-desc" ? value : "time-desc";
-}
-
-function parseInvestigationForm(searchParams: URLSearchParams) {
-  return {
-    searchText: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
-    searchMode: parseSearchMode(searchParams.get("mode")),
-    ...parseTimeFilterState(searchParams),
-    recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
-    status: (searchParams.get("status") ?? "all") as
-      | "all"
-      | "sent"
-      | "delivered"
-      | "bounced"
-      | "complained"
-      | "delayed"
-      | "rejected"
-      | "rendering_failure",
-    origin: searchParams.get("origin") ?? "",
-    subject: searchParams.get("subject") ?? "",
-    provider: searchParams.get("provider") ?? "",
-    rowLimit: parseRowLimit(searchParams.get("rows")),
-  };
 }
 
 export function RecipientInvestigationPage() {
@@ -58,15 +25,11 @@ export function RecipientInvestigationPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const supabase = useSupabase();
-  const appliedForm = parseInvestigationForm(searchParams);
-  const [form, setForm] = useState(() => appliedForm);
+  const { filters: appliedFilters } = useFilters();
 
-  useEffect(() => {
-    setForm(parseInvestigationForm(searchParams));
-  }, [searchParams]);
-
-  const searchText = normalizeEmail(searchParams.get("query") ?? searchParams.get("recipient") ?? "");
+  const rawSearchText = searchParams.get("query") ?? searchParams.get("recipient") ?? "";
   const searchMode = parseSearchMode(searchParams.get("mode"));
+  const searchText = searchMode === "provider" ? rawSearchText.trim() : normalizeEmail(rawSearchText);
   const page = parsePage(searchParams.get("page"));
 
   const investigationQuery = useQuery({
@@ -74,16 +37,16 @@ export function RecipientInvestigationPage() {
         "recipient-investigation",
         searchText,
         searchMode,
-        appliedForm.timeMode,
-        appliedForm.windowDays,
-        appliedForm.startAt,
-        appliedForm.endAt,
-        appliedForm.recentActivitySort,
-        appliedForm.status,
-        appliedForm.origin,
-        appliedForm.subject,
-        appliedForm.provider,
-        appliedForm.rowLimit,
+        appliedFilters.timeMode,
+        appliedFilters.windowDays,
+        appliedFilters.startAt,
+        appliedFilters.endAt,
+        appliedFilters.recentActivitySort,
+        appliedFilters.status,
+        appliedFilters.origin,
+        appliedFilters.subject,
+        appliedFilters.provider,
+        appliedFilters.rowLimit,
         page,
       supabase.eventsTable,
     ],
@@ -92,15 +55,15 @@ export function RecipientInvestigationPage() {
       fetchRecipientInvestigation(supabase.client!, supabase.eventsTable!, {
         searchText,
         searchMode,
-        timeMode: appliedForm.timeMode,
-        windowDays: appliedForm.windowDays,
-        startAt: appliedForm.startAt,
-        endAt: appliedForm.endAt,
-        status: appliedForm.status,
-        origin: appliedForm.origin,
-        subject: appliedForm.subject,
-        provider: appliedForm.provider,
-        rowLimit: appliedForm.rowLimit,
+        timeMode: appliedFilters.timeMode,
+        windowDays: appliedFilters.windowDays,
+        startAt: appliedFilters.startAt,
+        endAt: appliedFilters.endAt,
+        status: appliedFilters.status,
+        origin: appliedFilters.origin,
+        subject: appliedFilters.subject,
+        provider: appliedFilters.provider,
+        rowLimit: appliedFilters.rowLimit,
         page,
         pageSize: 25,
       }),
@@ -122,47 +85,6 @@ export function RecipientInvestigationPage() {
     );
   }
 
-  const submitSearch = () => {
-    const normalized = form.searchMode === "origin" ? form.searchText.trim() : normalizeEmail(form.searchText);
-    if (!normalized) {
-      return;
-    }
-
-    setSearchParams({
-      query: normalized,
-      mode: form.searchMode,
-      timeMode: appliedForm.timeMode,
-      windowDays: String(appliedForm.windowDays),
-      startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
-      endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
-      recentActivitySort: appliedForm.recentActivitySort,
-      status: appliedForm.status,
-      origin: appliedForm.origin,
-      subject: appliedForm.subject,
-      provider: appliedForm.provider,
-      rows: String(appliedForm.rowLimit),
-      page: "1",
-    });
-  };
-
-  const applyFilters = () => {
-    setSearchParams({
-      query: searchParams.get("query") ?? searchParams.get("recipient") ?? "",
-      mode: searchMode,
-      timeMode: form.timeMode,
-      windowDays: String(form.windowDays),
-      startAt: form.timeMode === "custom" ? form.startAt : "",
-      endAt: form.timeMode === "custom" ? form.endAt : "",
-      recentActivitySort: form.recentActivitySort,
-      status: form.status,
-      origin: form.origin,
-      subject: form.subject,
-      provider: form.provider,
-      rows: String(form.rowLimit),
-      page: "1",
-    });
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -176,17 +98,6 @@ export function RecipientInvestigationPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t.investigation.backToOverview}
         </Button>
-      </div>
-
-      <div className="sticky top-16 z-20">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <RecipientSearchForm
-            value={form}
-            onChange={setForm}
-            onSubmit={submitSearch}
-            onApplyFilters={applyFilters}
-          />
-        </div>
       </div>
 
       {!searchText ? (
@@ -225,18 +136,8 @@ export function RecipientInvestigationPage() {
                     disabled={investigationQuery.data.page <= 1}
                     onClick={() =>
                       setSearchParams({
-                        query: searchText,
+                        query: rawSearchText,
                         mode: searchMode,
-                        timeMode: appliedForm.timeMode,
-                        windowDays: String(appliedForm.windowDays),
-                        startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
-                        endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
-                        recentActivitySort: appliedForm.recentActivitySort,
-                        status: appliedForm.status,
-                        origin: appliedForm.origin,
-                        subject: appliedForm.subject,
-                        provider: appliedForm.provider,
-                        rows: String(appliedForm.rowLimit),
                         page: String(Math.max(1, page - 1)),
                       })
                     }
@@ -249,18 +150,8 @@ export function RecipientInvestigationPage() {
                     disabled={!investigationQuery.data.hasMore}
                     onClick={() =>
                       setSearchParams({
-                        query: searchText,
+                        query: rawSearchText,
                         mode: searchMode,
-                        timeMode: appliedForm.timeMode,
-                        windowDays: String(appliedForm.windowDays),
-                        startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
-                        endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
-                        recentActivitySort: appliedForm.recentActivitySort,
-                        status: appliedForm.status,
-                        origin: appliedForm.origin,
-                        subject: appliedForm.subject,
-                        provider: appliedForm.provider,
-                        rows: String(appliedForm.rowLimit),
                         page: String(page + 1),
                       })
                     }
@@ -276,17 +167,7 @@ export function RecipientInvestigationPage() {
               onSelect={(email) =>
                 setSearchParams({
                   query: email,
-                  mode: searchMode === "origin" ? "recipient" : searchMode,
-                  timeMode: appliedForm.timeMode,
-                  windowDays: String(appliedForm.windowDays),
-                  startAt: appliedForm.timeMode === "custom" ? appliedForm.startAt : "",
-                  endAt: appliedForm.timeMode === "custom" ? appliedForm.endAt : "",
-                  recentActivitySort: appliedForm.recentActivitySort,
-                  status: appliedForm.status,
-                  origin: appliedForm.origin,
-                  subject: appliedForm.subject,
-                  provider: appliedForm.provider,
-                  rows: String(appliedForm.rowLimit),
+                  mode: searchMode,
                   page: "1",
                 })
               }

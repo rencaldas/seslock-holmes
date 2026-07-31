@@ -3,7 +3,7 @@ import { DEFAULT_ROW_LIMIT, parseRowLimit } from "@/lib/row-limits";
 import type { RecentActivitySort } from "@/lib/supabase/types";
 import type { OverviewFilterValues } from "@/features/overview/overview-filters";
 
-type OverviewSearchFilters = OverviewFilterValues & { provider: string };
+export type OverviewSearchFilters = OverviewFilterValues & { provider: string };
 
 export const DEFAULT_OVERVIEW_FILTERS: OverviewSearchFilters = {
   timeMode: "window",

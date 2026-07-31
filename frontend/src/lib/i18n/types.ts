@@ -233,21 +233,17 @@ export type TranslationBundle = {
     kicker: string;
     title: string;
     backToOverview: string;
-    searchLabel: string;
     searchModeLabel: string;
+    searchPlaceholderAll: string;
     searchPlaceholderRecipient: string;
     searchPlaceholderSender: string;
-    searchPlaceholderOrigin: string;
-    searchPlaceholderDiagnostic: string;
+    searchPlaceholderProvider: string;
     searchModes: {
+      all: string;
       recipient: string;
       sender: string;
-      origin: string;
-      diagnostic: string;
+      provider: string;
     };
-    searchButton: string;
-    hideFilters: string;
-    showFilters: string;
     noSearchTitle: string;
     noSearchDescription: string;
     loadingTitle: string;

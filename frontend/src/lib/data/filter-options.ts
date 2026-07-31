@@ -1,5 +1,4 @@
 import type { EmailEventType } from "@/lib/supabase/types";
-import type { RecipientSearchMode } from "@/lib/supabase/types";
 
 export const windowDayOptions = [
   { label: "Últimas 24 horas", value: "1" },
@@ -17,10 +16,4 @@ export const eventStatusOptions: Array<{ label: string; value: "all" | EmailEven
   { label: "Atrasado", value: "delayed" },
   { label: "Rejeitado", value: "rejected" },
   { label: "Falha de renderização", value: "rendering_failure" },
-];
-
-export const recipientSearchModeOptions: Array<{ label: string; value: RecipientSearchMode }> = [
-  { label: "Destinatário", value: "recipient" },
-  { label: "Remetente", value: "sender" },
-  { label: "Origem", value: "origin" },
 ];

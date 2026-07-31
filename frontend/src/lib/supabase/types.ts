@@ -151,7 +151,7 @@ export interface RecipientInvestigationQueryInput {
   pageSize: number;
 }
 
-export type RecipientSearchMode = "recipient" | "sender" | "origin" | "diagnostic";
+export type RecipientSearchMode = "all" | "recipient" | "sender" | "provider";
 export type TimeFilterMode = "window" | "custom";
 export type RecentActivitySort = "time-desc" | "time-asc" | "recipient-asc" | "recipient-desc";
 
