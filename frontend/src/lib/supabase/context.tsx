@@ -2,7 +2,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/env";
-import { getSupabaseLanguage, SUPABASE_SETTINGS_UPDATED_EVENT, syncDocumentLanguage } from "@/lib/supabase/settings";
+import {
+  getSupabaseLanguage,
+  loadSupabaseSettings,
+  SUPABASE_SETTINGS_UPDATED_EVENT,
+  syncDocumentLanguage,
+} from "@/lib/supabase/settings";
 
 type SupabaseState = {
   client: SupabaseClient | null;
@@ -10,6 +15,12 @@ type SupabaseState = {
   error: string | null;
   eventsTable: string | null;
   triedTables: string[];
+  // True when this browser has no Settings override — i.e. it's using this
+  // deployment's own default Supabase project. Scheduled-reports management
+  // for that project goes through the admin-gated /api/schedules API
+  // instead of direct supabase-js calls; see admin-queries.ts.
+  isDefaultProject: boolean;
+  adminToken: string | null;
 };
 
 const SupabaseContext = createContext<SupabaseState | null>(null);
@@ -36,6 +47,9 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const localSettings = loadSupabaseSettings();
+  const hasOwnOverride = Boolean(localSettings?.url && localSettings?.anonKey);
+
   const state: SupabaseState = {
     client,
     ready: Boolean(env),
@@ -44,6 +58,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       : "As credenciais do Supabase estão ausentes. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY, ou salve-as em Configurações.",
     eventsTable: env?.eventsTable ?? null,
     triedTables: env?.eventsTable ? [env.eventsTable] : [],
+    isDefaultProject: !hasOwnOverride,
+    adminToken: localSettings?.adminToken || null,
   };
 
   return <SupabaseContext.Provider value={state}>{children}</SupabaseContext.Provider>;

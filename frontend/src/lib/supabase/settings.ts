@@ -8,6 +8,12 @@ export interface SupabaseSettings {
   timeZone?: string;
   clockFormat?: AppClockFormat;
   updateInterval?: AppUpdateInterval;
+  // Only meaningful when url/anonKey are NOT set (i.e. this browser is using
+  // this deployment's own default Supabase project) — required to manage
+  // schedules there now that its report_schedules table denies the anon
+  // role (see api/schedules.ts and the 20260730140000 migration). Never sent
+  // anywhere except as the Authorization header of requests to /api/schedules.
+  adminToken?: string;
 }
 
 interface WindowWithDirectoryPicker extends Window {
@@ -51,6 +57,7 @@ export function loadSupabaseSettings(): Partial<SupabaseSettings> | null {
     url: typeof parsed.url === "string" ? parsed.url.trim() : "",
     anonKey: typeof parsed.anonKey === "string" ? parsed.anonKey.trim() : "",
     eventsTable: typeof parsed.eventsTable === "string" ? parsed.eventsTable.trim() : "",
+    adminToken: typeof parsed.adminToken === "string" ? parsed.adminToken.trim() : undefined,
     language: parsed.language === "pt-BR" || parsed.language === "en-US" ? parsed.language : undefined,
     timeZone: typeof parsed.timeZone === "string" ? parsed.timeZone : undefined,
     clockFormat: parsed.clockFormat === "12h" || parsed.clockFormat === "24h" ? parsed.clockFormat : undefined,

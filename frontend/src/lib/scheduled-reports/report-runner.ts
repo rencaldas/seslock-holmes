@@ -97,21 +97,20 @@ export const GMAIL_USER = readEnv("GMAIL_USER");
 export const GMAIL_APP_PASSWORD = readEnv("GMAIL_APP_PASSWORD");
 export const GMAIL_FROM_NAME = readEnv("GMAIL_FROM_NAME") || "Seslock Holmes";
 
-let cachedTransporter: Transporter | null = null;
+export interface GmailCredentials {
+  gmailUser: string;
+  gmailAppPassword: string;
+  gmailFromName?: string;
+}
 
-// Reused across invocations of the same warm serverless instance instead of
-// reconnecting to Gmail's SMTP server on every send.
-function getGmailTransporter(): Transporter {
-  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-    throw new Error("GMAIL_USER/GMAIL_APP_PASSWORD não configuradas nas variáveis de ambiente do Vercel.");
-  }
-  if (!cachedTransporter) {
-    cachedTransporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-    });
-  }
-  return cachedTransporter;
+// One transporter per set of credentials (not a single module-level cache) —
+// this now runs once per tenant in a multi-tenant cron loop
+// (send-scheduled-reports.ts), each with their own registered Gmail account.
+function getGmailTransporter(credentials: GmailCredentials): Transporter {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: credentials.gmailUser, pass: credentials.gmailAppPassword },
+  });
 }
 
 function humanFrequency(frequency: ScheduleFrequency) {
@@ -327,8 +326,14 @@ function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced
   return lines.join("\n");
 }
 
-export async function sendReportEmail(schedule: ReportScheduleRow, report: EmailReport, options: { forced?: boolean } = {}) {
-  const transporter = getGmailTransporter();
+export async function sendReportEmail(
+  schedule: ReportScheduleRow,
+  report: EmailReport,
+  credentials: GmailCredentials,
+  options: { forced?: boolean } = {},
+) {
+  const transporter = getGmailTransporter(credentials);
+  const fromName = credentials.gmailFromName || GMAIL_FROM_NAME;
   const forced = options.forced ?? false;
 
   const csv = emailReportToCsv(report);
@@ -347,13 +352,13 @@ export async function sendReportEmail(schedule: ReportScheduleRow, report: Email
   const unsubscribeSubject = encodeURIComponent(`Remover do agendamento: ${schedule.name}`);
 
   await transporter.sendMail({
-    from: `"${GMAIL_FROM_NAME}" <${GMAIL_USER}>`,
+    from: `"${fromName}" <${credentials.gmailUser}>`,
     to: schedule.recipients,
     subject: `Relatório agendado: ${schedule.name}${forced ? " (forçado)" : ""}`,
     text: buildEmailText(schedule, report, forced),
     html: buildEmailHtml(schedule, report, forced),
     headers: {
-      "List-Unsubscribe": `<mailto:${GMAIL_USER}?subject=${unsubscribeSubject}>`,
+      "List-Unsubscribe": `<mailto:${credentials.gmailUser}?subject=${unsubscribeSubject}>`,
     },
     attachments: [
       { filename: csvFilename, content: Buffer.from(csv, "utf-8") },
@@ -411,4 +416,69 @@ export async function recordLastRunOnly(client: SupabaseClient, scheduleId: stri
       last_run_error: errorMessage ?? null,
     })
     .eq("id", scheduleId);
+}
+
+// Processes every due schedule in a single project (client + credentials
+// pair), used identically for this deployment's own default project and for
+// every registered report_connections tenant — see send-scheduled-reports.ts,
+// which calls this once per project on every cron tick.
+export async function runDueSchedules(client: SupabaseClient, credentials: GmailCredentials) {
+  const { data: dueSchedules, error } = await client
+    .from("report_schedules")
+    .select("*")
+    .eq("is_active", true)
+    .lte("next_run_at", new Date().toISOString());
+
+  if (error) throw error;
+
+  async function claimSchedule(schedule: ReportScheduleRow) {
+    // Simple guard against overlapping cron ticks processing the same
+    // schedule twice: push next_run_at forward before doing the (slower)
+    // real work, then overwrite it with the real computed value once the
+    // run finishes.
+    const { data, error: claimError } = await client
+      .from("report_schedules")
+      .update({ next_run_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() })
+      .eq("id", schedule.id)
+      .lte("next_run_at", new Date().toISOString())
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) throw claimError;
+    return Boolean(data);
+  }
+
+  async function finishRunSafely(
+    schedule: ReportScheduleRow,
+    status: "success" | "error",
+    report: EmailReport | undefined,
+    errorMessage: string | undefined,
+  ) {
+    try {
+      await recordScheduleRun(client, schedule, status, report, errorMessage);
+      await advanceNextRun(client, schedule, status, errorMessage);
+    } catch (recordError) {
+      console.error(`runDueSchedules: failed to record run for schedule ${schedule.id}`, recordError);
+    }
+  }
+
+  const results: Array<{ id: string; status: string; error?: string }> = [];
+
+  for (const schedule of (dueSchedules ?? []) as ReportScheduleRow[]) {
+    const claimed = await claimSchedule(schedule);
+    if (!claimed) continue;
+
+    try {
+      const report = await buildReportForSchedule(client, schedule);
+      await sendReportEmail(schedule, report, credentials);
+      await finishRunSafely(schedule, "success", report, undefined);
+      results.push({ id: schedule.id, status: "success" });
+    } catch (runError) {
+      const message = runError instanceof Error ? runError.message : String(runError);
+      await finishRunSafely(schedule, "error", undefined, message);
+      results.push({ id: schedule.id, status: "error", error: message });
+    }
+  }
+
+  return results;
 }

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { checkScheduledReportsConfigured } from "@/lib/scheduled-reports/queries";
-import { REPORT_SCHEDULES_MIGRATION_SQL, REQUIRED_VERCEL_ENV_VARS } from "@/lib/scheduled-reports/setup-sql";
+import { adminCheckScheduledReportsConfigured } from "@/lib/scheduled-reports/admin-queries";
+import { HUB_ONLY_MIGRATIONS_SQL, REPORT_SCHEDULES_MIGRATION_SQL, REQUIRED_VERCEL_ENV_VARS } from "@/lib/scheduled-reports/setup-sql";
 
 function CopyableBlock({ value, label }: { value: string; label: string }) {
   const t = useI18n();
@@ -60,12 +61,13 @@ export function SetupPanel({ collapsedByDefault }: { collapsedByDefault: boolean
   const t = useI18n();
   const setup = t.scheduledReports.setup;
   const supabase = useSupabase();
+  const { isDefaultProject, adminToken } = supabase;
   const [expanded, setExpanded] = useState(!collapsedByDefault);
 
   const configuredQuery = useQuery({
-    queryKey: ["scheduled-reports-configured", supabase.eventsTable],
-    enabled: Boolean(supabase.client),
-    queryFn: () => checkScheduledReportsConfigured(supabase.client!),
+    queryKey: ["scheduled-reports-configured", supabase.eventsTable, isDefaultProject, adminToken],
+    enabled: isDefaultProject ? Boolean(adminToken) : Boolean(supabase.client),
+    queryFn: () => (isDefaultProject ? adminCheckScheduledReportsConfigured(adminToken!) : checkScheduledReportsConfigured(supabase.client!)),
   });
 
   const isConfigured = configuredQuery.data === true;
@@ -92,6 +94,12 @@ export function SetupPanel({ collapsedByDefault }: { collapsedByDefault: boolean
             <h4 className="text-sm font-bold text-ink">{setup.step1Title}</h4>
             <p className="text-sm text-ink-muted">{setup.step1Description}</p>
             <CopyableBlock value={REPORT_SCHEDULES_MIGRATION_SQL} label="SQL" />
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-amber-200 p-4 dark:border-amber-500/30">
+            <h4 className="text-sm font-bold text-ink">{setup.hubStepTitle}</h4>
+            <p className="text-sm text-ink-muted">{setup.hubStepDescription}</p>
+            <CopyableBlock value={HUB_ONLY_MIGRATIONS_SQL} label="SQL" />
           </div>
 
           <div className="space-y-3">
