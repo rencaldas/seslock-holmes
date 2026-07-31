@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-07-30
+### Added
+- Qualquer visitante do dashboard agora pode registrar o próprio projeto Supabase e a própria conta Gmail ("Entrega automática para o seu Supabase", na página de Relatórios agendados) para receber os relatórios que criar automaticamente, sem que o dono deste site veja seus dados ou credenciais — armazenadas criptografadas.
+### Changed
+- Na página de Relatórios agendados: o painel "Configuração necessária" agora começa fechado e fica abaixo da lista de agendamentos (antes vinha aberto e no topo); os botões de ação de cada agendamento não quebram mais em várias linhas; o aviso de última execução foi resumido para "Enviado"; e o título da seção de agendamentos passou a ser "Seus agendamentos".
+### Fixed
+- Fechada uma falha de segurança: qualquer visitante sem login conseguia criar agendamentos direto no Supabase padrão deste site (RLS aberto para a chave anon embutida no bundle), fazendo o cron enviá-los pelo Gmail do dono do site. A gestão de agendamentos do projeto padrão agora exige um token de administrador, configurado só pelo dono.
+
 ## [1.2.1] - 2026-07-30
 ### Fixed
 - Logo do Seslock Holmes no cabeçalho do email de relatório aparecia como um quadrado quebrado no Gmail em produção — o Gmail não renderiza de forma confiável imagens embutidas como `data:` URI. A logo agora é servida como um arquivo estático de verdade.
