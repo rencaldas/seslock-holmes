@@ -270,6 +270,16 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       diagnosisTechnicalCode: "Código técnico",
       diagnosisSeverity: "Severidade",
       inspectEvent: "Inspecionar evento",
+      resultStatus: {
+        sent: "Mensagem enviada com sucesso ao servidor de destino. Aguardando confirmação de entrega.",
+        delivered: "Mensagem entregue com sucesso na caixa de entrada do destinatário.",
+        bounced: "O servidor de destino recusou a mensagem, mas não foi possível classificar o motivo automaticamente.",
+        complained: "O destinatário marcou esta mensagem como spam ou indesejada.",
+        delayed: "O envio está atrasado. O servidor de destino ainda não confirmou o recebimento; novas tentativas podem ocorrer automaticamente.",
+        rejected: "A mensagem foi rejeitada antes do envio, geralmente por política de conteúdo ou configuração inválida.",
+        rendering_failure: "Houve uma falha ao renderizar o template do email antes do envio.",
+      },
+      resultStatusDetail: "Detalhe",
     },
     eventDetail: {
       kicker: "Detalhes do evento",
@@ -819,6 +829,16 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       diagnosisTechnicalCode: "Technical code",
       diagnosisSeverity: "Severity",
       inspectEvent: "Inspect event",
+      resultStatus: {
+        sent: "Message successfully sent to the destination server. Awaiting delivery confirmation.",
+        delivered: "Message successfully delivered to the recipient's inbox.",
+        bounced: "The destination server rejected the message, but the reason could not be classified automatically.",
+        complained: "The recipient marked this message as spam or unwanted.",
+        delayed: "Delivery is delayed. The destination server hasn't confirmed receipt yet; retries may happen automatically.",
+        rejected: "The message was rejected before sending, usually due to content policy or invalid configuration.",
+        rendering_failure: "The email template failed to render before sending.",
+      },
+      resultStatusDetail: "Detail",
     },
     eventDetail: {
       kicker: "Event details",

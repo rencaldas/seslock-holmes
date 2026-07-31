@@ -270,6 +270,16 @@ export type TranslationBundle = {
     diagnosisTechnicalCode: string;
     diagnosisSeverity: string;
     inspectEvent: string;
+    resultStatus: {
+      sent: string;
+      delivered: string;
+      bounced: string;
+      complained: string;
+      delayed: string;
+      rejected: string;
+      rendering_failure: string;
+    };
+    resultStatusDetail: string;
   };
   eventDetail: {
     kicker: string;
