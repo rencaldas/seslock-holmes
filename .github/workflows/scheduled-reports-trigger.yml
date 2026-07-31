@@ -1,0 +1,52 @@
+# Primary trigger for scheduled report delivery. Pings the existing
+# /api/send-scheduled-reports Vercel function every 15 minutes so a
+# schedule's configured time (e.g. "12:00") is actually honored close to
+# that time — Vercel's own Cron (see ../../frontend/vercel.json) only fires
+# once a day on the Hobby plan, which is kept in place as a once-daily
+# failsafe in case this workflow is ever delayed or disabled (GitHub
+# disables scheduled workflows automatically after 60 days with no commits
+# to the repo). Calling the endpoint twice in the same window is safe: it
+# claims each due schedule with an optimistic next_run_at update before
+# doing any real work, so overlapping triggers can't double-send the same
+# report (see claimSchedule in report-runner.ts).
+name: Scheduled reports trigger
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-reports-trigger
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call send-scheduled-reports
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET repository secret is not set."
+            exit 1
+          fi
+
+          status=$(curl -sS --max-time 120 -o /tmp/response.json -w "%{http_code}" \
+            "https://seslock-holmes.vercel.app/api/send-scheduled-reports" \
+            -H "Authorization: Bearer ${CRON_SECRET}")
+
+          echo "HTTP status: ${status}"
+          cat /tmp/response.json
+
+          if [ "$status" -ge 400 ]; then
+            echo "::error::send-scheduled-reports returned HTTP ${status}"
+            exit 1
+          fi
