@@ -522,10 +522,11 @@ export async function recordLastRunOnly(client: SupabaseClient, scheduleId: stri
     .eq("id", scheduleId);
 }
 
-// Processes every due schedule in a single project (client + credentials
-// pair), used identically for this deployment's own default project and for
-// every registered report_connections tenant — see send-scheduled-reports.ts,
-// which calls this once per project on every cron tick.
+// Processes every due schedule for one project (client + credentials pair).
+// Called once per cron tick by send-scheduled-reports.ts. Still takes the
+// client and credentials as arguments rather than reading the module-level
+// env vars directly: that kept a multi-tenant loop possible when one existed,
+// and it remains the reason this is straightforward to unit test.
 export async function runDueSchedules(client: SupabaseClient, credentials: GmailCredentials) {
   const { data: dueSchedules, error } = await client
     .from("report_schedules")

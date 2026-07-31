@@ -4,15 +4,15 @@
 -- That migration deliberately keeps `report_schedules`/`report_schedule_runs`
 -- open to the `anon` role — that's the right call for a visitor's OWN
 -- Supabase project (their own data, their own risk to accept), but wrong for
--- THIS deployment's own hub project: its anon key ships inside the public JS
+-- THIS deployment's own project: its anon key ships inside the public JS
 -- bundle, so "anon can manage report schedules" there really means "anyone
 -- who loads this site, with no login, can create schedules that get emailed
 -- through this project owner's own Gmail account".
 --
--- This migration is intentionally NOT surfaced in the app's "Scheduled
--- reports" setup panel (unlike 20260730120000) and is NOT meant to be
--- copy-pasted into a visitor's own project — run it once, by hand, only on
--- the hub Supabase project this app's own Vercel deployment points at.
+-- Run it once, only on the Supabase project this app's own Vercel deployment
+-- points at. It is NOT meant to be copy-pasted into a visitor's own project:
+-- there the browser manages schedules directly with that project's own anon
+-- key, and running this would break it.
 --
 -- After this runs, managing schedules on the *default* project only works
 -- through frontend/api/schedules.ts, gated by ADMIN_API_TOKEN — the browser
@@ -24,4 +24,4 @@ drop policy if exists "Anon can manage report schedules" on public.report_schedu
 drop policy if exists "Anon can read report schedule runs" on public.report_schedule_runs;
 
 -- No replacement policies: RLS with zero policies denies every role except
--- service_role, matching report_connections (20260730130000).
+-- service_role.
