@@ -24,10 +24,12 @@ export interface RequiredEnvVar {
   description: string;
 }
 
-// The periodic trigger is Vercel Cron (see the `crons` entry in
-// vercel.json), which calls /api/send-scheduled-reports on a schedule and
-// authenticates with CRON_SECRET. Supabase only stores the data — no
-// pg_cron/pg_net/Vault setup is needed on the database side.
+// The periodic trigger is a GitHub Actions workflow (runs every 15 minutes,
+// see .github/workflows/scheduled-reports-trigger.yml), backed by Vercel
+// Cron (see the `crons` entry in vercel.json) as a once-daily failsafe.
+// Both call /api/send-scheduled-reports and authenticate with CRON_SECRET.
+// Supabase only stores the data — no pg_cron/pg_net/Vault setup is needed
+// on the database side.
 export const REQUIRED_VERCEL_ENV_VARS: RequiredEnvVar[] = [
   {
     name: "SUPABASE_SERVICE_ROLE_KEY",

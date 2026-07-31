@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-07-31
+### Added
+- Disparo periódico dos relatórios agendados agora passa por um workflow do GitHub Actions (a cada 15 minutos), além do cron da Vercel — que fica só como reforço diário. Antes, o cron da Vercel era o único disparo e rodava só 1x por dia (23:00 UTC), então um agendamento configurado para um horário como "12:00" só saía horas depois, à noite; agora sai perto do horário configurado.
+### Changed
+- Textos do painel "Configuração necessária" (Relatórios agendados) atualizados para explicar os dois disparos (GitHub Actions + Vercel Cron) e como cadastrar o secret `CRON_SECRET` no repositório.
+
 ## [1.3.0] - 2026-07-30
 ### Added
 - Qualquer visitante do dashboard agora pode registrar o próprio projeto Supabase e a própria conta Gmail ("Entrega automática para o seu Supabase", na página de Relatórios agendados) para receber os relatórios que criar automaticamente, sem que o dono deste site veja seus dados ou credenciais — armazenadas criptografadas.

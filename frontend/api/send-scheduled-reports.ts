@@ -1,9 +1,22 @@
-// Vercel Cron Job target — see the `crons` entry in ../vercel.json. On every
-// invocation it processes every `report_schedules` row (across every
-// registered project, not just this deployment's own) whose `next_run_at`
-// has passed: re-runs the same filtered query the Overview page would run,
-// builds the report, emails it via Gmail SMTP, and records the run so each
-// project's own app can show it in-page without a browser needing to be open.
+// Cron target, invoked two ways:
+//  1. .github/workflows/scheduled-reports-trigger.yml — the primary trigger,
+//     every 15 minutes, so a schedule's configured time is actually honored
+//     close to that time.
+//  2. The `crons` entry in ../vercel.json — once a day (Vercel Hobby plan's
+//     max frequency), kept as a failsafe in case the GitHub Actions workflow
+//     is ever delayed or disabled (GitHub auto-disables scheduled workflows
+//     after 60 days with no commits to the repo).
+// Both call this same URL with the same CRON_SECRET, and that's safe:
+// runDueSchedules claims each due schedule with an optimistic next_run_at
+// update before doing any real work, so overlapping invocations can't
+// double-send the same report.
+//
+// On every invocation it processes every `report_schedules` row (across
+// every registered project, not just this deployment's own) whose
+// `next_run_at` has passed: re-runs the same filtered query the Overview
+// page would run, builds the report, emails it via Gmail SMTP, and records
+// the run so each project's own app can show it in-page without a browser
+// needing to be open.
 //
 // Multi-tenant: this always processes THIS deployment's own default project
 // (env vars below — unchanged from before, so nothing breaks for the owner),
