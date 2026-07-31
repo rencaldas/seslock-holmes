@@ -58,7 +58,7 @@ export function MessageTraceTimeline({
               </div>
               <div
                 className={cn(
-                  "flex-1 rounded-card border p-4 pb-5",
+                  "flex-1 rounded-xl border p-4",
                   isSelected
                     ? "border-brand/40 bg-brand-soft/40 dark:border-brand/40 dark:bg-brand-soft/10"
                     : "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60",
