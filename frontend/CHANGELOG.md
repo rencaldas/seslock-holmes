@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-07-30
+### Fixed
+- Logo do Seslock Holmes no cabeçalho do email de relatório aparecia como um quadrado quebrado no Gmail em produção — o Gmail não renderiza de forma confiável imagens embutidas como `data:` URI. A logo agora é servida como um arquivo estático de verdade.
+
 ## [1.2.0] - 2026-07-30
 ### Changed
 - Redesenhado o email de relatório agendado: cabeçalho com a logo do Seslock Holmes, cartões de resumo, chips com os filtros aplicados e tabela de categorias com listras — junto com uma versão em texto puro enviada em paralelo e um cabeçalho `List-Unsubscribe`, para reduzir a chance do email cair na caixa de spam.
