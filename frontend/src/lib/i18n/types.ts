@@ -48,6 +48,8 @@ export type TranslationBundle = {
     setupButton: string;
     setupTried: string;
     noAvailableData: string;
+    resultTruncatedTitle: string;
+    resultTruncatedDescription: string;
   };
   supabaseRequired: {
     title: string;

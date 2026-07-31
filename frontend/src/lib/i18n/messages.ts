@@ -47,6 +47,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       setupButton: "Salvar e recarregar",
       setupTried: "Tentativas",
       noAvailableData: "Não disponível",
+      resultTruncatedTitle: "Resultado incompleto",
+      resultTruncatedDescription:
+        "A busca atingiu o teto de segurança de eventos, então há registros do período que não aparecem aqui. Reduza a janela de tempo ou refine os filtros antes de tirar conclusões.",
     },
     supabaseRequired: {
       title: "Conecte o Supabase para continuar",
@@ -611,6 +614,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       setupButton: "Save and reload",
       setupTried: "Tried",
       noAvailableData: "Not available",
+      resultTruncatedTitle: "Incomplete result",
+      resultTruncatedDescription:
+        "The search hit the safety cap on events, so some records from this period are missing here. Shorten the time window or narrow the filters before drawing conclusions.",
     },
     supabaseRequired: {
       title: "Connect Supabase to continue",

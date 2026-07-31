@@ -92,6 +92,9 @@ export interface RecipientInvestigationResult {
     email: string;
     count: number;
   }>;
+  // Busca parou no teto de segurança de linhas; o resultado está incompleto.
+  // Ver UNLIMITED_ROW_LIMIT_CAP em lib/row-limits.ts.
+  truncated: boolean;
 }
 
 export interface OverviewResult {
@@ -107,6 +110,9 @@ export interface OverviewResult {
   bounceRate: number;
   topOrigins: Array<{ name: string; count: number }>;
   analytics: OverviewAnalytics;
+  // Busca parou no teto de segurança de linhas; o resultado está incompleto.
+  // Ver UNLIMITED_ROW_LIMIT_CAP em lib/row-limits.ts.
+  truncated: boolean;
   windowDays: number;
   page: number;
   pageSize: number;

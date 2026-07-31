@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { OverviewSkeleton } from "@/components/states/overview-skeleton";
 import { SetupState } from "@/components/states/setup-state";
+import { TruncationNotice } from "@/components/states/truncation-notice";
 import { DomainHealthHero } from "@/features/overview/domain-health-hero";
 import { TopMetrics } from "@/features/overview/top-metrics";
 import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-panel";
@@ -126,6 +127,7 @@ export function OverviewPage() {
             overviewQuery.isFetching && !overviewQuery.isLoading ? "opacity-60" : "opacity-100"
           }`}
         >
+          {overviewQuery.data.truncated ? <TruncationNotice /> : null}
           <DomainHealthHero analytics={overviewQuery.data.analytics} />
           <TopMetrics analytics={overviewQuery.data.analytics} timeSeries={timeSeries.points} />
           <OverviewAnalyticsPanel data={overviewQuery.data} timeSeries={timeSeries} />

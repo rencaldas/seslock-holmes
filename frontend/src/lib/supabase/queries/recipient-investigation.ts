@@ -122,7 +122,7 @@ export async function fetchRecipientInvestigation(
   const eventTable = tableName || getEventTable();
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
+  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
     endIso,
     maxRows: input.rowLimit === UNLIMITED_ROW_LIMIT ? undefined : input.rowLimit,
     columns: EMAIL_EVENT_LIST_COLUMNS,
@@ -179,5 +179,6 @@ export async function fetchRecipientInvestigation(
     pageSize: input.pageSize,
     events: pageEvents,
     relatedEmails,
+    truncated,
   };
 }

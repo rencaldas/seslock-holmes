@@ -244,7 +244,7 @@ export async function buildReportForSchedule(client: SupabaseClient, schedule: R
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(filters.status);
   const maxRows = filters.rowLimit === "all" ? undefined : Number(filters.rowLimit);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
+  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
     maxRows,
     columns: EMAIL_EVENT_LIST_COLUMNS,
     inValues: eventTypeFilterValues.length ? [{ column: "eventType", values: eventTypeFilterValues }] : undefined,
@@ -268,6 +268,10 @@ export async function buildReportForSchedule(client: SupabaseClient, schedule: R
     ...(subject ? { assunto: subject } : {}),
     ...(provider ? { provedor: provider } : {}),
     limite: String(filters.rowLimit),
+    // O destinatário do e-mail não tem como inspecionar a consulta, então a
+    // truncagem tem que vir escrita no relatório — senão os números chegam
+    // como se fossem o total do período.
+    ...(truncated ? { aviso: "resultado incompleto — teto de segurança de linhas atingido" } : {}),
   };
 
   return buildEmailReport(events, {
