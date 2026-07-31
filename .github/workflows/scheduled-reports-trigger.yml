@@ -13,7 +13,13 @@ name: Scheduled reports trigger
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Offset from the top of the hour (:00/:15/:30/:45) on purpose — those
+    # exact minutes are the most contended slots on GitHub's scheduler
+    # (every repo with a "every 15 minutes" cron picks the same round
+    # numbers), which is why the very first ticks after this workflow was
+    # added never fired. GitHub's own guidance for delayed/skipped schedule
+    # events is to pick an offset minute instead.
+    - cron: "6,21,36,51 * * * *"
   workflow_dispatch: {}
 
 permissions:
