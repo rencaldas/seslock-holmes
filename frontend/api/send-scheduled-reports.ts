@@ -56,6 +56,7 @@ import {
   runDueSchedules,
 } from "../src/lib/scheduled-reports/report-runner.js";
 import { decryptSecret } from "../src/lib/scheduled-reports/crypto.js";
+import { isBearerTokenValid } from "../src/lib/server/request-auth.js";
 
 interface ConnectionRow {
   id: string;
@@ -68,9 +69,7 @@ interface ConnectionRow {
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
-    const CRON_SECRET = readEnv("CRON_SECRET");
-
-    if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+    if (!isBearerTokenValid(request.headers.authorization, readEnv("CRON_SECRET"))) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
