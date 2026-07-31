@@ -12,10 +12,11 @@ import { TopMetrics } from "@/features/overview/top-metrics";
 import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-panel";
 import { RecentActivityList } from "@/features/overview/recent-activity-list";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
+import { useFilters } from "@/lib/filters/filters-context";
 import { useSupabase } from "@/lib/supabase/context";
 import { fetchOverview } from "@/lib/supabase/queries/overview";
 import { buildEventTimeSeries } from "@/lib/overview/timeseries";
-import { buildSearchParams, parseOverviewFilters } from "@/lib/overview/overview-search-params";
+import { buildSearchParams } from "@/lib/overview/overview-search-params";
 import { parsePageSize } from "@/lib/page-size";
 
 function parsePage(value: string | null) {
@@ -28,9 +29,9 @@ export function OverviewPage() {
   const language = useAppLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const supabase = useSupabase();
+  const { filters: appliedFilters } = useFilters();
   const page = parsePage(searchParams.get("page"));
   const pageSize = parsePageSize(searchParams.get("pageSize"));
-  const appliedFilters = parseOverviewFilters(searchParams);
 
   const overviewQuery = useQuery({
     queryKey: [
@@ -153,7 +154,6 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(Math.max(1, overviewQuery.data.page - 1)),
-                    recentActivitySort: appliedFilters.recentActivitySort,
                   }),
                 )
               }
@@ -161,7 +161,6 @@ export function OverviewPage() {
                 setSearchParams(
                   buildSearchParams(searchParams, {
                     page: String(overviewQuery.data.page + 1),
-                    recentActivitySort: appliedFilters.recentActivitySort,
                   }),
                 )
               }
@@ -171,7 +170,6 @@ export function OverviewPage() {
                     searchParams,
                     {
                       pageSize: String(nextPageSize),
-                      recentActivitySort: appliedFilters.recentActivitySort,
                     },
                     true,
                   ),

@@ -11,7 +11,6 @@ import {
   getAwsSnsOccurredAt,
   getAwsSnsEventTypeFilterValues,
   rowMatchesOrigin,
-  rowMatchesBounceDiagnostic,
   rowMatchesRecipientDomain,
   rowMatchesRecipient,
   rowMatchesSender,
@@ -34,11 +33,8 @@ function getSearchValue(event: EmailEvent, mode: RecipientInvestigationQueryInpu
   switch (mode) {
     case "sender":
       return event.senderEmail || event.fromAddress || event.callerIdentity;
-    case "origin":
-      return `${event.originApp} ${event.smtpIdentity} ${event.senderEmail} ${event.configurationSet} ${event.projectTag}`;
-    case "diagnostic":
-      return `${event.failureReason} ${event.bounceDiagnosis?.cause ?? ""} ${event.bounceDiagnosis?.recommendation ?? ""}`;
     case "recipient":
+    case "all":
     default:
       return event.recipientEmail;
   }
@@ -87,7 +83,7 @@ function similarityScore(query: string, candidate: string) {
 }
 
 function buildRelatedEmails(events: EmailEvent[], searchText: string, mode: RecipientInvestigationQueryInput["searchMode"]) {
-  if (mode === "origin" || mode === "diagnostic") {
+  if (mode === "provider") {
     return [];
   }
 
@@ -150,10 +146,14 @@ export async function fetchRecipientInvestigation(
     switch (input.searchMode) {
       case "sender":
         return rowMatchesSender(row, searchText);
-      case "origin":
-        return rowMatchesOrigin(row, searchText);
-      case "diagnostic":
-        return rowMatchesBounceDiagnostic(row, searchText);
+      case "provider":
+        return rowMatchesRecipientDomain(row, searchText);
+      case "all":
+        return (
+          rowMatchesRecipient(row, searchText) ||
+          rowMatchesSender(row, searchText) ||
+          rowMatchesRecipientDomain(row, searchText)
+        );
       case "recipient":
       default:
         return rowMatchesRecipient(row, searchText);

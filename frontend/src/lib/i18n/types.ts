@@ -233,21 +233,17 @@ export type TranslationBundle = {
     kicker: string;
     title: string;
     backToOverview: string;
-    searchLabel: string;
     searchModeLabel: string;
+    searchPlaceholderAll: string;
     searchPlaceholderRecipient: string;
     searchPlaceholderSender: string;
-    searchPlaceholderOrigin: string;
-    searchPlaceholderDiagnostic: string;
+    searchPlaceholderProvider: string;
     searchModes: {
+      all: string;
       recipient: string;
       sender: string;
-      origin: string;
-      diagnostic: string;
+      provider: string;
     };
-    searchButton: string;
-    hideFilters: string;
-    showFilters: string;
     noSearchTitle: string;
     noSearchDescription: string;
     loadingTitle: string;
@@ -274,6 +270,16 @@ export type TranslationBundle = {
     diagnosisTechnicalCode: string;
     diagnosisSeverity: string;
     inspectEvent: string;
+    resultStatus: {
+      sent: string;
+      delivered: string;
+      bounced: string;
+      complained: string;
+      delayed: string;
+      rejected: string;
+      rendering_failure: string;
+    };
+    resultStatusDetail: string;
   };
   eventDetail: {
     kicker: string;
@@ -412,6 +418,11 @@ export type TranslationBundle = {
     adminTokenMissingTitle: string;
     adminTokenMissingDescription: string;
     adminTokenMissingLink: string;
+    tabs: {
+      schedules: string;
+      connection: string;
+      setup: string;
+    };
     setup: {
       title: string;
       description: string;

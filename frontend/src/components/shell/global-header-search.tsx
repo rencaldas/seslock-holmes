@@ -1,34 +1,50 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { OverviewFilters } from "@/features/overview/overview-filters";
+import { useFilters } from "@/lib/filters/filters-context";
 import { normalizeEmail } from "@/lib/formatters/email";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import {
-  DEFAULT_OVERVIEW_FILTERS,
-  buildSearchParams,
-  countActiveOverviewFilters,
-  overviewFiltersToSearchParams,
-  parseOverviewFilters,
-} from "@/lib/overview/overview-search-params";
+import { DEFAULT_OVERVIEW_FILTERS, countActiveOverviewFilters } from "@/lib/overview/overview-search-params";
+import type { RecipientSearchMode } from "@/lib/supabase/types";
 
-export function OverviewHeaderSearch() {
+function getSearchPlaceholder(mode: RecipientSearchMode, t: ReturnType<typeof useI18n>) {
+  switch (mode) {
+    case "sender":
+      return t.investigation.searchPlaceholderSender;
+    case "provider":
+      return t.investigation.searchPlaceholderProvider;
+    case "all":
+      return t.investigation.searchPlaceholderAll;
+    case "recipient":
+    default:
+      return t.investigation.searchPlaceholderRecipient;
+  }
+}
+
+export function GlobalHeaderSearch() {
   const t = useI18n();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    recipientEmail,
+    searchMode,
+    filters: appliedFilters,
+    setRecipientEmail,
+    setSearchMode,
+    applyFilters,
+    clearFilters,
+  } = useFilters();
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
-  const appliedFilters = parseOverviewFilters(searchParams);
-  const [recipientEmail, setRecipientEmail] = useState(searchParams.get("recipient") ?? "");
-  const [filters, setFilters] = useState(() => appliedFilters);
+  const [draftFilters, setDraftFilters] = useState(appliedFilters);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const activeFilterCount = countActiveOverviewFilters(appliedFilters);
 
   useEffect(() => {
-    setRecipientEmail(searchParams.get("recipient") ?? "");
-    setFilters(parseOverviewFilters(searchParams));
-  }, [searchParams]);
+    setDraftFilters(appliedFilters);
+  }, [appliedFilters]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -44,34 +60,37 @@ export function OverviewHeaderSearch() {
 
   function handleInvestigate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalized = normalizeEmail(recipientEmail);
+    const normalized = searchMode === "provider" ? recipientEmail.trim() : normalizeEmail(recipientEmail);
     if (!normalized) {
       return;
     }
-    const nextParams = buildSearchParams(
-      searchParams,
-      {
-        recipient: normalized,
-        query: normalized,
-        mode: "recipient",
-        ...overviewFiltersToSearchParams(appliedFilters),
-      },
-      true,
-    );
-    setSearchParams(nextParams);
-    navigate(`/investigate?${nextParams.toString()}`);
+    setRecipientEmail(normalized);
+    navigate(`/investigate?query=${encodeURIComponent(normalized)}&mode=${searchMode}&page=1`);
   }
 
   return (
     <div className="relative flex w-full min-w-0 items-center gap-2">
       <form onSubmit={handleInvestigate} className="min-w-0 flex-1">
         <div className="flex h-11 items-center gap-1 rounded-panel border border-slate-200 bg-white pl-1 pr-1 shadow-card transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/10 dark:border-slate-800 dark:bg-slate-900">
+          <Select
+            value={searchMode}
+            onChange={(event) => setSearchMode(event.target.value as RecipientSearchMode)}
+            aria-label={t.investigation.searchModeLabel}
+            className="h-9 w-[7.5rem] shrink-0 rounded-control border-0 bg-transparent pl-2 pr-6 text-sm text-ink outline-none focus:ring-0 sm:w-36"
+            options={[
+              { label: t.investigation.searchModes.all, value: "all" },
+              { label: t.investigation.searchModes.recipient, value: "recipient" },
+              { label: t.investigation.searchModes.sender, value: "sender" },
+              { label: t.investigation.searchModes.provider, value: "provider" },
+            ]}
+          />
+          <div className="h-6 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
               value={recipientEmail}
               onChange={(event) => setRecipientEmail(event.target.value)}
-              placeholder={t.overview.searchPlaceholder}
+              placeholder={getSearchPlaceholder(searchMode, t)}
               aria-label={t.overview.investigateRecipient}
               className="h-9 w-full min-w-0 border-0 bg-transparent pl-9 pr-2 text-sm text-ink outline-none placeholder:text-ink-muted"
             />
@@ -102,32 +121,15 @@ export function OverviewHeaderSearch() {
         </summary>
         <div className="fixed left-1/2 top-20 z-30 max-h-[80vh] w-[min(520px,94vw)] -translate-x-1/2 overflow-y-auto sm:w-[min(680px,96vw)] md:w-[min(960px,96vw)] lg:w-[min(1050px,98vw)] xl:w-[1100px]">
           <OverviewFilters
-            value={filters}
-            onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+            value={draftFilters}
+            onChange={(next) => setDraftFilters((current) => ({ ...current, ...next }))}
             onClear={() => {
-              setFilters({ ...DEFAULT_OVERVIEW_FILTERS });
-              setSearchParams(
-                buildSearchParams(
-                  searchParams,
-                  {
-                    timeMode: null,
-                    windowDays: null,
-                    startAt: null,
-                    endAt: null,
-                    recentActivitySort: null,
-                    status: null,
-                    origin: null,
-                    subject: null,
-                    provider: null,
-                    rows: null,
-                  },
-                  true,
-                ),
-              );
+              setDraftFilters({ ...DEFAULT_OVERVIEW_FILTERS });
+              clearFilters();
               detailsRef.current?.removeAttribute("open");
             }}
             onApply={() => {
-              setSearchParams(buildSearchParams(searchParams, overviewFiltersToSearchParams(filters), true));
+              applyFilters(draftFilters);
               detailsRef.current?.removeAttribute("open");
             }}
             showProviderFilter

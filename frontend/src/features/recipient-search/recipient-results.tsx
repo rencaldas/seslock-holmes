@@ -1,7 +1,8 @@
+import { ArrowUpRight, Clock, FileText, ListChecks, MessageSquare, Radio } from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/states/empty-state";
 import { formatDateTime } from "@/lib/formatters/dates";
 import { formatEventType, isProblemEventType, toneForEventType } from "@/lib/formatters/email";
@@ -19,6 +20,21 @@ function diagnosisTone(severity: string): "destructive" | "warning" | "muted" {
   }
 
   return "muted";
+}
+
+function FieldLabel({
+  icon: Icon,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+      <Icon className="h-3.5 w-3.5" />
+      {children}
+    </div>
+  );
 }
 
 export function RecipientResults({
@@ -52,126 +68,141 @@ export function RecipientResults({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.investigation.tableHour}</TableHead>
-                <TableHead>{t.investigation.tableResult}</TableHead>
-                <TableHead>{t.investigation.tableSubject}</TableHead>
-                <TableHead>{t.investigation.tableOrigin}</TableHead>
-                <TableHead>{t.investigation.tableMessage}</TableHead>
-              </TableRow>
-            </TableHeader>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {data.events.map((event) => (
+            <div
+              key={event.id}
+              className="grid grid-cols-1 gap-6 px-6 py-6 transition-colors hover:bg-slate-50/60 lg:grid-cols-5 dark:hover:bg-slate-800/30"
+            >
+              <div className="space-y-5 lg:col-span-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <FieldLabel icon={Clock}>{t.investigation.tableHour}</FieldLabel>
+                    <p className="text-sm font-medium text-slate-950 dark:text-slate-50">
+                      {formatDateTime(event.occurredAt)}
+                    </p>
+                  </div>
 
-            <TableBody>
-              {data.events.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatDateTime(event.occurredAt)}
-                  </TableCell>
+                  <Link
+                    className="group inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand hover:shadow dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand/40 dark:hover:bg-brand/10"
+                    to={`/events/${event.id}`}
+                  >
+                    {t.investigation.inspectEvent}
+                    <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </Link>
+                </div>
 
-                  <TableCell>
-                    {event.bounceDiagnosis ? (
-                      <>
-                        {/* Cabeçalho do diagnóstico */}
-                        <div className="flex flex-wrap items-center gap-3">
-                          <Badge tone={toneForEventType(event.eventType)}>
-                            {formatEventType(event.eventType)}
-                          </Badge>
+                <div className="space-y-1.5">
+                  <FieldLabel icon={FileText}>{t.investigation.tableSubject}</FieldLabel>
+                  <p
+                    className="break-words text-sm font-medium text-slate-950 dark:text-slate-50"
+                    title={event.subject || t.common.noAvailableData}
+                  >
+                    {event.subject || t.common.noAvailableData}
+                  </p>
+                </div>
 
-                          <Badge tone={diagnosisTone(event.bounceDiagnosis.severity)}>
-                            {t.investigation.diagnosisSeverity}: {event.bounceDiagnosis.severity}
-                          </Badge>
+                <div className="space-y-1.5">
+                  <FieldLabel icon={Radio}>{t.investigation.tableOrigin}</FieldLabel>
+                  <p className="break-words text-sm font-medium text-slate-950 dark:text-slate-50">
+                    {getOriginLabel(event)}
+                  </p>
+                  <p className="break-words text-xs text-slate-500 dark:text-slate-400">
+                    {event.smtpIdentity}
+                  </p>
+                </div>
 
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {event.bounceDiagnosis.category}
-                          </span>
-                        </div>
+                <div className="space-y-1.5">
+                  <FieldLabel icon={MessageSquare}>{t.investigation.tableMessage}</FieldLabel>
+                  <p className="break-words text-sm text-slate-700 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {t.overview.tableFromLabel}:
+                    </span>{" "}
+                    {event.senderEmail}
+                  </p>
+                  <p className="break-words text-sm text-slate-700 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {t.overview.tableToLabel}:
+                    </span>{" "}
+                    {event.recipientEmail}
+                  </p>
+                </div>
+              </div>
 
-                        {/* Caixa com detalhes */}
-                        <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                          <p className="leading-6">
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">
-                              {t.investigation.diagnosisCause}:
-                            </span>{" "}
-                            {event.bounceDiagnosis.cause}
-                          </p>
+              <div className="lg:col-span-3">
+                <FieldLabel icon={ListChecks}>{t.investigation.tableResult}</FieldLabel>
 
-                          <p className="mt-3 leading-6">
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">
-                              {t.investigation.diagnosisRecommendation}:
-                            </span>{" "}
-                            {event.bounceDiagnosis.recommendation}
-                          </p>
-
-                          {event.bounceDetails.diagnosticCode ? (
-                            <div className="mt-3">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                {t.investigation.diagnosisTechnicalCode}:
-                              </p>
-
-                              <p className="mt-2 break-words rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm leading-6 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                {String(event.bounceDetails.diagnosticCode)}
-                              </p>
-                            </div>
-                          ) : null}
-                        </div>
-                      </>
-                    ) : (
-                      <>
+                <div className="mt-2">
+                  {event.bounceDiagnosis ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-3">
                         <Badge tone={toneForEventType(event.eventType)}>
                           {formatEventType(event.eventType)}
                         </Badge>
 
+                        <Badge tone={diagnosisTone(event.bounceDiagnosis.severity)}>
+                          {t.investigation.diagnosisSeverity}: {event.bounceDiagnosis.severity}
+                        </Badge>
+
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {event.bounceDiagnosis.category}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                        <p className="break-words leading-6">
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            {t.investigation.diagnosisCause}:
+                          </span>{" "}
+                          {event.bounceDiagnosis.cause}
+                        </p>
+
+                        <p className="mt-3 break-words leading-6">
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            {t.investigation.diagnosisRecommendation}:
+                          </span>{" "}
+                          {event.bounceDiagnosis.recommendation}
+                        </p>
+
+                        {event.bounceDetails.diagnosticCode ? (
+                          <div className="mt-3">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">
+                              {t.investigation.diagnosisTechnicalCode}:
+                            </p>
+
+                            <p className="mt-2 break-words rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm leading-6 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                              {String(event.bounceDetails.diagnosticCode)}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Badge tone={toneForEventType(event.eventType)}>
+                        {formatEventType(event.eventType)}
+                      </Badge>
+
+                      <div className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                        <p className="break-words leading-6">
+                          {t.investigation.resultStatus[event.eventType]}
+                        </p>
+
                         {isProblemEventType(event.eventType) && event.failureReason ? (
-                          <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+                          <p className="mt-3 break-words leading-6">
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
+                              {t.investigation.resultStatusDetail}:
+                            </span>{" "}
                             {event.failureReason}
                           </p>
                         ) : null}
-                      </>
-                    )}
-                  </TableCell>
-
-                  <TableCell>
-                    <p
-                      className="max-w-[20rem] truncate text-sm font-medium text-slate-950 dark:text-slate-50"
-                      title={event.subject || t.common.noAvailableData}
-                    >
-                      {event.subject || t.common.noAvailableData}
-                    </p>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-medium text-slate-950 dark:text-slate-50">
-                        {getOriginLabel(event)}
-                      </p>
-
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {event.smtpIdentity}
-                      </p>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="space-y-2">
-                      <p className="text-sm text-slate-700 dark:text-slate-300">
-                        {event.senderEmail} -&gt; {event.recipientEmail}
-                      </p>
-
-                      <Link
-                        className="text-sm font-medium text-slate-950 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-950 dark:text-slate-50 dark:decoration-slate-600 dark:hover:decoration-slate-50"
-                        to={`/events/${event.id}`}
-                      >
-                        {t.investigation.inspectEvent}
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
