@@ -115,8 +115,16 @@ describe("segurança de navegação (react-router 6.30.4)", () => {
   const targets = collectSourceFiles(SRC_DIR).flatMap(extractNavigationTargets);
 
   it("encontra as navegações do app", () => {
-    // Guarda contra o scanner quebrar silenciosamente e passar por vacuidade.
-    expect(targets.length).toBeGreaterThanOrEqual(13);
+    // Guarda contra o scanner quebrar silenciosamente e passar por vacuidade:
+    // se o regex ou o caminho de leitura pararem de funcionar, os outros
+    // testes passariam sobre uma lista vazia sem verificar nada.
+    //
+    // O piso é deliberadamente folgado. Um número exato viraria manutenção a
+    // cada refatoração legítima de rotas — foi o que aconteceu quando a busca
+    // do topbar e a da visão geral foram unificadas num header global, que
+    // removeu um ponto de navegação sem afetar a segurança de nenhum. Quem
+    // garante a propriedade que importa é o teste seguinte, não este.
+    expect(targets.length).toBeGreaterThanOrEqual(10);
   });
 
   it("não permite destino sem caminho literal no início", () => {
