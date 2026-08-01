@@ -101,12 +101,51 @@ create or replace function public.seslock_origin_label(
   )
 $$;
 
--- Agrega tudo que o Overview precisa numa única chamada.
+-- Agrega tudo que o Overview precisa numa única chamada: totais, taxas, série
+-- temporal, provedores, motivos de bounce e origens. Uma varredura só.
 --
 -- SECURITY INVOKER (o padrão) é essencial: a função respeita a RLS de quem
 -- chama, então continua exigindo o papel `authenticated`. Marcá-la como
 -- SECURITY DEFINER reabriria os dados para anon por outro caminho, desfazendo
 -- a migration 20260801015212.
+--
+-- Quatro detalhes de paridade que só apareceram lendo o assembly do
+-- buildOverviewAnalytics, e que estavam errados nas primeiras versões desta
+-- função. Nenhum apareceria num teste de fumaça: todos produzem números
+-- plausíveis e errados.
+--
+--   1. averageDeliveryTimeMs NÃO é avg("deliveryProcessingTimeMillis"), que é
+--      o tempo de processamento do próprio SES. O JS calcula, por messageId,
+--      o intervalo entre o primeiro evento 'sent' e o primeiro 'delivered'.
+--      São métricas diferentes com nomes parecidos.
+--
+--      Achado colateral: nesta base o resultado é sempre 0, e não por bug.
+--      São 43.608 pares completos, todos com delta exatamente zero — a
+--      ingestão grava o mesmo timestamp para todos os eventos de uma mesma
+--      mensagem. O card "tempo médio até entrega" nunca teve informação, e o
+--      JS mostra o mesmo zero. A métrica só passa a existir se a ingestão
+--      registrar o horário de cada evento.
+--
+--   2. Os cortes são slice(0, 8) no JS, não 10.
+--
+--   3. O JS desempata alfabeticamente quando as contagens empatam. Sem isso a
+--      ordem do SQL é indeterminada e os cards trocariam de posição entre
+--      execuções idênticas, sem nada ter mudado nos dados.
+--
+--   4. O motivo do bounce é UMA string (getBounceReason), montada como
+--      bounceSubType || bounceType || diagnosticCode || failureReason ||
+--      'N/A' — com o subtipo ANTES do tipo. Uma versão anterior devolvia os
+--      três campos separados, formato que a UI nem consegue consumir.
+--
+-- Os filtros caros ficam atrás de um curto-circuito de string vazia. Sem
+-- isso, o texto de busca das 25 colunas era montado para as 99 mil linhas
+-- mesmo sem filtro de origem preenchido, e a função levava 9,3s em vez de 3,0s.
+--
+-- Os baldes da série temporal seguem a mesma regra do JS (até 3 dias agrupa
+-- por hora, acima por dia) e são alinhados em UTC, porque o JS usa
+-- Math.floor(ts / bucketMs), que é epoch puro — usar o fuso da sessão
+-- deslocaria as barras do gráfico. Preencher as lacunas e traduzir os rótulos
+-- continua no JS, que já faz isso e tem o Intl à mão.
 create or replace function public.overview_analytics(
   p_start     timestamptz,
   p_end       timestamptz default null,
@@ -127,14 +166,24 @@ with params as (
 ),
 filtrado as (
   select
+    -- Mesma chave do JS: rowToEmailEvent faz messageId ?? id.
+    coalesce(e."messageId", e.id::text) as chave,
     e."messageId",
     lower(btrim(e.destination)) as destinatario,
-    e."deliveryProcessingTimeMillis",
     e."timestamp",
-    e."bounceType", e."bounceSubType", e."diagnosticCode",
     public.seslock_event_type(e."eventType", e."notificationType") as tipo,
     public.seslock_origin_label(e."snsTopicArn", e."sourceArn", e."fromAddress", e.source, e.subject) as origem,
-    lower(btrim(split_part(e.destination, '@', 2))) as dominio
+    lower(btrim(split_part(e.destination, '@', 2))) as dominio,
+    -- Réplica de getBounceReason. failureReason (rowToEmailEvent) já é
+    -- bounceType || bounceSubType || diagnosticCode || complaintFeedbackType,
+    -- então os três primeiros já foram testados e só sobra o último.
+    coalesce(
+      nullif(btrim(e."bounceSubType"), ''),
+      nullif(btrim(e."bounceType"), ''),
+      nullif(btrim(e."diagnosticCode"), ''),
+      nullif(btrim(e."complaintFeedbackType"), ''),
+      'N/A'
+    ) as motivo
   from public.aws_sns e, params p
   -- Filtra pela coluna indexada. O JS usa timestamp ?? created_at, mas não há
   -- nenhum timestamp nulo na base (verificado); usar coalesce aqui impediria
@@ -143,10 +192,6 @@ filtrado as (
     and (p_end is null or e."timestamp" <= p_end)
     and (p_status = 'all'
          or public.seslock_event_type(e."eventType", e."notificationType") = p_status)
-    -- Cada filtro caro só é avaliado quando de fato preenchido: o OR
-    -- curto-circuita no teste barato de string vazia. Sem isso, o texto de
-    -- busca era montado para as 99 mil linhas mesmo sem filtro nenhum, o que
-    -- levou a primeira versão desta função a 9,3s contra os 3,0s atuais.
     and (p.q_subject = ''
          or public.seslock_normalize_text(e.subject) like '%' || p.q_subject || '%')
     and (p.q_provider = ''
@@ -164,6 +209,17 @@ filtrado as (
               e.destination, e.destinations, e."bouncedRecipients", e."complainedRecipients"
             )) like '%' || p.q_origin || '%')
 ),
+tempos as (
+  select chave,
+         min("timestamp") filter (where tipo = 'sent')      as enviado_em,
+         min("timestamp") filter (where tipo = 'delivered') as entregue_em
+  from filtrado group by chave
+),
+media_entrega as (
+  select avg(extract(epoch from (entregue_em - enviado_em)) * 1000) as ms
+  from tempos
+  where enviado_em is not null and entregue_em is not null and entregue_em >= enviado_em
+),
 totais as (
   select
     count(*) as total_eventos,
@@ -177,27 +233,42 @@ totais as (
     count(distinct "messageId") as mensagens_unicas,
     count(distinct destinatario) as destinatarios_unicos,
     max("timestamp") as ultimo_evento,
-    avg("deliveryProcessingTimeMillis") filter (
-      where tipo = 'delivered' and "deliveryProcessingTimeMillis" is not null
-    ) as tempo_medio_ms
+    min("timestamp") as primeiro_evento
   from filtrado
+),
+granularidade as (
+  select case
+    when extract(epoch from (coalesce(t.ultimo_evento, now()) - coalesce(t.primeiro_evento, now())))
+         <= 3 * 24 * 3600 then 'hour' else 'day' end as g
+  from totais t
+),
+baldes as (
+  select date_trunc((select g from granularidade), f."timestamp" at time zone 'UTC') as balde,
+    count(*) as total,
+    count(*) filter (where tipo = 'sent') as enviados,
+    count(*) filter (where tipo = 'delivered') as entregues,
+    count(*) filter (where tipo = 'bounced') as bounces,
+    count(*) filter (where tipo = 'complained') as reclamacoes
+  from filtrado f group by 1 order by 1
 ),
 provedores as (
   select dominio, count(*) as total,
          count(*) filter (where tipo = 'delivered') as entregues,
          count(*) filter (where tipo = 'bounced') as bounces
-  from filtrado where dominio <> '' group by dominio order by total desc limit 10
+  from filtrado where dominio <> ''
+  group by dominio
+  order by total desc, dominio asc limit 8
 ),
 motivos as (
-  select coalesce(nullif(btrim("bounceType"), ''), 'Desconhecido') as tipo_bounce,
-         coalesce(nullif(btrim("bounceSubType"), ''), '') as subtipo,
-         coalesce(nullif(btrim("diagnosticCode"), ''), '') as diagnostico,
-         count(*) as total
-  from filtrado where tipo = 'bounced' group by 1,2,3 order by total desc limit 10
+  select motivo, count(*) as total
+  from filtrado where tipo = 'bounced'
+  group by motivo
+  order by total desc, motivo asc limit 8
 ),
 origens as (
   select origem, count(*) as total
-  from filtrado group by origem order by total desc limit 10
+  from filtrado group by origem
+  order by total desc, origem asc limit 8
 )
 select jsonb_build_object(
   'totalEventCount', t.total_eventos,
@@ -211,7 +282,7 @@ select jsonb_build_object(
   'uniqueMessagesCount', t.mensagens_unicas,
   'uniqueRecipientsCount', t.destinatarios_unicos,
   'lastEventAt', t.ultimo_evento,
-  'averageDeliveryTimeMs', round(t.tempo_medio_ms),
+  'averageDeliveryTimeMs', (select round(ms) from media_entrega),
   -- Taxas em pontos percentuais (0-100), como no analytics.ts.
   'deliveryRate', case when t.total_eventos = 0 then null
                        else round(100.0 * t.entregues / t.total_eventos, 2) end,
@@ -219,19 +290,31 @@ select jsonb_build_object(
                      else round(100.0 * t.bounces / t.total_eventos, 2) end,
   'complaintRate', case when t.total_eventos = 0 then 0
                         else round(100.0 * t.reclamacoes / t.total_eventos, 2) end,
+  'timeSeriesGranularity', (select g from granularidade),
+  'timeSeries', coalesce((select jsonb_agg(jsonb_build_object(
+                     'timestamp', (extract(epoch from balde) * 1000)::bigint,
+                     'total', total, 'sent', enviados, 'delivered', entregues,
+                     'bounced', bounces, 'complained', reclamacoes)
+                   order by balde) from baldes), '[]'::jsonb),
   'topProviders', coalesce((select jsonb_agg(jsonb_build_object(
                      'domain', dominio, 'totalCount', total,
                      'deliveredCount', entregues, 'bouncedCount', bounces,
                      'bounceRate', case when total = 0 then 0
-                                        else round(100.0 * bounces / total, 2) end)) from provedores), '[]'::jsonb),
+                                        else round(100.0 * bounces / total, 2) end)
+                   order by total desc, dominio asc) from provedores), '[]'::jsonb),
+  -- percentage sobre o total de bounces, como no JS (que divide por
+  -- bouncedCount || 1 para não estourar quando não há nenhum).
   'topBounceReasons', coalesce((select jsonb_agg(jsonb_build_object(
-                     'bounceType', tipo_bounce, 'bounceSubType', subtipo,
-                     'diagnosticCode', diagnostico, 'count', total)) from motivos), '[]'::jsonb),
+                     'label', motivo, 'count', total,
+                     'percentage', round(100.0 * total / greatest(t.bounces, 1), 2))
+                   order by total desc, motivo asc) from motivos), '[]'::jsonb),
   'originApplications', coalesce((select jsonb_agg(jsonb_build_object(
-                     'name', origem, 'count', total)) from origens), '[]'::jsonb)
+                     'name', origem, 'count', total)
+                   order by total desc, origem asc) from origens), '[]'::jsonb)
 )
 from totais t
 $fn$;
 
 comment on function public.overview_analytics is
   'Agrega os eventos do SES para o Overview sem mandar linhas brutas ao navegador. Respeita a RLS de quem chama (SECURITY INVOKER).';
+
