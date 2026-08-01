@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-08-01
+### Fixed
+- Fechado o acesso anônimo aos eventos do SES e aos agendamentos. A política que liberava a leitura para visitantes sem conta continuava ativa ao lado da nova, e no PostgreSQL essas regras se somam em vez de se substituírem — na prática, o painel seguia aberto para qualquer pessoa com o endereço. O acesso anônimo de escrita aos agendamentos era ainda mais sério: permitia cadastrar um relatório apontando para um endereço qualquer e receber os dados por e-mail, contornando a proteção dos eventos por outro caminho.
+- A tela de login agora aparece de fato quando falta permissão. Antes, uma consulta sem acesso não devolvia erro — devolvia uma lista vazia, indistinguível de "não há eventos no período" —, então o painel ficava vazio sem oferecer nenhum caminho para entrar.
+
 ## [1.8.0] - 2026-07-31
 ### Added
 - Login por e-mail e senha, exibido sob demanda: a tela só aparece quando uma consulta é recusada por falta de permissão. Quem aponta o painel para um Supabase próprio com a leitura liberada continua entrando direto, sem precisar de conta. Não há cadastro aberto — as contas são criadas por um administrador.
