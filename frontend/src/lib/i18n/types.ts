@@ -201,12 +201,22 @@ export type TranslationBundle = {
       summaryDescription: string;
     };
     filters: {
+      title: string;
       time: string;
       timeModeOptions: {
         window: string;
         custom: string;
       };
       status: string;
+      bounceSubtype: string;
+      bounceSubtypeOptions: {
+        all: string;
+        suppressed: string;
+        general: string;
+        mailboxFull: string;
+        contentRejected: string;
+        undetermined: string;
+      };
       origin: string;
       subject: string;        
       subjectPlaceholder: string; 

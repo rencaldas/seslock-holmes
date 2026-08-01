@@ -10,6 +10,7 @@ import { normalizeEmail } from "@/lib/formatters/email";
 import {
   getAwsSnsOccurredAt,
   getAwsSnsEventTypeFilterValues,
+  rowMatchesBounceSubType,
   rowMatchesOrigin,
   rowMatchesRecipientDomain,
   rowMatchesRecipient,
@@ -138,6 +139,7 @@ export async function fetchRecipientInvestigation(
     .filter((row) => getAwsSnsOccurredAt(row) >= startIso)
     .filter((row) => (endIso ? getAwsSnsOccurredAt(row) <= endIso : true))
     .filter((row) => rowMatchesStatus(row, input.status))
+    .filter((row) => rowMatchesBounceSubType(row, input.bounceSubType))
     .filter((row) => rowMatchesOrigin(row, input.origin))
     .filter((row) => rowMatchesSubject(row, input.subject))
     .filter((row) => rowMatchesRecipientDomain(row, input.provider));

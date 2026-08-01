@@ -11,6 +11,11 @@ export type EmailEventType =
   | "rejected"
   | "rendering_failure";
 
+// Subconjunto do bounceSubType do AWS SES exposto como filtro na UI (valores
+// reais do payload da SNS: Suppressed, General, MailboxFull, ContentRejected,
+// Undetermined). Só faz sentido combinado com status "bounced".
+export type BounceSubType = "Suppressed" | "General" | "MailboxFull" | "ContentRejected" | "Undetermined";
+
 export interface EmailEventRow {
   id: string;
   created_at: string | null;
@@ -133,6 +138,7 @@ export interface OverviewQueryInput {
   endAt: string;
   recentActivitySort: RecentActivitySort;
   status: "all" | EmailEventType;
+  bounceSubType: "all" | BounceSubType;
   origin: string;
   subject: string;
   provider: string;
@@ -149,6 +155,7 @@ export interface RecipientInvestigationQueryInput {
   startAt: string;
   endAt: string;
   status: "all" | EmailEventType;
+  bounceSubType: "all" | BounceSubType;
   origin: string;
   subject: string;
   provider: string;
