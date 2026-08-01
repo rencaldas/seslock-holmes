@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-07-31
+### Added
+- Login por e-mail e senha, exibido sob demanda: a tela só aparece quando uma consulta é recusada por falta de permissão. Quem aponta o painel para um Supabase próprio com a leitura liberada continua entrando direto, sem precisar de conta. Não há cadastro aberto — as contas são criadas por um administrador.
+- Botão de sair no topo, visível apenas quando existe uma sessão ativa.
+### Changed
+- A sessão do Supabase passa a ser guardada no navegador e renovada automaticamente. Antes o cliente era criado sem sessão nenhuma, o que fazia sentido enquanto o painel não tinha login — mas sem a renovação automática uma investigação longa seria interrompida quando o token expirasse.
+- Consultas recusadas por falta de permissão não são mais repetidas automaticamente: a resposta não muda sem uma sessão, e a repetição só atrasava a exibição da tela de login.
+
 ## [1.7.0] - 2026-07-31
 ### Added
 - Cabeçalhos de segurança HTTP no deploy (proteção contra clickjacking, controle de referenciador, HSTS e Permissions-Policy), além de uma Content-Security-Policy em modo de observação, que por enquanto apenas reporta violações sem bloquear nada.

@@ -51,6 +51,20 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       resultTruncatedDescription:
         "A busca atingiu o teto de segurança de eventos, então há registros do período que não aparecem aqui. Reduza a janela de tempo ou refine os filtros antes de tirar conclusões.",
     },
+    login: {
+      title: "Entre para ver os dados",
+      description:
+        "Este projeto exige uma conta para consultar os eventos. Use o e-mail e a senha que o administrador cadastrou para você.",
+      emailLabel: "E-mail",
+      passwordLabel: "Senha",
+      submit: "Entrar",
+      submitting: "Entrando...",
+      invalidCredentials: "E-mail ou senha incorretos.",
+      unexpectedError: "Não foi possível entrar agora. Tente novamente em alguns instantes.",
+      noSignupHint:
+        "Não há cadastro aberto: as contas são criadas por um administrador. Se você usa o próprio Supabase, pode trocar o projeto em Configurações.",
+      signOut: "Sair",
+    },
     supabaseRequired: {
       title: "Conecte o Supabase para continuar",
       description:
@@ -582,6 +596,20 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       resultTruncatedTitle: "Incomplete result",
       resultTruncatedDescription:
         "The search hit the safety cap on events, so some records from this period are missing here. Shorten the time window or narrow the filters before drawing conclusions.",
+    },
+    login: {
+      title: "Sign in to see the data",
+      description:
+        "This project requires an account to query events. Use the email and password your administrator set up for you.",
+      emailLabel: "Email",
+      passwordLabel: "Password",
+      submit: "Sign in",
+      submitting: "Signing in...",
+      invalidCredentials: "Incorrect email or password.",
+      unexpectedError: "Couldn't sign in right now. Please try again in a moment.",
+      noSignupHint:
+        "There is no open sign-up: accounts are created by an administrator. If you use your own Supabase, you can switch projects under Settings.",
+      signOut: "Sign out",
     },
     supabaseRequired: {
       title: "Connect Supabase to continue",
