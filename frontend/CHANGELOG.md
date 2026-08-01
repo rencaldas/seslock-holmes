@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1] - 2026-08-01
+### Fixed
+- As funções criadas no banco na versão anterior passaram a ter o caminho de busca fixo. Sem isso, uma função resolve os nomes que usa na hora da chamada, e quem conseguisse criar objetos no lugar certo poderia interceptar uma dessas chamadas. O risco era baixo — elas rodam com a permissão de quem chama, não escalam acesso — mas fechar não custou nada. Duas funções antigas dos relatórios agendados tinham o mesmo problema e foram corrigidas junto.
+### Changed
+- Removida a rotina que buscava os eventos em massa para calcular os indicadores no navegador. Ela deixou de ser usada quando esse cálculo passou para o banco, na versão anterior.
+
 ## [1.9.0] - 2026-08-01
 ### Changed
 - Os números do painel passaram a ser calculados no próprio banco, e não mais no navegador. Antes o painel baixava até 20.000 eventos para somar tudo por conta própria, o que além de lento deixava os indicadores errados quando o período tinha mais eventos que isso: com 99 mil eventos em 30 dias, a taxa de bounce exibida era a dos 8 dias mais recentes (2,53%), não a do mês (3,01%). Agora os cartões refletem sempre o período inteiro escolhido — e trocar a janela de 30 para 90 dias volta a fazer diferença.
