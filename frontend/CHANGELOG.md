@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.2] - 2026-08-01
+### Fixed
+- Corrigido o painel que voltou a cair com "Algo deu errado" depois da versão 1.9.0. As consultas que passaram a rodar no banco levavam de 3 a 23 segundos para a mesma pergunta e estouravam o limite de tempo do servidor. Agora levam cerca de 2 segundos e 0,3 segundo, com os mesmos números de antes.
+- A causa foram dois problemas somados. O primeiro: o banco decide quais colunas vai ler antes de executar a consulta, então bastava a consulta mencionar campos pesados — mesmo em filtros desligados — para ele carregar tudo. As consultas passaram a ser montadas conforme os filtros que estão de fato preenchidos. O segundo: um ajuste de segurança feito na versão anterior impedia o banco de otimizar quatro funções internas, fazendo com que fossem executadas uma a uma para cada um dos 98 mil eventos. A proteção foi mantida por outro caminho, sem o efeito colateral.
+
 ## [1.9.1] - 2026-08-01
 ### Fixed
 - As funções criadas no banco na versão anterior passaram a ter o caminho de busca fixo. Sem isso, uma função resolve os nomes que usa na hora da chamada, e quem conseguisse criar objetos no lugar certo poderia interceptar uma dessas chamadas. O risco era baixo — elas rodam com a permissão de quem chama, não escalam acesso — mas fechar não custou nada. Duas funções antigas dos relatórios agendados tinham o mesmo problema e foram corrigidas junto.
