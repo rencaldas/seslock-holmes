@@ -93,7 +93,7 @@ function EventActionsMenu({ event }: { event: EmailEvent }) {
 
 export function RecentActivityList({
   events,
-  reportEvents,
+  loadReportEvents,
   reportQuery,
   page,
   totalPages,
@@ -105,7 +105,7 @@ export function RecentActivityList({
   onPageSizeChange,
 }: {
   events: EmailEvent[];
-  reportEvents: EmailEvent[];
+  loadReportEvents: () => Promise<EmailEvent[]>;
   reportQuery: Record<string, string>;
   page: number;
   totalPages: number;
@@ -128,7 +128,7 @@ export function RecentActivityList({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <EmailReportExport events={reportEvents} query={reportQuery} />
+          <EmailReportExport loadEvents={loadReportEvents} query={reportQuery} />
           <label className="flex items-center gap-2 text-sm text-ink-muted">
             {t.overview.pageSizeLabel}
             <Select

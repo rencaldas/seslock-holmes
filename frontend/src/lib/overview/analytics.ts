@@ -434,6 +434,110 @@ export function buildOverviewAnalytics(events: EmailEvent[], language: AppLangua
   };
 }
 
+// Formato devolvido pela função overview_analytics do Postgres (ver
+// supabase/migrations/20260801040000_overview_analytics_rpc.sql). Os números
+// já vêm agregados sobre TODO o período; o banco não manda linha bruta.
+export interface OverviewAggregate {
+  totalEventCount: number;
+  sentCount: number;
+  deliveredCount: number;
+  bouncedCount: number;
+  complaintCount: number;
+  delayedCount: number;
+  rejectedCount: number;
+  renderingFailureCount: number;
+  uniqueMessagesCount: number;
+  uniqueRecipientsCount: number;
+  lastEventAt: string | null;
+  averageDeliveryTimeMs: number | null;
+  deliveryRate: number | null;
+  bounceRate: number;
+  complaintRate: number;
+  topProviders: OverviewTopProvider[];
+  topBounceReasons: Array<{ label: string; count: number; percentage: number }>;
+  originApplications: OverviewOriginApplication[];
+}
+
+// Monta o OverviewAnalytics a partir do agregado do banco.
+//
+// A divisão de responsabilidade é deliberada: o SQL faz as contagens, que
+// dependem de varrer todas as linhas; o JS faz os rótulos, que dependem do
+// idioma e do Intl. Traduzir no banco significaria duplicar as tabelas de
+// tradução em SQL e mantê-las em sincronia — é justamente onde uma migração
+// dessas costuma divergir com o tempo.
+//
+// Por isso esta função vive aqui, e não em lib/supabase: assim ela reusa os
+// mesmos EVENT_LABELS, getReputationStatus, formatReputationReason e
+// getBounceReasonDetail que buildOverviewAnalytics usa, sem precisar
+// exportá-los. Um rótulo só existe num lugar.
+export function buildOverviewAnalyticsFromAggregate(
+  aggregate: OverviewAggregate,
+  language: AppLanguage,
+): OverviewAnalytics {
+  const bounceRate = aggregate.bounceRate ?? 0;
+  const complaintRate = aggregate.complaintRate ?? 0;
+
+  const eventTypeOrder: Array<OverviewEventDistribution["type"]> = [
+    "sent",
+    "delivered",
+    "bounced",
+    "complained",
+    "rejected",
+    "delayed",
+    "rendering_failure",
+    "open",
+    "click",
+  ];
+
+  const countByType: Record<string, number> = {
+    sent: aggregate.sentCount,
+    delivered: aggregate.deliveredCount,
+    bounced: aggregate.bouncedCount,
+    complained: aggregate.complaintCount,
+    rejected: aggregate.rejectedCount,
+    delayed: aggregate.delayedCount,
+    rendering_failure: aggregate.renderingFailureCount,
+  };
+
+  return {
+    totalEventCount: aggregate.totalEventCount,
+    deliveredCount: aggregate.deliveredCount,
+    bouncedCount: aggregate.bouncedCount,
+    complaintCount: aggregate.complaintCount,
+    rejectedCount: aggregate.rejectedCount,
+    delayedCount: aggregate.delayedCount,
+    renderingFailureCount: aggregate.renderingFailureCount,
+    sentCount: aggregate.sentCount,
+    uniqueRecipientsCount: aggregate.uniqueRecipientsCount,
+    lastEventAt: aggregate.lastEventAt,
+    averageDeliveryTimeMs: aggregate.averageDeliveryTimeMs,
+    deliveryRate: aggregate.deliveryRate,
+    reputation: {
+      bounceRate,
+      complaintRate,
+      status: getReputationStatus(bounceRate, complaintRate),
+      reason: formatReputationReason(language, bounceRate, complaintRate),
+    },
+    topProviders: aggregate.topProviders ?? [],
+    // O SQL devolve só o rótulo cru (o bounceSubType do SES, por exemplo); o
+    // texto explicativo em português/inglês é resolvido aqui.
+    topBounceReasons: (aggregate.topBounceReasons ?? []).map((reason) => ({
+      label: reason.label,
+      detail: getBounceReasonDetail(reason.label, language),
+      count: reason.count,
+      percentage: reason.percentage,
+    })),
+    // "open" e "click" ficam sempre em zero, como no cálculo original: o SES
+    // até emite esses eventos, mas a tabela não os recebe.
+    eventDistribution: eventTypeOrder.map((type) => ({
+      type,
+      label: EVENT_LABELS[type][language],
+      count: countByType[type] ?? 0,
+    })),
+    originApplications: aggregate.originApplications ?? [],
+  };
+}
+
 export function formatRelativeTime(value: string | null | undefined, language: AppLanguage) {
   if (!value) {
     return null;

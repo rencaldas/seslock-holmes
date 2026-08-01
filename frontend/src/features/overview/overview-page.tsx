@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import overviewLogo from "@/assets/overview-logo.png";
@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { OverviewSkeleton } from "@/components/states/overview-skeleton";
 import { SetupState } from "@/components/states/setup-state";
-import { TruncationNotice } from "@/components/states/truncation-notice";
 import { DomainHealthHero } from "@/features/overview/domain-health-hero";
 import { TopMetrics } from "@/features/overview/top-metrics";
 import { OverviewAnalyticsPanel } from "@/features/overview/overview-analytics-panel";
@@ -15,8 +14,16 @@ import { RecentActivityList } from "@/features/overview/recent-activity-list";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { useFilters } from "@/lib/filters/filters-context";
 import { useSupabase } from "@/lib/supabase/context";
-import { fetchOverview } from "@/lib/supabase/queries/overview";
-import { buildEventTimeSeries } from "@/lib/overview/timeseries";
+import { rowToEmailEvent } from "@/lib/supabase/aws-sns";
+import {
+  fetchOverviewAggregate,
+  fetchOverviewEventsPage,
+} from "@/lib/supabase/queries/overview-aggregate";
+import {
+  EMAIL_EVENT_LIST_COLUMNS,
+  fetchEventRowsWithTimeFallback,
+} from "@/lib/supabase/queries/fetch-event-rows";
+import { resolveTimeRange } from "@/lib/time-filters";
 import { buildSearchParams } from "@/lib/overview/overview-search-params";
 import { parsePageSize } from "@/lib/page-size";
 
@@ -53,8 +60,11 @@ export function OverviewPage() {
       supabase.eventsTable,
     ],
     enabled: Boolean(supabase.client && supabase.eventsTable),
-    queryFn: () =>
-      fetchOverview(supabase.client!, supabase.eventsTable!, {
+    // As duas chamadas são independentes e vão juntas: o agregado varre o
+    // período inteiro, a página só traz as 50 linhas visíveis. Em paralelo, o
+    // tempo de tela é o da mais lenta, não a soma.
+    queryFn: async () => {
+      const queryInput = {
         page,
         pageSize,
         timeMode: appliedFilters.timeMode,
@@ -67,16 +77,48 @@ export function OverviewPage() {
         subject: appliedFilters.subject,
         provider: appliedFilters.provider,
         rowLimit: appliedFilters.rowLimit,
-      }),
+      };
+
+      const [aggregate, eventsPage] = await Promise.all([
+        fetchOverviewAggregate(supabase.client!, queryInput, language),
+        fetchOverviewEventsPage(supabase.client!, queryInput),
+      ]);
+
+      const totalPages = Math.max(1, Math.ceil(eventsPage.totalCount / pageSize));
+
+      return {
+        analytics: aggregate.analytics,
+        timeSeries: aggregate.timeSeries,
+        recentEvents: eventsPage.items.map((row) => rowToEmailEvent(row)),
+        recentEventsCount: eventsPage.totalCount,
+        uniqueMessagesCount: aggregate.uniqueMessagesCount,
+        page,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      };
+    },
     placeholderData: keepPreviousData,
   });
 
-  const timeSeries = useMemo(() => {
-    if (!overviewQuery.data) {
-      return { points: [], granularity: "hour" as const };
-    }
-    return buildEventTimeSeries(overviewQuery.data.reportEvents, language);
-  }, [overviewQuery.data, language]);
+  const timeSeries = overviewQuery.data?.timeSeries ?? { points: [], granularity: "hour" as const };
+
+  // O relatório é o único consumidor que ainda precisa de todas as linhas da
+  // consulta. Buscá-las só no clique evita pagar por elas em todo
+  // carregamento da página — que era exatamente o que tornava a tela lenta.
+  const loadReportEvents = useCallback(async () => {
+    const { rows } = await fetchEventRowsWithTimeFallback(
+      supabase.client!,
+      supabase.eventsTable!,
+      resolveTimeRange(appliedFilters).startIso,
+      {
+        endIso: resolveTimeRange(appliedFilters).endIso || undefined,
+        maxRows: appliedFilters.rowLimit === "all" ? undefined : appliedFilters.rowLimit,
+        columns: EMAIL_EVENT_LIST_COLUMNS,
+      },
+    );
+    return rows.map((row) => rowToEmailEvent(row));
+  }, [supabase.client, supabase.eventsTable, appliedFilters]);
 
   if (!supabase.ready) {
     return <OverviewSkeleton />;
@@ -127,14 +169,17 @@ export function OverviewPage() {
             overviewQuery.isFetching && !overviewQuery.isLoading ? "opacity-60" : "opacity-100"
           }`}
         >
-          {overviewQuery.data.truncated ? <TruncationNotice /> : null}
           <DomainHealthHero analytics={overviewQuery.data.analytics} />
           <TopMetrics analytics={overviewQuery.data.analytics} timeSeries={timeSeries.points} />
-          <OverviewAnalyticsPanel data={overviewQuery.data} timeSeries={timeSeries} />
+          <OverviewAnalyticsPanel
+            analytics={overviewQuery.data.analytics}
+            uniqueMessagesCount={overviewQuery.data.uniqueMessagesCount}
+            timeSeries={timeSeries}
+          />
           {overviewQuery.data.recentEvents.length ? (
             <RecentActivityList
               events={overviewQuery.data.recentEvents}
-              reportEvents={overviewQuery.data.reportEvents}
+              loadReportEvents={loadReportEvents}
               reportQuery={{
                 timeMode: appliedFilters.timeMode,
                 windowDays: String(appliedFilters.windowDays),

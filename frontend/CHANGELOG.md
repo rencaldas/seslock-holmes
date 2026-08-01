@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2026-08-01
+### Changed
+- Os números do painel passaram a ser calculados no próprio banco, e não mais no navegador. Antes o painel baixava até 20.000 eventos para somar tudo por conta própria, o que além de lento deixava os indicadores errados quando o período tinha mais eventos que isso: com 99 mil eventos em 30 dias, a taxa de bounce exibida era a dos 8 dias mais recentes (2,53%), não a do mês (3,01%). Agora os cartões refletem sempre o período inteiro escolhido — e trocar a janela de 30 para 90 dias volta a fazer diferença.
+- A lista de atividade recente também passou a paginar no banco, incluindo os filtros de origem, assunto e provedor. Exibir 50 linhas custava baixar até 20.000; agora só trafegam as linhas da página.
+- O seletor de linhas foi renomeado para "Linhas no relatório" e passa a valer apenas para o CSV/PDF. Ele existia como válvula de performance do navegador, e esse motivo deixou de existir — mantê-lo sobre os indicadores fazia os cartões mostrarem a taxa de uma amostra de poucos minutos como se fosse a do período inteiro.
+- O relatório CSV/PDF só busca os dados quando você clica para gerá-lo. Antes essa busca acontecia em todo carregamento da página, mesmo para quem nunca exportava nada.
+- O aviso de "resultado incompleto" saiu do painel: a condição que ele sinalizava deixou de existir, já que os indicadores agora cobrem todo o período. Ele continua valendo para o relatório, que é o único lugar que ainda tem teto de linhas.
+
 ## [1.8.1] - 2026-08-01
 ### Fixed
 - Fechado o acesso anônimo aos eventos do SES e aos agendamentos. A política que liberava a leitura para visitantes sem conta continuava ativa ao lado da nova, e no PostgreSQL essas regras se somam em vez de se substituírem — na prática, o painel seguia aberto para qualquer pessoa com o endereço. O acesso anônimo de escrita aos agendamentos era ainda mais sério: permitia cadastrar um relatório apontando para um endereço qualquer e receber os dados por e-mail, contornando a proteção dos eventos por outro caminho.
