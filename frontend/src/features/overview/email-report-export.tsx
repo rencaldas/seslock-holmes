@@ -16,16 +16,21 @@ import type { EmailEvent } from "@/lib/supabase/types";
 type ExportFormat = "pdf" | "csv" | "json";
 
 export function EmailReportExport({
-  events,
+  loadEvents,
   query,
 }: {
-  events: EmailEvent[];
+  // Recebe um carregador em vez da lista pronta: o relatório é o único lugar
+  // que ainda precisa de TODAS as linhas da consulta, e antes essa busca
+  // acontecia sempre, no carregamento da página, mesmo para quem nunca
+  // exportava nada. Agora só custa quando alguém clica.
+  loadEvents: () => Promise<EmailEvent[]>;
   query: Record<string, string>;
 }) {
   const t = useI18n();
   const language = useAppLanguage();
   const menuRef = useRef<HTMLDetailsElement>(null);
   const [sortBy, setSortBy] = useState<EmailReportSortBy>("email");
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -49,22 +54,30 @@ export function EmailReportExport({
     { value: "problemRate", label: t.overview.exportSortProblemRate },
   ];
 
-  function exportReport(format: ExportFormat) {
-    const report = buildEmailReport(events, { language, query, sortBy });
-    const filename = createEmailReportFilename(format, report.generatedAt);
+  async function exportReport(format: ExportFormat) {
+    if (isExporting) return;
+    setIsExporting(true);
 
-    if (format === "pdf") {
-      downloadBlob(emailReportToPdf(report), filename);
-    } else if (format === "csv") {
-      downloadBlob(new Blob([emailReportToCsv(report)], { type: "text/csv;charset=utf-8" }), filename);
-    } else {
-      downloadBlob(
-        new Blob([emailReportToJson(report)], { type: "application/json;charset=utf-8" }),
-        filename,
-      );
+    try {
+      const events = await loadEvents();
+      const report = buildEmailReport(events, { language, query, sortBy });
+      const filename = createEmailReportFilename(format, report.generatedAt);
+
+      if (format === "pdf") {
+        downloadBlob(emailReportToPdf(report), filename);
+      } else if (format === "csv") {
+        downloadBlob(new Blob([emailReportToCsv(report)], { type: "text/csv;charset=utf-8" }), filename);
+      } else {
+        downloadBlob(
+          new Blob([emailReportToJson(report)], { type: "application/json;charset=utf-8" }),
+          filename,
+        );
+      }
+
+      menuRef.current?.removeAttribute("open");
+    } finally {
+      setIsExporting(false);
     }
-
-    menuRef.current?.removeAttribute("open");
   }
 
   return (
@@ -87,7 +100,8 @@ export function EmailReportExport({
         <button
           type="button"
           className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={() => exportReport("pdf")}
+          onClick={() => void exportReport("pdf")}
+          disabled={isExporting}
         >
           <FileText className="mr-2 h-4 w-4" />
           {t.overview.exportPdf}
@@ -95,7 +109,8 @@ export function EmailReportExport({
         <button
           type="button"
           className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={() => exportReport("csv")}
+          onClick={() => void exportReport("csv")}
+          disabled={isExporting}
         >
           <FileSpreadsheet className="mr-2 h-4 w-4" />
           {t.overview.exportCsv}
@@ -103,7 +118,8 @@ export function EmailReportExport({
         <button
           type="button"
           className="flex w-full items-center rounded-control px-3 py-2 text-left text-sm text-ink hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={() => exportReport("json")}
+          onClick={() => void exportReport("json")}
+          disabled={isExporting}
         >
           <FileJson className="mr-2 h-4 w-4" />
           {t.overview.exportJson}

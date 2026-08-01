@@ -7,17 +7,21 @@ import { formatCount, formatPercent } from "@/lib/formatters/numbers";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { SecondaryMetrics } from "@/features/overview/secondary-metrics";
 import type { EventTimeSeriesPoint, TimeSeriesGranularity } from "@/lib/overview/timeseries";
-import type { OverviewResult } from "@/lib/supabase/types";
+import type { OverviewAnalytics } from "@/lib/overview/analytics";
 
+// Recebe só o analytics, não o OverviewResult inteiro: era o único campo
+// usado, e depender do objeto completo obrigava quem chama a montar uma
+// estrutura de 15 campos para desenhar um painel que lê um.
 export function OverviewAnalyticsPanel({
-  data,
+  analytics,
+  uniqueMessagesCount,
   timeSeries,
 }: {
-  data: OverviewResult;
+  analytics: OverviewAnalytics;
+  uniqueMessagesCount: number;
   timeSeries: { points: EventTimeSeriesPoint[]; granularity: TimeSeriesGranularity };
 }) {
   const t = useI18n();
-  const analytics = data.analytics;
 
   const providerItems: BarListItem[] = analytics.topProviders.map((provider) => ({
     key: provider.domain,
@@ -69,7 +73,7 @@ export function OverviewAnalyticsPanel({
         </ChartCard>
 
         <ChartCard title={t.overview.analytics.summaryTitle} description={t.overview.analytics.summaryDescription}>
-          <SecondaryMetrics data={data} analytics={analytics} />
+          <SecondaryMetrics analytics={analytics} uniqueMessagesCount={uniqueMessagesCount} />
         </ChartCard>
       </div>
 

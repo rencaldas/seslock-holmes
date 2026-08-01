@@ -4,7 +4,6 @@ import { formatDateTime } from "@/lib/formatters/dates";
 import { formatCount, formatDuration } from "@/lib/formatters/numbers";
 import { useAppLanguage, useI18n } from "@/lib/i18n/use-i18n";
 import { formatRelativeTime, type OverviewAnalytics } from "@/lib/overview/analytics";
-import type { OverviewResult } from "@/lib/supabase/types";
 
 function StatRow({
   icon: Icon,
@@ -33,16 +32,24 @@ function StatRow({
   );
 }
 
-export function SecondaryMetrics({ data, analytics }: { data: OverviewResult; analytics: OverviewAnalytics }) {
+export function SecondaryMetrics({
+  analytics,
+  uniqueMessagesCount,
+}: {
+  analytics: OverviewAnalytics;
+  // Único número que não vive no analytics; os outros dois vinham do
+  // OverviewResult duplicando o que o analytics já trazia.
+  uniqueMessagesCount: number;
+}) {
   const t = useI18n();
   const language = useAppLanguage();
   const lastEventRelative = formatRelativeTime(analytics.lastEventAt, language);
 
   return (
     <div className="divide-y divide-slate-100 dark:divide-slate-800">
-      <StatRow icon={Zap} label={t.overview.analytics.totalEvents} value={formatCount(data.recentEventsCount)} />
-      <StatRow icon={MessageSquare} label={t.overview.analytics.uniqueMessages} value={formatCount(data.uniqueMessagesCount)} />
-      <StatRow icon={Users} label={t.overview.analytics.uniqueRecipients} value={formatCount(data.uniqueRecipientsCount)} />
+      <StatRow icon={Zap} label={t.overview.analytics.totalEvents} value={formatCount(analytics.totalEventCount)} />
+      <StatRow icon={MessageSquare} label={t.overview.analytics.uniqueMessages} value={formatCount(uniqueMessagesCount)} />
+      <StatRow icon={Users} label={t.overview.analytics.uniqueRecipients} value={formatCount(analytics.uniqueRecipientsCount)} />
       <StatRow
         icon={Clock}
         label={t.overview.analytics.averageDeliveryTime}
