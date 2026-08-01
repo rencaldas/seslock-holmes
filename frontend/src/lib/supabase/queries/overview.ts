@@ -1,28 +1,22 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildOverviewAnalytics } from "@/lib/overview/analytics";
-import { getEventTable } from "@/lib/supabase/schema";
-import { getSupabaseLanguage } from "@/lib/supabase/settings";
-import { PROBLEM_EVENT_TYPES, type OverviewQueryInput, type OverviewResult } from "@/lib/supabase/types";
-import {
-  getAwsSnsOccurredAt,
-  getAwsSnsEventTypeFilterValues,
-  rowMatchesOrigin,
-  rowMatchesRecipientDomain,
-  rowMatchesStatus,
-  rowMatchesSubject,
-  rowToEmailEvent,
-} from "@/lib/supabase/aws-sns";
-import {
-  EMAIL_EVENT_LIST_COLUMNS,
-  fetchEventRowsWithTimeFallback,
-} from "@/lib/supabase/queries/fetch-event-rows";
-import { resolveTimeRange } from "@/lib/time-filters";
-import { UNLIMITED_ROW_LIMIT } from "@/lib/row-limits";
+// Ordenação da lista de atividade recente.
+//
+// O fetchOverview que vivia aqui foi removido: ele buscava até 20.000 linhas
+// para o navegador e calculava os indicadores em JS. Isso agora acontece no
+// banco — ver overview-aggregate.ts e a migration 20260801130000.
+//
+// sortRecentEvents continua porque descreve a regra de ordenação que a função
+// overview_events replica em SQL, incluindo o desempate por destinatário. Se
+// algum dia a ordem da lista sair errada, o teste deste arquivo é a referência
+// de qual era o comportamento pretendido.
+
+import type { OverviewQueryInput } from "@/lib/supabase/types";
 
 function compareRecipientEmails(left: string, right: string) {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
 
+// O destinatário é sempre o critério de desempate: sem ele, dois eventos com o
+// mesmo horário poderiam trocar de posição entre carregamentos idênticos.
 export function sortRecentEvents<T extends { occurredAt: string; recipientEmail: string }>(
   events: T[],
   recentActivitySort: OverviewQueryInput["recentActivitySort"],
@@ -44,75 +38,4 @@ export function sortRecentEvents<T extends { occurredAt: string; recipientEmail:
         return timeComparison || compareRecipientEmails(left.recipientEmail, right.recipientEmail);
     }
   });
-}
-
-export async function fetchOverview(
-  client: SupabaseClient,
-  tableName: string,
-  input: OverviewQueryInput,
-): Promise<OverviewResult> {
-  const { startIso, endIso } = resolveTimeRange(input);
-  const eventTable = tableName || getEventTable();
-  const from = (input.page - 1) * input.pageSize;
-  const to = from + input.pageSize - 1;
-  const origin = input.origin.trim();
-  const subject = input.subject.trim();
-  const provider = input.provider.trim();
-  const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
-
-  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
-    endIso,
-    maxRows: input.rowLimit === UNLIMITED_ROW_LIMIT ? undefined : input.rowLimit,
-    columns: EMAIL_EVENT_LIST_COLUMNS,
-    inValues: eventTypeFilterValues.length
-      ? [{ column: "eventType", values: eventTypeFilterValues }]
-      : undefined,
-  });
-  const events = sortRecentEvents(
-    rows
-    .filter((row) => getAwsSnsOccurredAt(row) >= startIso)
-    .filter((row) => (endIso ? getAwsSnsOccurredAt(row) <= endIso : true))
-    .filter((row) => rowMatchesStatus(row, input.status))
-    .filter((row) => rowMatchesOrigin(row, origin))
-    .filter((row) => rowMatchesSubject(row, subject))
-    .filter((row) => rowMatchesRecipientDomain(row, provider))
-    .map((row) => rowToEmailEvent(row)),
-    input.recentActivitySort,
-  );
-  const recentEvents = events.slice(from, to + 1);
-  const analytics = buildOverviewAnalytics(events, getSupabaseLanguage());
-  const uniqueMessagesCount = new Set(events.map((event) => event.messageId)).size;
-  const deliveredCount = analytics.deliveredCount;
-  const bouncedCount = analytics.bouncedCount;
-  const complaintCount = analytics.complaintCount;
-  const problemEventsCount = events.filter((event) => PROBLEM_EVENT_TYPES.includes(event.eventType)).length;
-  const bounceRate = analytics.reputation.bounceRate;
-  const topOrigins = analytics.originApplications
-    .map((origin) => ({ name: origin.name, count: origin.count }))
-    .slice(0, 5);
-
-  const totalCount = events.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / input.pageSize));
-
-  return {
-    recentEvents,
-    reportEvents: events,
-    recentEventsCount: totalCount,
-    uniqueMessagesCount,
-    uniqueRecipientsCount: analytics.uniqueRecipientsCount,
-    deliveredCount,
-    bouncedCount,
-    complaintCount,
-    problemEventsCount,
-    bounceRate,
-    topOrigins,
-    analytics,
-    truncated,
-    windowDays: input.windowDays,
-    page: input.page,
-    pageSize: input.pageSize,
-    totalPages,
-    hasPreviousPage: input.page > 1,
-    hasNextPage: input.page < totalPages,
-  };
 }
