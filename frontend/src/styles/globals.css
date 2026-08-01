@@ -146,6 +146,90 @@ html.dark body {
   color: var(--brand-hover);
 }
 
+/* Modern <select> popup — progressive enhancement via the CSS
+   "customizable select" API. Browsers without support (older
+   Firefox/Safari) simply keep today's native picker; nothing here
+   changes the element's behavior or DOM.
+
+   Colors here are hardcoded (not var(--paper) etc.) because Chromium
+   resolves custom properties inside ::picker(select) against :root,
+   ignoring the html.dark override — using the tokens directly would
+   render a light popup on a dark page. */
+@supports (appearance: base-select) {
+  select.select-modern {
+    appearance: base-select;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  /* The browser's own ::picker-icon glyph isn't visually symmetric, so
+     rotating it 180deg on open makes it drift sideways instead of turning
+     in place. Hide it and keep using our own (properly centered) lucide
+     chevron instead, rotated via the select's :open state. */
+  select.select-modern::picker-icon {
+    display: none;
+  }
+
+  .select-chevron {
+    transition: transform 200ms ease;
+  }
+
+  select.select-modern:open ~ .select-chevron {
+    --tw-rotate: 180deg;
+  }
+
+  select.select-modern::picker(select) {
+    appearance: base-select;
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-card);
+    background: #ffffff;
+    box-shadow: var(--shadow-hover);
+  }
+
+  select.select-modern option {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-chip);
+    color: #0f172a;
+    cursor: pointer;
+  }
+
+  select.select-modern option:hover,
+  select.select-modern option:focus {
+    background: #e4ebfc;
+    color: #1d42b8;
+  }
+
+  select.select-modern option:checked {
+    background: #2554e0;
+    color: white;
+    font-weight: 600;
+  }
+
+  html.dark select.select-modern::picker(select) {
+    border-color: #334155;
+    background: #0f172a;
+  }
+
+  html.dark select.select-modern option {
+    color: #eef2f8;
+  }
+
+  html.dark select.select-modern option:hover,
+  html.dark select.select-modern option:focus {
+    background: #1b2a52;
+    color: #8aa2ff;
+  }
+
+  html.dark select.select-modern option:checked {
+    background: #6d8dff;
+    color: #0b1220;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
