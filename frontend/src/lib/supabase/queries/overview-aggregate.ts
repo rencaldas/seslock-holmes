@@ -107,6 +107,21 @@ export async function fetchOverviewEventsPage(
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),
+    // rowLimit é deliberadamente NÃO repassado (a função aceita p_row_limit,
+    // mas o padrão null significa "sem teto"). O painel sempre reflete a
+    // janela inteira que o usuário escolheu.
+    //
+    // Aquele seletor existia como válvula de performance: era o que impedia o
+    // navegador de baixar a tabela toda. Esse motivo acabou — a agregação
+    // acontece no banco e "sem limite" custa ~3,5 KB a mais de tráfego que
+    // "100 linhas". O que sobrava dele era uma armadilha: com 100 linhas os
+    // cards mostravam bounce 0% quando o real do período era 3%, porque a
+    // amostra cobria só os últimos minutos. Um filtro de período que devolve
+    // a taxa de outro período é pior que filtro nenhum.
+    //
+    // O seletor continua valendo para o relatório CSV/PDF (ver
+    // loadReportEvents em overview-page.tsx), onde limitar o tamanho do
+    // arquivo gerado é uma função real.
     p_sort: input.recentActivitySort,
     p_limit: input.pageSize,
     p_offset: (input.page - 1) * input.pageSize,
@@ -136,6 +151,21 @@ export async function fetchOverviewAggregate(
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),
+    // rowLimit é deliberadamente NÃO repassado (a função aceita p_row_limit,
+    // mas o padrão null significa "sem teto"). O painel sempre reflete a
+    // janela inteira que o usuário escolheu.
+    //
+    // Aquele seletor existia como válvula de performance: era o que impedia o
+    // navegador de baixar a tabela toda. Esse motivo acabou — a agregação
+    // acontece no banco e "sem limite" custa ~3,5 KB a mais de tráfego que
+    // "100 linhas". O que sobrava dele era uma armadilha: com 100 linhas os
+    // cards mostravam bounce 0% quando o real do período era 3%, porque a
+    // amostra cobria só os últimos minutos. Um filtro de período que devolve
+    // a taxa de outro período é pior que filtro nenhum.
+    //
+    // O seletor continua valendo para o relatório CSV/PDF (ver
+    // loadReportEvents em overview-page.tsx), onde limitar o tamanho do
+    // arquivo gerado é uma função real.
   });
 
   if (error) {
