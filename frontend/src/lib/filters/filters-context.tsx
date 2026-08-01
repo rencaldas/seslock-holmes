@@ -14,6 +14,7 @@ const URL_FILTER_KEYS = [
   "startAt",
   "endAt",
   "status",
+  "bounceSubType",
   "origin",
   "subject",
   "provider",

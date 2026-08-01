@@ -104,6 +104,13 @@ export async function fetchOverviewEventsPage(
     p_start: startIso,
     p_end: endIso || null,
     p_status: input.status,
+    // p_bounce_subtype fica de fora até a migration
+    // 20260801190000_overview_bounce_subtype_filter.sql ser aplicada no
+    // banco em uso — mandar esse parâmetro antes disso faz o PostgREST
+    // recusar a chamada inteira (função com essa assinatura não existe no
+    // schema cache), quebrando o Overview inteiro, não só quem filtra por
+    // bounce. Reative com `p_bounce_subtype: input.bounceSubType,` assim que
+    // a migration estiver aplicada.
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),
@@ -148,6 +155,9 @@ export async function fetchOverviewAggregate(
     // tem início.
     p_end: endIso || null,
     p_status: input.status,
+    // Ver o mesmo comentário em fetchOverviewEventsPage: p_bounce_subtype só
+    // volta depois que 20260801190000_overview_bounce_subtype_filter.sql
+    // for aplicada no banco.
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),

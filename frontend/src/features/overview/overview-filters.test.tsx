@@ -9,12 +9,22 @@ vi.mock("@/lib/i18n/use-i18n", () => ({
     overview: {
       originPlaceholder: "Application or SMTP identity",
       filters: {
+        title: "Filters",
         time: "Time",
         timeModeOptions: {
           window: "Quick range",
           custom: "Custom range",
         },
         status: "Status",
+        bounceSubtype: "Bounce type",
+        bounceSubtypeOptions: {
+          all: "All",
+          suppressed: "Suppressed",
+          general: "General failure",
+          mailboxFull: "Mailbox full",
+          contentRejected: "Content rejected",
+          undetermined: "Undetermined",
+        },
         origin: "Origin filter",
         subject: "Subject Filter",
         provider: "Provider",
@@ -71,6 +81,7 @@ describe("OverviewFilters", () => {
               endAt: "",
               recentActivitySort: "time-desc",
               status: "all",
+              bounceSubType: "all",
               origin: "",
               subject: "",
               provider: "",
@@ -99,7 +110,7 @@ describe("OverviewFilters", () => {
     }
   });
 
-  it("places the rows selector in the former provider column and moves provider beside subject", () => {
+  it("keeps every field label on a single line and renders the rows selector alongside subject/provider", () => {
     const onChange = vi.fn();
     const onApply = vi.fn();
     const container = document.createElement("div");
@@ -117,6 +128,7 @@ describe("OverviewFilters", () => {
               endAt: "",
               recentActivitySort: "time-desc",
               status: "all",
+              bounceSubType: "all",
               origin: "",
               subject: "",
               provider: "",
@@ -133,11 +145,15 @@ describe("OverviewFilters", () => {
       const provider = container.querySelector<HTMLInputElement>("#overview-provider");
       const subject = container.querySelector<HTMLInputElement>("#overview-subject");
 
-      expect(rowLimit?.parentElement?.parentElement?.className).toContain("md:col-start-5");
-      expect(provider?.parentElement?.className).toContain("md:col-start-3");
-      expect(provider?.parentElement?.className).toContain("md:row-start-2");
-      expect(subject?.parentElement?.className).toContain("md:col-start-2");
-      expect(subject?.parentElement?.className).toContain("md:row-start-2");
+      expect(rowLimit).toBeTruthy();
+      expect(provider).toBeTruthy();
+      expect(subject).toBeTruthy();
+
+      // Regression guard: the "Rows" label used to wrap onto two lines and
+      // fall out of alignment with the rest of the filter row.
+      const rowsLabel = container.querySelector('label[for="overview-row-limit"]');
+      expect(rowsLabel?.className).toContain("whitespace-nowrap");
+
       expect(Array.from(rowLimit?.options ?? []).map((option) => option.textContent)).toContain("No limit");
 
       act(() => {
@@ -166,6 +182,72 @@ describe("OverviewFilters", () => {
         applyButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
       expect(onApply).toHaveBeenCalledOnce();
+    } finally {
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
+  it("only shows the bounce subtype selector when status is bounced, and reports its value", () => {
+    const onChange = vi.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const baseValue = {
+      timeMode: "window" as const,
+      windowDays: 7,
+      startAt: "",
+      endAt: "",
+      recentActivitySort: "time-desc" as const,
+      status: "all" as const,
+      bounceSubType: "all" as const,
+      origin: "",
+      subject: "",
+      provider: "",
+      rowLimit: 100 as const,
+    };
+
+    try {
+      act(() => {
+        root.render(
+          <OverviewFilters value={baseValue} onChange={onChange} onApply={() => undefined} />,
+        );
+      });
+
+      expect(container.querySelector("#overview-bounce-subtype")).toBeNull();
+
+      act(() => {
+        root.render(
+          <OverviewFilters
+            value={{ ...baseValue, status: "bounced" }}
+            onChange={onChange}
+            onApply={() => undefined}
+          />,
+        );
+      });
+
+      const bounceSubtype = container.querySelector<HTMLSelectElement>("#overview-bounce-subtype");
+      expect(bounceSubtype).toBeTruthy();
+      expect(Array.from(bounceSubtype?.options ?? []).map((option) => option.value)).toEqual([
+        "all",
+        "Suppressed",
+        "General",
+        "MailboxFull",
+        "ContentRejected",
+        "Undetermined",
+      ]);
+
+      act(() => {
+        if (bounceSubtype) {
+          bounceSubtype.value = "MailboxFull";
+          bounceSubtype.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ bounceSubType: "MailboxFull" }));
     } finally {
       act(() => {
         root.unmount();

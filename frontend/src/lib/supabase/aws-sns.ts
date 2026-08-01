@@ -1,4 +1,4 @@
-import type { EmailEvent, EmailEventType, EmailEventRow } from "@/lib/supabase/types";
+import type { BounceSubType, EmailEvent, EmailEventType, EmailEventRow } from "@/lib/supabase/types";
 import { classifyDiagnosticCode } from "./bounce-diagnostics.js";
 
 const EVENT_TYPE_MAP: Record<string, EmailEventType> = {
@@ -242,6 +242,16 @@ export function rowMatchesStatus(row: EmailEventRow, status: "all" | EmailEventT
   }
 
   return normalizeAwsSnsEventType(row.eventType ?? row.notificationType) === status;
+}
+
+// Só faz sentido combinado com status "bounced" — bounceSubType vem vazio nos
+// demais tipos de evento, então "all" é o único valor que os deixa passar.
+export function rowMatchesBounceSubType(row: EmailEventRow, bounceSubType: "all" | BounceSubType) {
+  if (bounceSubType === "all") {
+    return true;
+  }
+
+  return row.bounceSubType?.trim() === bounceSubType;
 }
 
 export function rowMatchesOrigin(row: EmailEventRow, origin: string) {

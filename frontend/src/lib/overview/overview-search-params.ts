@@ -12,6 +12,7 @@ export const DEFAULT_OVERVIEW_FILTERS: OverviewSearchFilters = {
   endAt: "",
   recentActivitySort: "time-desc",
   status: "all",
+  bounceSubType: "all",
   origin: "",
   subject: "",
   provider: "",
@@ -28,6 +29,7 @@ export function parseOverviewFilters(searchParams: URLSearchParams): OverviewSea
     ...parseTimeFilterState(searchParams),
     recentActivitySort: parseRecentActivitySort(searchParams.get("recentActivitySort")),
     status: (searchParams.get("status") ?? "all") as OverviewFilterValues["status"],
+    bounceSubType: (searchParams.get("bounceSubType") ?? "all") as OverviewFilterValues["bounceSubType"],
     origin: searchParams.get("origin") ?? "",
     subject: searchParams.get("subject") ?? "",
     provider: searchParams.get("provider") ?? "",
@@ -62,6 +64,7 @@ export function overviewFiltersToSearchParams(filters: OverviewFilterValues): Re
     endAt: filters.timeMode === "custom" ? filters.endAt : "",
     recentActivitySort: filters.recentActivitySort,
     status: filters.status,
+    bounceSubType: filters.status === "bounced" ? filters.bounceSubType : "",
     origin: filters.origin,
     subject: filters.subject ?? "",
     provider: filters.provider ?? "",
@@ -75,6 +78,7 @@ export function countActiveOverviewFilters(filters: OverviewFilterValues): numbe
     count += 1;
   }
   if (filters.status !== DEFAULT_OVERVIEW_FILTERS.status) count += 1;
+  if (filters.status === "bounced" && filters.bounceSubType !== DEFAULT_OVERVIEW_FILTERS.bounceSubType) count += 1;
   if (filters.origin) count += 1;
   if (filters.subject) count += 1;
   if (filters.provider) count += 1;
