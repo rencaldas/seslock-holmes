@@ -50,6 +50,21 @@ describe("isPermissionDeniedError", () => {
     expect(isPermissionDeniedError({ status: 500, message: "Internal Server Error" })).toBe(false);
   });
 
+  // A armadilha que derrubou o painel em produção uma vez. A RLS não gera
+  // erro em SELECT: sem policy que case, o PostgREST devolve 200 com lista
+  // vazia — não há erro nenhum para classificar, então esta função nunca é
+  // chamada e a tela de login nunca aparece.
+  //
+  // Este teste não consegue pegar isso sozinho (o bug estava na premissa, não
+  // no código), mas trava a metade que dá para travar: resultado vazio nunca
+  // deve ser lido como falta de permissão. O que faz a recusa virar erro de
+  // verdade é o GRANT revogado no banco — ver o comentário de topo em auth.ts
+  // e a migration 20260801025740.
+  it("não confunde resposta bem-sucedida e vazia com falta de permissão", () => {
+    expect(isPermissionDeniedError({ status: 200, data: [], error: null })).toBe(false);
+    expect(isPermissionDeniedError({ data: [], count: 0 })).toBe(false);
+  });
+
   it("sobrevive a entradas que não são objeto de erro", () => {
     expect(isPermissionDeniedError(null)).toBe(false);
     expect(isPermissionDeniedError(undefined)).toBe(false);
