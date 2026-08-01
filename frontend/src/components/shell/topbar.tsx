@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
-import { HelpCircle, Menu } from "lucide-react";
+import { HelpCircle, LogOut, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { GlobalHeaderSearch } from "@/components/shell/global-header-search";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { signOut } from "@/lib/supabase/auth";
+import { useSupabase } from "@/lib/supabase/context";
 
 export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const t = useI18n();
+  const { client, session } = useSupabase();
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur sm:px-6 lg:px-10 dark:border-slate-800 dark:bg-slate-950/85">
@@ -31,6 +34,19 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
         >
           <HelpCircle className="h-4 w-4" />
         </Link>
+        {/* Só aparece com sessão ativa: quem usa um projeto de RLS aberta
+            nunca faz login, e um botão "Sair" permanente confundiria. */}
+        {session && client ? (
+          <button
+            type="button"
+            onClick={() => void signOut(client)}
+            aria-label={t.login.signOut}
+            title={t.login.signOut}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-control text-ink-muted transition hover:bg-slate-100 hover:text-ink dark:hover:bg-slate-800"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
     </header>
   );

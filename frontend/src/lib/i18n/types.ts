@@ -51,6 +51,18 @@ export type TranslationBundle = {
     resultTruncatedTitle: string;
     resultTruncatedDescription: string;
   };
+  login: {
+    title: string;
+    description: string;
+    emailLabel: string;
+    passwordLabel: string;
+    submit: string;
+    submitting: string;
+    invalidCredentials: string;
+    unexpectedError: string;
+    noSignupHint: string;
+    signOut: string;
+  };
   supabaseRequired: {
     title: string;
     description: string;

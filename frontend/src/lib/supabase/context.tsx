@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/env";
+import { AUTH_REQUIRED_EVENT } from "@/lib/supabase/auth";
 import {
   getSupabaseLanguage,
   loadSupabaseSettings,
@@ -21,12 +22,20 @@ type SupabaseState = {
   // instead of direct supabase-js calls; see admin-queries.ts.
   isDefaultProject: boolean;
   adminToken: string | null;
+  // Sessão do Supabase Auth, quando existe. `null` é o estado normal de quem
+  // usa um projeto com a RLS aberta — não é sinal de erro.
+  session: Session | null;
+  // Passa a true quando alguma consulta é recusada por permissão. Só então a
+  // tela de login aparece; ver o comentário de topo em supabase/auth.ts.
+  authRequired: boolean;
 };
 
 const SupabaseContext = createContext<SupabaseState | null>(null);
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
   const [, setRevision] = useState(0);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
   const env = getSupabaseEnv();
   const client = getSupabaseClient();
 
@@ -47,6 +56,33 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const onAuthRequired = () => setAuthRequired(true);
+    window.addEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
+    return () => window.removeEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
+  }, []);
+
+  useEffect(() => {
+    if (!client) {
+      setSession(null);
+      return;
+    }
+
+    // onAuthStateChange dispara logo de cara com a sessão restaurada do
+    // storage, então ele cobre tanto a leitura inicial quanto login, logout e
+    // renovação de token — não é preciso um getSession() separado.
+    const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      if (nextSession) {
+        // Entrou: o motivo de exigir login deixou de valer. Sem isto a tela
+        // de login continuaria no lugar mesmo com a sessão ativa.
+        setAuthRequired(false);
+      }
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, [client]);
+
   const localSettings = loadSupabaseSettings();
   const hasOwnOverride = Boolean(localSettings?.url && localSettings?.anonKey);
 
@@ -60,6 +96,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     triedTables: env?.eventsTable ? [env.eventsTable] : [],
     isDefaultProject: !hasOwnOverride,
     adminToken: localSettings?.adminToken || null,
+    session,
+    authRequired,
   };
 
   return <SupabaseContext.Provider value={state}>{children}</SupabaseContext.Provider>;
