@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2026-08-01
+### Added
+- Filtro por subtipo de bounce no painel: quando o Status filtrado é "Bounce", um segundo seletor aparece para refinar por Suppressed, General, Mailbox full, Content rejected ou Undetermined. Na investigação por destinatário o filtro já vale; no Overview, os indicadores passam a valer assim que a migration correspondente for aplicada no banco em uso.
+### Changed
+- Layout dos filtros do painel reorganizado em linhas flexíveis com ícones por campo, em vez da grade fixa anterior — abre espaço para o novo seletor de subtipo de bounce sem quebrar os rótulos em duas linhas.
+- Popup do `<select>` modernizado nos navegadores com suporte à API CSS de select customizável, com o mesmo visual nos temas claro e escuro; navegadores sem suporte continuam com o seletor nativo de sempre.
+
 ## [1.9.2] - 2026-08-01
 ### Fixed
 - Corrigido o painel que voltou a cair com "Algo deu errado" depois da versão 1.9.0. As consultas que passaram a rodar no banco levavam de 3 a 23 segundos para a mesma pergunta e estouravam o limite de tempo do servidor. Agora levam cerca de 2 segundos e 0,3 segundo, com os mesmos números de antes.
