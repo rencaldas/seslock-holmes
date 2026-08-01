@@ -10,6 +10,26 @@
 // A alternativa — exigir sessão sempre — quebraria todo mundo que usa o
 // próprio Supabase, que é justamente o que os campos de URL e chave anon em
 // Configurações existem para permitir.
+//
+// ⚠️ DEPENDÊNCIA DE CONFIGURAÇÃO DO BANCO — não é suficiente ter a RLS certa.
+//
+// A RLS sozinha NÃO faz este arquivo funcionar. Ela não gera erro em SELECT:
+// quando nenhuma policy casa com o papel, o PostgREST devolve 200 com lista
+// vazia, que é indistinguível de "não há eventos no período". Nesse cenário
+// isPermissionDeniedError nunca dispara, a tela de login nunca aparece, e
+// quem não tem sessão fica preso num painel vazio sem nenhum caminho para
+// entrar.
+//
+// O que faz a recusa virar erro de verdade (42501) é o GRANT da tabela estar
+// revogado para anon — ver
+// supabase/migrations/20260801025740_revoke_anon_grants_to_surface_auth_error.sql.
+//
+// Se a tela de login parar de aparecer, suspeite disto antes do código:
+//
+//   select has_table_privilege('anon','public.aws_sns','SELECT');  -- deve ser false
+//
+// Alguns assistentes de configuração do painel do Supabase recriam esses
+// GRANTs silenciosamente ao mexer em policies.
 
 import type { AuthError, Session, SupabaseClient } from "@supabase/supabase-js";
 
