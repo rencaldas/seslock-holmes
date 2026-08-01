@@ -244,7 +244,7 @@ export async function buildReportForSchedule(client: SupabaseClient, schedule: R
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(filters.status);
   const maxRows = filters.rowLimit === "all" ? undefined : Number(filters.rowLimit);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
+  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
     maxRows,
     columns: EMAIL_EVENT_LIST_COLUMNS,
     inValues: eventTypeFilterValues.length ? [{ column: "eventType", values: eventTypeFilterValues }] : undefined,
@@ -268,6 +268,10 @@ export async function buildReportForSchedule(client: SupabaseClient, schedule: R
     ...(subject ? { assunto: subject } : {}),
     ...(provider ? { provedor: provider } : {}),
     limite: String(filters.rowLimit),
+    // O destinatário do e-mail não tem como inspecionar a consulta, então a
+    // truncagem tem que vir escrita no relatório — senão os números chegam
+    // como se fossem o total do período.
+    ...(truncated ? { aviso: "resultado incompleto — teto de segurança de linhas atingido" } : {}),
   };
 
   return buildEmailReport(events, {
@@ -518,10 +522,11 @@ export async function recordLastRunOnly(client: SupabaseClient, scheduleId: stri
     .eq("id", scheduleId);
 }
 
-// Processes every due schedule in a single project (client + credentials
-// pair), used identically for this deployment's own default project and for
-// every registered report_connections tenant — see send-scheduled-reports.ts,
-// which calls this once per project on every cron tick.
+// Processes every due schedule for one project (client + credentials pair).
+// Called once per cron tick by send-scheduled-reports.ts. Still takes the
+// client and credentials as arguments rather than reading the module-level
+// env vars directly: that kept a multi-tenant loop possible when one existed,
+// and it remains the reason this is straightforward to unit test.
 export async function runDueSchedules(client: SupabaseClient, credentials: GmailCredentials) {
   const { data: dueSchedules, error } = await client
     .from("report_schedules")

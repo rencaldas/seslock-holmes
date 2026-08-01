@@ -60,7 +60,7 @@ export async function fetchOverview(
   const provider = input.provider.trim();
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
 
-  const rows = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
+  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, eventTable, startIso, {
     endIso,
     maxRows: input.rowLimit === UNLIMITED_ROW_LIMIT ? undefined : input.rowLimit,
     columns: EMAIL_EVENT_LIST_COLUMNS,
@@ -107,6 +107,7 @@ export async function fetchOverview(
     bounceRate,
     topOrigins,
     analytics,
+    truncated,
     windowDays: input.windowDays,
     page: input.page,
     pageSize: input.pageSize,

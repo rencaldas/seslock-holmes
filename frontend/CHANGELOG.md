@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-07-31
+### Added
+- Cabeçalhos de segurança HTTP no deploy (proteção contra clickjacking, controle de referenciador, HSTS e Permissions-Policy), além de uma Content-Security-Policy em modo de observação, que por enquanto apenas reporta violações sem bloquear nada.
+- Aviso visível quando uma busca atinge o teto de eventos: tanto o painel quanto os relatórios agendados agora informam que o resultado está incompleto. Numa ferramenta de investigação, um resultado cortado em silêncio pode levar alguém a concluir que não existem mais bounces para um destinatário quando existem.
+### Changed
+- A opção "sem limite" do seletor de linhas passou a ter um teto de 20.000 eventos. Antes ela percorria a tabela inteira, o que trava a aba do navegador conforme a base de eventos do SES cresce.
+- A "Entrega automática para o seu Supabase" (introduzida na 1.3.0) foi removida, junto com a aba correspondente na página de Relatórios agendados. Quem quiser entrega automática contra o próprio Supabase passa a rodar a própria instância do projeto, com as próprias variáveis de ambiente. Os campos de URL e chave anon em Configurações continuam funcionando: apontar o painel para outro Supabase segue disponível.
+- O script que aplica o tema salvo antes da primeira pintura saiu do HTML e virou um arquivo próprio, o que permite uma política de scripts mais estrita sem enfraquecer a proteção contra XSS.
+### Fixed
+- Fechada uma falha de segurança: o endpoint que registrava as conexões de terceiros aceitava, sem autenticação nenhuma, a chave de service role do Supabase e a senha de app do Gmail de qualquer visitante — e o endereço informado não era conferido contra uma lista de domínios permitidos, o que permitia fazer o servidor consultar um host arbitrário todos os dias.
+- Os tokens de administração e do cron passaram a ser comparados em tempo constante, para que o tempo de resposta não revele quanto de uma tentativa estava correto.
+- O manifesto de dependências do projeto não é mais embutido no pacote público, onde expunha a lista completa de bibliotecas e versões exatas, inclusive as usadas só em desenvolvimento.
+- Removidos da raiz do repositório um `package.json`, um `package-lock.json` e um `requirements.txt` órfãos, que declaravam dependências que nenhum arquivo do projeto importava.
+
 ## [1.6.0] - 2026-07-31
 ### Added
 - Cada evento no "Rastreamento da mensagem" (página de detalhes do evento) agora mostra os dados mais relevantes do próprio card, sem precisar entrar em cada evento: origem/IP/configuration set no envio, tempo de processamento e resposta SMTP na entrega, tipo/subtipo de bounce e diagnostic code no bounce, tipo de feedback na reclamação, e o motivo da falha em atrasos, rejeições e falhas de renderização.

@@ -2,22 +2,25 @@
 // Vite project — see server.fs.allow in vite.config.ts) so the setup panel
 // can never drift from what actually needs to run.
 import reportSchedulesMigrationSql from "../../../../supabase/migrations/20260730120000_report_schedules.sql?raw";
-import reportConnectionsMigrationSql from "../../../../supabase/migrations/20260730130000_report_connections.sql?raw";
 import lockDefaultSchedulesMigrationSql from "../../../../supabase/migrations/20260730140000_lock_default_report_schedules.sql?raw";
 
 // Portable: copy-paste this into ANY Supabase project used with this app —
-// this deployment's own default project, or a visitor's own project
-// registered as a "connection" for automatic delivery.
+// this deployment's own project, or a visitor's own.
 export const REPORT_SCHEDULES_MIGRATION_SQL = reportSchedulesMigrationSql;
 
-// NOT portable: only ever run once, on the single Supabase project THIS
-// deployment's own Vercel points at (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)
-// — it's the registry other visitors' connections live in, and the lockdown
-// that closes the "anonymous visitor writes into my project" hole. A
-// visitor bringing their own separate Supabase project never runs these.
-export const HUB_ONLY_MIGRATIONS_SQL = [reportConnectionsMigrationSql, lockDefaultSchedulesMigrationSql].join(
-  "\n\n",
-);
+// NOT portable: run once, only on the Supabase project THIS deployment's own
+// Vercel points at (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY). It closes the
+// "anonymous visitor writes into my project" hole by denying the anon role on
+// report_schedules, which is only correct where the anon key ships inside a
+// public bundle. A visitor running this app against their own project must
+// NOT run it — their schedules are managed straight from the browser with
+// their own anon key.
+//
+// The report_connections migration (20260730130000) used to be bundled here
+// too. That registry was removed; its migration file is kept in the repo only
+// as history, since the table itself is still there and dropping it is a
+// separate, irreversible decision.
+export const LOCK_DEFAULT_SCHEDULES_MIGRATION_SQL = lockDefaultSchedulesMigrationSql;
 
 export interface RequiredEnvVar {
   name: string;
@@ -55,10 +58,5 @@ export const REQUIRED_VERCEL_ENV_VARS: RequiredEnvVar[] = [
     name: "ADMIN_API_TOKEN",
     description:
       "Qualquer string aleatória (16+ caracteres) só sua. Depois de rodar a migration de trava abaixo, é o que permite VOCÊ (e só você) gerenciar os agendamentos do projeto padrão pela tela do app — cole o mesmo valor em Configurações, no seu próprio navegador.",
-  },
-  {
-    name: "CONNECTIONS_ENCRYPTION_KEY",
-    description:
-      "Qualquer string aleatória longa (32+ caracteres). Usada para criptografar, em repouso, as credenciais que OUTRAS pessoas registram ao conectar o próprio Supabase/Gmail para entrega automática — nunca fica em texto puro no banco.",
   },
 ];

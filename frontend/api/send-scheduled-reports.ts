@@ -11,27 +11,24 @@
 // update before doing any real work, so overlapping invocations can't
 // double-send the same report.
 //
-// On every invocation it processes every `report_schedules` row (across
-// every registered project, not just this deployment's own) whose
-// `next_run_at` has passed: re-runs the same filtered query the Overview
-// page would run, builds the report, emails it via Gmail SMTP, and records
-// the run so each project's own app can show it in-page without a browser
-// needing to be open.
+// On every invocation it processes every `report_schedules` row whose
+// `next_run_at` has passed: re-runs the same filtered query the Overview page
+// would run, builds the report, emails it via Gmail SMTP, and records the run
+// so the app can show it in-page without a browser needing to be open.
 //
-// Multi-tenant: this always processes THIS deployment's own default project
-// (env vars below — unchanged from before, so nothing breaks for the owner),
-// PLUS every active row in `report_connections` — the registry any visitor
-// can add themselves to from the "Scheduled reports" page, pointing at their
-// OWN Supabase project and Gmail account (see api/connections.ts). Each
-// project's schedules are only ever fetched/updated using that project's own
-// service role key, so no two tenants can see or affect each other's data.
+// Serves a single Supabase project — this deployment's own. It used to also
+// loop over `report_connections`, a registry any visitor could add themselves
+// to so this shared cron would deliver for THEIR project using THEIR
+// credentials. That registry was removed: the endpoint that fed it accepted
+// third-party service role keys with no authentication at all, and a single
+// shared CONNECTIONS_ENCRYPTION_KEY decrypted every tenant's secrets at once.
+// It had zero rows in practice. Visitors wanting automatic delivery for their
+// own project deploy their own instance instead.
 //
 // Required env vars (Vercel Project Settings > Environment Variables):
-// SUPABASE_SERVICE_ROLE_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, CRON_SECRET,
-// CONNECTIONS_ENCRYPTION_KEY (needed to decrypt other tenants' credentials).
+// SUPABASE_SERVICE_ROLE_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, CRON_SECRET.
 // Reuses whichever Supabase URL the frontend already has configured
-// (VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL) as both its own default
-// project AND the hub that stores report_connections.
+// (VITE_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL).
 //
 // Only relative imports are used below because Vercel's Node.js function
 // bundler does not resolve the `@/` tsconfig path alias Vite uses for the
@@ -55,22 +52,11 @@ import {
   readEnv,
   runDueSchedules,
 } from "../src/lib/scheduled-reports/report-runner.js";
-import { decryptSecret } from "../src/lib/scheduled-reports/crypto.js";
-
-interface ConnectionRow {
-  id: string;
-  supabase_url: string;
-  supabase_service_role_key_encrypted: string;
-  gmail_user: string;
-  gmail_app_password_encrypted: string;
-  gmail_from_name: string | null;
-}
+import { isBearerTokenValid } from "../src/lib/server/request-auth.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
-    const CRON_SECRET = readEnv("CRON_SECRET");
-
-    if (!CRON_SECRET || request.headers.authorization !== `Bearer ${CRON_SECRET}`) {
+    if (!isBearerTokenValid(request.headers.authorization, readEnv("CRON_SECRET"))) {
       response.status(401).json({ error: "Unauthorized" });
       return;
     }
@@ -80,65 +66,19 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return;
     }
 
-    const hubClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const projects: Array<{ label: string; results: Awaited<ReturnType<typeof runDueSchedules>> | null; error?: string }> = [];
-
-    if (GMAIL_USER && GMAIL_APP_PASSWORD) {
-      try {
-        const results = await runDueSchedules(hubClient, {
-          gmailUser: GMAIL_USER,
-          gmailAppPassword: GMAIL_APP_PASSWORD,
-          gmailFromName: GMAIL_FROM_NAME,
-        });
-        projects.push({ label: "default", results });
-      } catch (defaultError) {
-        const message = defaultError instanceof Error ? defaultError.message : String(defaultError);
-        console.error("send-scheduled-reports: default project failed", defaultError);
-        projects.push({ label: "default", results: null, error: message });
-      }
+    if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+      response.status(500).json({ error: "GMAIL_USER/GMAIL_APP_PASSWORD não configuradas." });
+      return;
     }
 
-    const { data: connections, error: connectionsError } = await hubClient
-      .from("report_connections")
-      .select("*")
-      .eq("is_active", true);
+    const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const results = await runDueSchedules(client, {
+      gmailUser: GMAIL_USER,
+      gmailAppPassword: GMAIL_APP_PASSWORD,
+      gmailFromName: GMAIL_FROM_NAME,
+    });
 
-    if (connectionsError) {
-      console.error("send-scheduled-reports: failed to load report_connections", connectionsError);
-    }
-
-    for (const connection of (connections ?? []) as ConnectionRow[]) {
-      try {
-        const serviceRoleKey = decryptSecret(connection.supabase_service_role_key_encrypted);
-        const gmailAppPassword = decryptSecret(connection.gmail_app_password_encrypted);
-        const tenantClient = createClient(connection.supabase_url, serviceRoleKey);
-
-        const results = await runDueSchedules(tenantClient, {
-          gmailUser: connection.gmail_user,
-          gmailAppPassword,
-          gmailFromName: connection.gmail_from_name ?? undefined,
-        });
-
-        projects.push({ label: connection.id, results });
-        await hubClient
-          .from("report_connections")
-          .update({ last_checked_at: new Date().toISOString(), last_error: null })
-          .eq("id", connection.id);
-      } catch (connectionError) {
-        // A single bad/revoked tenant connection must not stop the loop for
-        // everyone else's schedules.
-        const message = connectionError instanceof Error ? connectionError.message : String(connectionError);
-        console.error(`send-scheduled-reports: connection ${connection.id} failed`, connectionError);
-        projects.push({ label: connection.id, results: null, error: message });
-        await hubClient
-          .from("report_connections")
-          .update({ last_checked_at: new Date().toISOString(), last_error: message })
-          .eq("id", connection.id);
-      }
-    }
-
-    const processed = projects.reduce((total, project) => total + (project.results?.length ?? 0), 0);
-    response.status(200).json({ processed, projects });
+    response.status(200).json({ processed: results.length, results });
   } catch (unexpectedError) {
     console.error("send-scheduled-reports: unexpected failure", unexpectedError);
     const message = unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);

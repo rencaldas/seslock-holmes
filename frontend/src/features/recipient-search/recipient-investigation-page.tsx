@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { SetupState } from "@/components/states/setup-state";
+import { TruncationNotice } from "@/components/states/truncation-notice";
 import { RecipientResults } from "@/features/recipient-search/recipient-results";
 import { RelatedEmailSuggestions } from "@/features/recipient-search/related-email-suggestions";
 import { useFilters } from "@/lib/filters/filters-context";
@@ -121,6 +122,7 @@ export function RecipientInvestigationPage() {
 
       {investigationQuery.data ? (
         <div className="space-y-4">
+          {investigationQuery.data.truncated ? <TruncationNotice /> : null}
           {investigationQuery.data.events.length ? (
             <>
               <RecipientResults data={investigationQuery.data} />

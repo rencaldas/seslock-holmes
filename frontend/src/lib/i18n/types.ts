@@ -48,6 +48,8 @@ export type TranslationBundle = {
     setupButton: string;
     setupTried: string;
     noAvailableData: string;
+    resultTruncatedTitle: string;
+    resultTruncatedDescription: string;
   };
   supabaseRequired: {
     title: string;
@@ -420,7 +422,6 @@ export type TranslationBundle = {
     adminTokenMissingLink: string;
     tabs: {
       schedules: string;
-      connection: string;
       setup: string;
     };
     setup: {
@@ -431,8 +432,8 @@ export type TranslationBundle = {
       checking: string;
       step1Title: string;
       step1Description: string;
-      hubStepTitle: string;
-      hubStepDescription: string;
+      lockStepTitle: string;
+      lockStepDescription: string;
       step2Title: string;
       step2Description: string;
       step3Title: string;
@@ -440,38 +441,6 @@ export type TranslationBundle = {
       copyButton: string;
       copied: string;
       recheckButton: string;
-    };
-    connection: {
-      title: string;
-      description: string;
-      supabaseUrlLabel: string;
-      supabaseUrlPlaceholder: string;
-      serviceRoleKeyLabel: string;
-      serviceRoleKeyHint: string;
-      gmailUserLabel: string;
-      gmailAppPasswordLabel: string;
-      gmailAppPasswordHint: string;
-      fromNameLabel: string;
-      labelLabel: string;
-      registerButton: string;
-      registering: string;
-      missingFields: string;
-      tokenWarningTitle: string;
-      tokenWarningDescription: string;
-      copyToken: string;
-      copied: string;
-      doneButton: string;
-      connectedTitle: string;
-      unnamedConnection: string;
-      statusActive: string;
-      statusInactive: string;
-      lastCheckedLabel: string;
-      lastCheckedNever: string;
-      lastErrorLabel: string;
-      removeButton: string;
-      removeConfirm: string;
-      removing: string;
-      errorFeedback: string;
     };
     list: {
       sectionTitle: string;

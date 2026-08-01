@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { checkScheduledReportsConfigured } from "@/lib/scheduled-reports/queries";
 import { adminCheckScheduledReportsConfigured } from "@/lib/scheduled-reports/admin-queries";
-import { HUB_ONLY_MIGRATIONS_SQL, REPORT_SCHEDULES_MIGRATION_SQL, REQUIRED_VERCEL_ENV_VARS } from "@/lib/scheduled-reports/setup-sql";
+import { LOCK_DEFAULT_SCHEDULES_MIGRATION_SQL, REPORT_SCHEDULES_MIGRATION_SQL, REQUIRED_VERCEL_ENV_VARS } from "@/lib/scheduled-reports/setup-sql";
 
 function CopyableBlock({ value, label }: { value: string; label: string }) {
   const t = useI18n();
@@ -97,9 +97,9 @@ export function SetupPanel({ collapsedByDefault }: { collapsedByDefault: boolean
           </div>
 
           <div className="space-y-2 rounded-2xl border border-amber-200 p-4 dark:border-amber-500/30">
-            <h4 className="text-sm font-bold text-ink">{setup.hubStepTitle}</h4>
-            <p className="text-sm text-ink-muted">{setup.hubStepDescription}</p>
-            <CopyableBlock value={HUB_ONLY_MIGRATIONS_SQL} label="SQL" />
+            <h4 className="text-sm font-bold text-ink">{setup.lockStepTitle}</h4>
+            <p className="text-sm text-ink-muted">{setup.lockStepDescription}</p>
+            <CopyableBlock value={LOCK_DEFAULT_SCHEDULES_MIGRATION_SQL} label="SQL" />
           </div>
 
           <div className="space-y-3">

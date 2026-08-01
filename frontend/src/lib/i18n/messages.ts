@@ -47,6 +47,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       setupButton: "Salvar e recarregar",
       setupTried: "Tentativas",
       noAvailableData: "Não disponível",
+      resultTruncatedTitle: "Resultado incompleto",
+      resultTruncatedDescription:
+        "A busca atingiu o teto de segurança de eventos, então há registros do período que não aparecem aqui. Reduza a janela de tempo ou refine os filtros antes de tirar conclusões.",
     },
     supabaseRequired: {
       title: "Conecte o Supabase para continuar",
@@ -433,7 +436,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       adminTokenMissingLink: "Ir para Configurações",
       tabs: {
         schedules: "Agendamentos",
-        connection: "Entrega automática",
         setup: "Configuração",
       },
       setup: {
@@ -444,9 +446,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         checking: "Verificando...",
         step1Title: "1. Criar as tabelas no Supabase",
         step1Description: "Copie o SQL abaixo e cole no SQL Editor do seu projeto Supabase (Dashboard → SQL Editor → New query) e execute.",
-        hubStepTitle: "1b. Só no SEU projeto padrão (não copie isso para o Supabase de outra pessoa)",
-        hubStepDescription:
-          "Este SQL cria o registro de conexões de terceiros e tranca o acesso anônimo aos SEUS agendamentos — rode uma única vez, só no projeto Supabase que este site usa por padrão (o mesmo do SUPABASE_URL abaixo). Visitantes trazendo o próprio Supabase não precisam disso: eles só rodam o passo 1 no projeto deles e se registram pela tela de agendamentos.",
+        lockStepTitle: "1b. Só no SEU projeto padrão (não copie isso para o Supabase de outra pessoa)",
+        lockStepDescription:
+          "Este SQL tranca o acesso anônimo aos SEUS agendamentos — rode uma única vez, só no projeto Supabase que este site usa por padrão (o mesmo do SUPABASE_URL abaixo). Ele é necessário porque a anon key desse projeto vai dentro do bundle público, então sem a trava qualquer visitante poderia criar agendamentos que saem pelo seu Gmail. Quem usa o próprio Supabase não deve rodar isto: lá os agendamentos são gerenciados direto do navegador com a anon key do próprio projeto.",
         step2Title: "2. Configurar as variáveis de ambiente no Vercel",
         step2Description: "A função que envia os relatórios já faz parte do projeto (frontend/api/send-scheduled-reports.ts) e é publicada automaticamente a cada deploy. Falta só adicionar estas variáveis em Project Settings → Environment Variables no painel do Vercel e refazer o deploy.",
         step3Title: "3. Frequência do disparo",
@@ -454,40 +456,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         copyButton: "Copiar",
         copied: "Copiado!",
         recheckButton: "Verificar novamente",
-      },
-      connection: {
-        title: "Entrega automática para o seu Supabase",
-        description:
-          "Registre seu próprio projeto Supabase (chave service_role) e uma conta Gmail para que os agendamentos criados aqui sejam enviados automaticamente pelo cron deste site — sem que o dono deste site veja seus dados ou credenciais.",
-        supabaseUrlLabel: "URL do seu projeto Supabase",
-        supabaseUrlPlaceholder: "https://seu-projeto.supabase.co",
-        serviceRoleKeyLabel: "Service role key do seu Supabase",
-        serviceRoleKeyHint: "Painel do Supabase → Project Settings → API → service_role key. Fica só criptografada, nunca em texto puro.",
-        gmailUserLabel: "Seu Gmail",
-        gmailAppPasswordLabel: "Senha de app do Gmail",
-        gmailAppPasswordHint: "Gerada em myaccount.google.com/apppasswords (16 caracteres, com Verificação em 2 etapas ativada).",
-        fromNameLabel: "Nome do remetente (opcional)",
-        labelLabel: "Nome para identificar esta conexão (opcional)",
-        registerButton: "Registrar conexão",
-        registering: "Registrando...",
-        missingFields: "Preencha URL do Supabase, service role key, Gmail e senha de app.",
-        tokenWarningTitle: "Guarde este código agora — ele não aparece de novo",
-        tokenWarningDescription:
-          "Esse código é a única forma de gerenciar ou remover esta conexão depois. Ele já foi salvo neste navegador, mas se você limpar os dados do site ou trocar de navegador vai precisar dele.",
-        copyToken: "Copiar código",
-        copied: "Copiado!",
-        doneButton: "Já salvei",
-        connectedTitle: "Conexão registrada",
-        unnamedConnection: "Sem nome",
-        statusActive: "Ativa",
-        statusInactive: "Inativa",
-        lastCheckedLabel: "Última verificação do cron",
-        lastCheckedNever: "Ainda não verificada",
-        lastErrorLabel: "Último erro",
-        removeButton: "Remover conexão",
-        removeConfirm: "Remover esta conexão? A entrega automática para o seu Supabase vai parar.",
-        removing: "Removendo...",
-        errorFeedback: "Não foi possível completar a operação.",
       },
       list: {
         sectionTitle: "Seus agendamentos",
@@ -611,6 +579,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       setupButton: "Save and reload",
       setupTried: "Tried",
       noAvailableData: "Not available",
+      resultTruncatedTitle: "Incomplete result",
+      resultTruncatedDescription:
+        "The search hit the safety cap on events, so some records from this period are missing here. Shorten the time window or narrow the filters before drawing conclusions.",
     },
     supabaseRequired: {
       title: "Connect Supabase to continue",
@@ -997,7 +968,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       adminTokenMissingLink: "Go to Settings",
       tabs: {
         schedules: "Schedules",
-        connection: "Automatic delivery",
         setup: "Setup",
       },
       setup: {
@@ -1008,9 +978,9 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         checking: "Checking...",
         step1Title: "1. Create the tables in Supabase",
         step1Description: "Copy the SQL below and paste it into your Supabase project's SQL Editor (Dashboard → SQL Editor → New query), then run it.",
-        hubStepTitle: "1b. Your own default project ONLY (don't copy this into someone else's Supabase)",
-        hubStepDescription:
-          "This SQL creates the registry of other people's connections and locks down anonymous access to YOUR schedules — run it once, only on the Supabase project this site uses by default (the same one as SUPABASE_URL below). Visitors bringing their own Supabase don't need this: they only run step 1 on their own project and register from the Scheduled reports page.",
+        lockStepTitle: "1b. Your own default project ONLY (don't copy this into someone else's Supabase)",
+        lockStepDescription:
+          "This SQL locks down anonymous access to YOUR schedules — run it once, only on the Supabase project this site uses by default (the same one as SUPABASE_URL below). It's needed because that project's anon key ships inside the public bundle, so without the lock any visitor could create schedules that go out through your Gmail. Anyone using their own Supabase should not run this: there, schedules are managed straight from the browser with their own project's anon key.",
         step2Title: "2. Set the environment variables on Vercel",
         step2Description: "The function that sends the reports is already part of the project (frontend/api/send-scheduled-reports.ts) and gets deployed automatically on every deploy. Just add these variables under Project Settings → Environment Variables in the Vercel dashboard, then redeploy.",
         step3Title: "3. Trigger frequency",
@@ -1018,40 +988,6 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
         copyButton: "Copy",
         copied: "Copied!",
         recheckButton: "Check again",
-      },
-      connection: {
-        title: "Automatic delivery for your own Supabase",
-        description:
-          "Register your own Supabase project (service role key) and a Gmail account so schedules you create here get sent automatically by this site's cron — without this site's owner ever seeing your data or credentials.",
-        supabaseUrlLabel: "Your Supabase project URL",
-        supabaseUrlPlaceholder: "https://your-project.supabase.co",
-        serviceRoleKeyLabel: "Your Supabase service role key",
-        serviceRoleKeyHint: "Supabase dashboard → Project Settings → API → service_role key. Stored encrypted only, never in plain text.",
-        gmailUserLabel: "Your Gmail address",
-        gmailAppPasswordLabel: "Gmail app password",
-        gmailAppPasswordHint: "Generated at myaccount.google.com/apppasswords (16 characters, with 2-Step Verification enabled).",
-        fromNameLabel: "Sender name (optional)",
-        labelLabel: "Name to identify this connection (optional)",
-        registerButton: "Register connection",
-        registering: "Registering...",
-        missingFields: "Fill in Supabase URL, service role key, Gmail address and app password.",
-        tokenWarningTitle: "Save this code now — it won't be shown again",
-        tokenWarningDescription:
-          "This code is the only way to manage or remove this connection later. It's already saved in this browser, but if you clear site data or switch browsers you'll need it.",
-        copyToken: "Copy code",
-        copied: "Copied!",
-        doneButton: "I saved it",
-        connectedTitle: "Connection registered",
-        unnamedConnection: "Unnamed",
-        statusActive: "Active",
-        statusInactive: "Inactive",
-        lastCheckedLabel: "Last checked by cron",
-        lastCheckedNever: "Not checked yet",
-        lastErrorLabel: "Last error",
-        removeButton: "Remove connection",
-        removeConfirm: "Remove this connection? Automatic delivery for your Supabase will stop.",
-        removing: "Removing...",
-        errorFeedback: "Couldn't complete the operation.",
       },
       list: {
         sectionTitle: "Your schedules",

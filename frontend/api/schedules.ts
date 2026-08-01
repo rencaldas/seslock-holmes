@@ -25,16 +25,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, readEnv } from "../src/lib/scheduled-reports/report-runner.js";
+import { isBearerTokenValid } from "../src/lib/server/request-auth.js";
 
 const REPORT_SCHEDULES_TABLE = "report_schedules";
 const REPORT_SCHEDULE_RUNS_TABLE = "report_schedule_runs";
 
 function isAuthorized(request: VercelRequest): boolean {
-  const adminToken = readEnv("ADMIN_API_TOKEN");
-  if (!adminToken) return false;
-
-  const header = request.headers.authorization;
-  return header === `Bearer ${adminToken}`;
+  return isBearerTokenValid(request.headers.authorization, readEnv("ADMIN_API_TOKEN"));
 }
 
 function defaultProjectClient(): SupabaseClient {

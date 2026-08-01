@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EmailEventRow } from "@/lib/supabase/types";
+// Import relativo com extensão .js (e não pelo alias @/) porque este módulo é
+// alcançado pelo report-runner nas funções da Vercel, onde o loader ESM do
+// Node resolve os caminhos em runtime e exige a extensão explícita. O import
+// de EmailEventRow acima pode usar @/ por ser `import type`, apagado na
+// compilação e nunca resolvido pelo Node.
+import { UNLIMITED_ROW_LIMIT_CAP } from "../../row-limits.js";
 
 const FETCH_BATCH_SIZE = 1000;
 
@@ -36,6 +42,15 @@ export const EMAIL_EVENT_LIST_COLUMNS = [
   "userAgent",
 ].join(",");
 
+export interface FetchEventRowsResult {
+  rows: EmailEventRow[];
+  // Só é true quando a busca parou no teto de segurança que NÓS impomos
+  // (UNLIMITED_ROW_LIMIT_CAP, usado quando maxRows vem indefinido por causa da
+  // opção "sem limite"). Um recorte pedido pelo próprio usuário via rowLimit
+  // não conta: ele já escolheu aquele número e o vê no seletor de filtros.
+  truncated: boolean;
+}
+
 interface FetchEventRowsOptions {
   endIso?: string;
   maxRows?: number;
@@ -58,10 +73,10 @@ async function fetchRowsByTimeColumn(
   options: FetchEventRowsOptions,
 ) {
   const rows: EmailEventRow[] = [];
-  const maxRows =
-    options.maxRows === undefined
-      ? Number.POSITIVE_INFINITY
-      : Math.max(1, Math.floor(options.maxRows));
+  const cappedByDefault = options.maxRows === undefined;
+  const maxRows = cappedByDefault
+    ? UNLIMITED_ROW_LIMIT_CAP
+    : Math.max(1, Math.floor(options.maxRows as number));
   let offset = 0;
 
   while (rows.length < maxRows) {
@@ -97,7 +112,7 @@ async function fetchRowsByTimeColumn(
     offset += batchSize;
   }
 
-  return rows;
+  return { rows, truncated: cappedByDefault && rows.length >= maxRows };
 }
 
 export async function fetchEventRowsWithTimeFallback(
@@ -105,7 +120,7 @@ export async function fetchEventRowsWithTimeFallback(
   eventTable: string,
   startIso: string,
   options: FetchEventRowsOptions = {},
-) {
+): Promise<FetchEventRowsResult> {
   try {
     return await fetchRowsByTimeColumn(client, eventTable, startIso, "timestamp", options);
   } catch (error) {

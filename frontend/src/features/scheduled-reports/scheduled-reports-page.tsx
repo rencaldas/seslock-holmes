@@ -27,10 +27,8 @@ import {
   adminSetScheduleActive,
   adminUpdateSchedule,
 } from "@/lib/scheduled-reports/admin-queries";
-import { loadStoredConnection, type StoredConnection } from "@/lib/scheduled-reports/connection-settings";
 import type { ReportSchedule, ScheduleInput } from "@/lib/scheduled-reports/types";
 import { SetupPanel } from "@/features/scheduled-reports/setup-panel";
-import { ConnectionPanel } from "@/features/scheduled-reports/connection-panel";
 import { ScheduleForm } from "@/features/scheduled-reports/schedule-form";
 import { ScheduleHistory } from "@/features/scheduled-reports/schedule-history";
 
@@ -51,11 +49,10 @@ export function ScheduledReportsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"schedules" | "connection" | "setup">("schedules");
+  const [activeTab, setActiveTab] = useState<"schedules" | "setup">("schedules");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
-  const [connection, setConnection] = useState<StoredConnection | null>(() => loadStoredConnection());
   const [runNowFeedback, setRunNowFeedback] = useState<
     Record<string, { status: "success" } | { status: "error"; message: string }>
   >({});
@@ -108,8 +105,7 @@ export function ScheduledReportsPage() {
   });
 
   const runNowMutation = useMutation({
-    mutationFn: (id: string) =>
-      runScheduleNow(id, !isDefaultProject && connection ? { connectionId: connection.connectionId, token: connection.token } : undefined),
+    mutationFn: (id: string) => runScheduleNow(id),
     onMutate: (id) => {
       setRunNowFeedback((current) => {
         const { [id]: _removed, ...rest } = current;
@@ -135,7 +131,6 @@ export function ScheduledReportsPage() {
 
   const tabItems = [
     { value: "schedules", label: t.scheduledReports.tabs.schedules },
-    ...(!isDefaultProject ? [{ value: "connection", label: t.scheduledReports.tabs.connection }] : []),
     { value: "setup", label: t.scheduledReports.tabs.setup },
   ];
 
@@ -332,10 +327,6 @@ export function ScheduledReportsPage() {
             ) : null}
           </section>
         ) : null
-      ) : null}
-
-      {activeTab === "connection" && !isDefaultProject ? (
-        <ConnectionPanel connection={connection} onConnectionChange={setConnection} />
       ) : null}
 
       {activeTab === "setup" ? <SetupPanel collapsedByDefault={false} /> : null}
