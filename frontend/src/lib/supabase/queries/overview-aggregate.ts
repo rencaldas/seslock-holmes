@@ -21,7 +21,7 @@ import type { EmailEventRow, OverviewQueryInput } from "@/lib/supabase/types";
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-interface TimeSeriesBucketRow {
+export interface TimeSeriesBucketRow {
   timestamp: number;
   total: number;
   sent: number;
@@ -30,7 +30,7 @@ interface TimeSeriesBucketRow {
   complained: number;
 }
 
-interface OverviewAggregateResponse extends OverviewAggregate {
+export interface OverviewAggregateResponse extends OverviewAggregate {
   timeSeriesGranularity: TimeSeriesGranularity;
   timeSeries: TimeSeriesBucketRow[];
 }
@@ -47,7 +47,7 @@ function formatBucketLabel(timestamp: number, granularity: TimeSeriesGranularity
 // vazios é o JS, igual ao buildEventTimeSeries original — sem isso o gráfico
 // desenharia uma linha contínua entre dois dias distantes, escondendo que não
 // houve envio nenhum no meio.
-function fillTimeSeriesGaps(
+export function fillTimeSeriesGaps(
   buckets: TimeSeriesBucketRow[],
   granularity: TimeSeriesGranularity,
   language: AppLanguage,

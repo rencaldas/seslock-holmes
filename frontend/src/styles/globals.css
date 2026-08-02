@@ -109,6 +109,8 @@ html.dark {
 }
 
 body {
+  position: relative;
+  z-index: 0;
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
@@ -117,6 +119,21 @@ body {
     sans-serif;
   font-feature-settings: "cv11", "ss01";
   background-color: #f8fafc;
+}
+
+/* O fundo decorativo (glow + grade) fica num pseudo-elemento com
+   position: fixed em vez de background-attachment: fixed no body.
+   background-attachment: fixed obriga o navegador a repintar esse
+   background em cada frame de rolagem (não é composto pela GPU como
+   layer independente), o que é a causa mais comum de scroll com
+   sensação de baixo fps. position: fixed vira sua própria layer de
+   composição e é pintado uma vez só. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(720px circle at 12% 8%, rgba(var(--bg-glow-indigo), 0.07), transparent 60%),
     radial-gradient(640px circle at 88% 82%, rgba(var(--bg-glow-emerald), 0.05), transparent 65%),
@@ -125,11 +142,13 @@ body {
     linear-gradient(90deg, rgba(var(--bg-grid-line), 0.035) 1px, transparent 1px),
     radial-gradient(circle at 50% 50%, #ffffff 55%, #eef1f8 100%);
   background-size: auto, auto, auto, 32px 32px, 32px 32px, auto;
-  background-attachment: fixed;
 }
 
 html.dark body {
   background-color: #0a0e1a;
+}
+
+html.dark body::before {
   background-image:
     radial-gradient(720px circle at 12% 8%, rgba(var(--bg-glow-indigo), 0.16), transparent 60%),
     radial-gradient(640px circle at 88% 82%, rgba(var(--bg-glow-emerald), 0.07), transparent 65%),
@@ -138,7 +157,6 @@ html.dark body {
     linear-gradient(90deg, rgba(var(--bg-grid-line), 0.05) 1px, transparent 1px),
     radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
   background-size: auto, auto, auto, 32px 32px, 32px 32px, auto;
-  background-attachment: fixed;
 }
 
 ::selection {
@@ -255,9 +273,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  height: 2.25rem;
-  padding: 0 0.375rem;
+  height: 2.5rem;
+  padding: 0;
   border: 0;
   border-radius: 9999px;
   background: transparent;
@@ -270,18 +287,42 @@ a {
 }
 
 .theme-icon {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
   display: inline-flex;
-  width: 1rem;
-  height: 1rem;
+  width: 1.05rem;
+  height: 1.05rem;
   flex-shrink: 0;
-  transition: opacity 260ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1), color 260ms ease;
+  transform: translateY(-50%);
+  color: #8994a8;
+  opacity: 0.55;
+  transition: opacity 260ms ease, color 260ms ease;
+}
+
+.theme-icon-sun {
+  left: 7px;
+}
+
+.theme-icon-sun.is-active {
+  color: #f5b93d;
+  opacity: 1;
+}
+
+.theme-icon-moon {
+  right: 7px;
+}
+
+.theme-icon-moon.is-active {
+  color: #5b8cff;
+  opacity: 1;
 }
 
 .theme-toggle-track {
-  --theme-thumb-travel: 24px;
+  --theme-thumb-travel: 32px;
   position: relative;
-  width: 52px;
-  height: 28px;
+  width: 68px;
+  height: 36px;
   border: 2px solid #1a263d;
   border-radius: 9999px;
   overflow: hidden;
@@ -305,10 +346,10 @@ a {
 
 .theme-toggle-thumb {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: linear-gradient(135deg, #c3cada, #8c96ad);
   box-shadow:

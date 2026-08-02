@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import overviewLogo from "@/assets/overview-logo.png";
-import overviewLogoBlack from "@/assets/overview-logo-black.png";
+import overviewLogo from "@/assets/overview-logo.webp";
+import overviewLogoBlack from "@/assets/overview-logo-black.webp";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { OverviewSkeleton } from "@/components/states/overview-skeleton";

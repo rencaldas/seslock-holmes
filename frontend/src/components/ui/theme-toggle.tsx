@@ -31,17 +31,11 @@ export function ThemeToggle() {
       aria-label={isDark ? t.shell.switchToLight : t.shell.switchToDark}
       className={cn("theme-toggle", isSwitching && "is-switching")}
     >
-      <Sun
-        aria-hidden="true"
-        className={cn("theme-icon", theme === "light" ? "text-ink opacity-100" : "text-ink-muted opacity-40")}
-      />
       <span className="theme-toggle-track" aria-hidden="true">
+        <Sun aria-hidden="true" className={cn("theme-icon theme-icon-sun", theme === "light" && "is-active")} />
+        <Moon aria-hidden="true" className={cn("theme-icon theme-icon-moon", theme === "dark" && "is-active")} />
         <span className="theme-toggle-thumb" />
       </span>
-      <Moon
-        aria-hidden="true"
-        className={cn("theme-icon", theme === "dark" ? "text-ink opacity-100" : "text-ink-muted opacity-40")}
-      />
     </button>
   );
 }

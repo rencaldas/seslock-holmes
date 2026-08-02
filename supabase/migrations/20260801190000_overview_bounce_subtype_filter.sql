@@ -6,6 +6,21 @@
 -- chamadas existentes (sem o argumento) continuam funcionando sem mudança.
 -- Segue o mesmo padrao de p_status: comparacao exata contra a coluna, só
 -- entra no WHERE dinamico quando != 'all'.
+--
+-- DROP explícito das assinaturas antigas antes do CREATE OR REPLACE: mudar a
+-- lista de parâmetros não substitui a função, cria uma sobrecarga — é
+-- exatamente o bug que 20260801130000_overview_rpc_final_signatures.sql
+-- corrigiu, e esta migration reincidia nele (faltavam estes DROPs). Detectado
+-- ao tentar aplicar no projeto n8n: o CREATE OR REPLACE do 8º parâmetro
+-- criou uma segunda overview_analytics, e o `comment on function` seguinte
+-- falhou com "function name is not unique" — revertido pela transação
+-- atômica da migration, sem deixar a sobrecarga para trás.
+drop function if exists public.overview_analytics(
+  timestamptz, timestamptz, text, text, text, text, int
+);
+drop function if exists public.overview_events(
+  timestamptz, timestamptz, text, text, text, text, text, int, int, int
+);
 
 create or replace function public.overview_analytics(
   p_start          timestamptz,

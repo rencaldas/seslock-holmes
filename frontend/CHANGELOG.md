@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0] - 2026-08-02
+### Added
+- Compartilhamento de dashboard: um botão "Compartilhar" na Visão geral gera um link público somente-leitura, com os filtros atuais travados. Quem abre o link não precisa de conta — o acesso é liberado por um token de 256 bits, sem exposição de nenhum outro dado além do que o link já escolheu mostrar. A lista de atividade recente (que traz e-mail de destinatário) fica desligada por padrão e é opcional por link. Em Configurações, uma nova seção lista e permite revogar os links já criados.
+### Changed
+- As páginas do painel agora carregam sob demanda (uma por vez, ao navegar) em vez de todas de uma vez no primeiro acesso — o pacote inicial fica menor.
+- Toggle de tema claro/escuro redesenhado, com os ícones de sol e lua agora dentro da trilha.
+- Logos convertidos para WebP, reduzindo o tamanho de cada um a menos de um terço do PNG original.
+- O painel não é mais indexado por buscadores (robots.txt e meta tag noindex).
+### Fixed
+- Corrigida uma rolagem mais pesada no navegador causada pelo fundo decorativo fixo; agora ele é pintado uma única vez em vez de repintado a cada frame.
+- Corrigida uma sobrecarga acidental de função no banco que impedia a migration do subtipo de bounce de ser aplicada em outros projetos Supabase.
+- Botões de ação da lista de relatórios agendados (editar, pausar/retomar, histórico, excluir) passam a mostrar uma dica ao passar o mouse.
+
 ## [1.10.0] - 2026-08-01
 ### Added
 - Filtro por subtipo de bounce no painel: quando o Status filtrado é "Bounce", um segundo seletor aparece para refinar por Suppressed, General, Mailbox full, Content rejected ou Undetermined. Na investigação por destinatário o filtro já vale; no Overview, os indicadores passam a valer assim que a migration correspondente for aplicada no banco em uso.

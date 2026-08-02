@@ -13,8 +13,8 @@ import {
   saveSupabaseSettings,
 } from "@/lib/supabase/settings";
 import { validateSupabaseCredentials } from "@/lib/supabase/validate";
-import overviewLogo from "@/assets/overview-logo.png";
-import overviewLogoBlack from "@/assets/overview-logo-black.png";
+import overviewLogo from "@/assets/overview-logo.webp";
+import overviewLogoBlack from "@/assets/overview-logo-black.webp";
 
 const SUPABASE_DASHBOARD_URL = "https://supabase.com/dashboard/org/";
 

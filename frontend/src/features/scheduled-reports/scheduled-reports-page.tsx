@@ -255,6 +255,7 @@ export function ScheduledReportsPage() {
                                 setFormOpen(true);
                               }}
                               aria-label={list.edit}
+                              title={list.edit}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -263,6 +264,7 @@ export function ScheduledReportsPage() {
                               className="h-8 w-8 p-0"
                               onClick={() => toggleActiveMutation.mutate({ id: schedule.id, isActive: !schedule.isActive })}
                               aria-label={schedule.isActive ? list.pause : list.resume}
+                              title={schedule.isActive ? list.pause : list.resume}
                             >
                               {schedule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                             </Button>
@@ -271,6 +273,7 @@ export function ScheduledReportsPage() {
                               className="h-8 w-8 p-0"
                               onClick={() => setHistoryId((current) => (current === schedule.id ? null : schedule.id))}
                               aria-label={list.viewHistory}
+                              title={list.viewHistory}
                             >
                               <History className="h-4 w-4" />
                             </Button>
@@ -297,6 +300,7 @@ export function ScheduledReportsPage() {
                                 }
                               }}
                               aria-label={list.delete}
+                              title={list.delete}
                             >
                               <Trash2 className="h-4 w-4 text-danger" />
                             </Button>
