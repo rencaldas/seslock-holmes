@@ -109,6 +109,8 @@ html.dark {
 }
 
 body {
+  position: relative;
+  z-index: 0;
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
@@ -117,6 +119,21 @@ body {
     sans-serif;
   font-feature-settings: "cv11", "ss01";
   background-color: #f8fafc;
+}
+
+/* O fundo decorativo (glow + grade) fica num pseudo-elemento com
+   position: fixed em vez de background-attachment: fixed no body.
+   background-attachment: fixed obriga o navegador a repintar esse
+   background em cada frame de rolagem (não é composto pela GPU como
+   layer independente), o que é a causa mais comum de scroll com
+   sensação de baixo fps. position: fixed vira sua própria layer de
+   composição e é pintado uma vez só. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(720px circle at 12% 8%, rgba(var(--bg-glow-indigo), 0.07), transparent 60%),
     radial-gradient(640px circle at 88% 82%, rgba(var(--bg-glow-emerald), 0.05), transparent 65%),
@@ -125,11 +142,13 @@ body {
     linear-gradient(90deg, rgba(var(--bg-grid-line), 0.035) 1px, transparent 1px),
     radial-gradient(circle at 50% 50%, #ffffff 55%, #eef1f8 100%);
   background-size: auto, auto, auto, 32px 32px, 32px 32px, auto;
-  background-attachment: fixed;
 }
 
 html.dark body {
   background-color: #0a0e1a;
+}
+
+html.dark body::before {
   background-image:
     radial-gradient(720px circle at 12% 8%, rgba(var(--bg-glow-indigo), 0.16), transparent 60%),
     radial-gradient(640px circle at 88% 82%, rgba(var(--bg-glow-emerald), 0.07), transparent 65%),
@@ -138,7 +157,6 @@ html.dark body {
     linear-gradient(90deg, rgba(var(--bg-grid-line), 0.05) 1px, transparent 1px),
     radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
   background-size: auto, auto, auto, 32px 32px, 32px 32px, auto;
-  background-attachment: fixed;
 }
 
 ::selection {
