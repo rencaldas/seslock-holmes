@@ -16,6 +16,11 @@ type SupabaseState = {
   error: string | null;
   eventsTable: string | null;
   triedTables: string[];
+  // URL/anon key resolvidos (env ou Configurações). Expostos aqui porque
+  // links de dashboard compartilhado (ver dashboard-shares/link.ts) precisam
+  // embuti-los na URL — quem abre o link não tem Configurações salvas.
+  url: string | null;
+  anonKey: string | null;
   // True when this browser has no Settings override — i.e. it's using this
   // deployment's own default Supabase project. Scheduled-reports management
   // for that project goes through the admin-gated /api/schedules API
@@ -94,6 +99,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       : "As credenciais do Supabase estão ausentes. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY, ou salve-as em Configurações.",
     eventsTable: env?.eventsTable ?? null,
     triedTables: env?.eventsTable ? [env.eventsTable] : [],
+    url: env?.url ?? null,
+    anonKey: env?.anonKey ?? null,
     isDefaultProject: !hasOwnOverride,
     adminToken: localSettings?.adminToken || null,
     session,
