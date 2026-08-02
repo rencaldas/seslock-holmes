@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { signInWithPassword } from "@/lib/supabase/auth";
 import { useSupabase } from "@/lib/supabase/context";
-import overviewLogo from "@/assets/overview-logo.png";
-import overviewLogoBlack from "@/assets/overview-logo-black.png";
+import overviewLogo from "@/assets/overview-logo.webp";
+import overviewLogoBlack from "@/assets/overview-logo-black.webp";
 
 // Tela exibida quando uma consulta é recusada por permissão e ainda não há
 // sessão. Não é a porta de entrada do app: quem usa um Supabase com a RLS

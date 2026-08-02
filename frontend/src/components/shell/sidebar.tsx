@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { Activity, BookOpen, CalendarClock, Search, Settings2, X } from "lucide-react";
-import overviewLogo from "@/assets/overview-logo.png";
-import overviewLogoBlack from "@/assets/overview-logo-black.png";
+import overviewLogo from "@/assets/overview-logo.webp";
+import overviewLogoBlack from "@/assets/overview-logo-black.webp";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
