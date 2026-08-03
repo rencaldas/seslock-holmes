@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1] - 2026-08-03
+### Fixed
+- O card de Taxa de Entrega no Overview era o único entre os indicadores principais sem o gráfico de sparkline e sem o indicador de tendência, deixando-o com aparência incompleta em relação aos demais (Entregues, Bounce, Reclamação). Agora ele mostra o mesmo histórico e a mesma seta de tendência.
+
 ## [1.11.0] - 2026-08-02
 ### Added
 - Compartilhamento de dashboard: um botão "Compartilhar" na Visão geral gera um link público somente-leitura, com os filtros atuais travados. Quem abre o link não precisa de conta — o acesso é liberado por um token de 256 bits, sem exposição de nenhum outro dado além do que o link já escolheu mostrar. A lista de atividade recente (que traz e-mail de destinatário) fica desligada por padrão e é opcional por link. Em Configurações, uma nova seção lista e permite revogar os links já criados.
