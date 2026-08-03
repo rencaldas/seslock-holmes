@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.2] - 2026-08-03
+### Fixed
+- O banner de aviso "somente-leitura" no dashboard compartilhado usava uma cor de fundo que se tornava clara no tema escuro, deixando o texto branco ilegível. A cor agora é fixa, com contraste garantido em ambos os temas.
+
 ## [1.11.1] - 2026-08-03
 ### Fixed
 - O card de Taxa de Entrega no Overview era o único entre os indicadores principais sem o gráfico de sparkline e sem o indicador de tendência, deixando-o com aparência incompleta em relação aos demais (Entregues, Bounce, Reclamação). Agora ele mostra o mesmo histórico e a mesma seta de tendência.
