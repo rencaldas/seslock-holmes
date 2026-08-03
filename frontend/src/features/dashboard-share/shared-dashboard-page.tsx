@@ -67,7 +67,7 @@ export function SharedDashboardPage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <div className="sticky top-0 z-20 flex items-center justify-center gap-2 bg-ink px-4 py-2.5 text-center text-xs font-semibold text-white">
+      <div className="sticky top-0 z-20 flex items-center justify-center gap-2 bg-slate-900 px-4 py-2.5 text-center text-xs font-semibold text-white">
         <Lock className="h-3.5 w-3.5" />
         {s.banner}
         {data.label ? <span className="font-normal text-white/70">· {data.label}</span> : null}
