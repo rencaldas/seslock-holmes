@@ -45,12 +45,14 @@ import {
   GMAIL_APP_PASSWORD,
   GMAIL_FROM_NAME,
   buildReportForSchedule,
+  readEnv,
   recordLastRunOnly,
   recordScheduleRun,
   sendReportEmail,
   type GmailCredentials,
   type ReportScheduleRow,
 } from "../src/lib/scheduled-reports/report-runner.js";
+import { isBearerTokenValid } from "../src/lib/server/request-auth.js";
 
 function resolveTarget():
   | { client: SupabaseClient; credentials: GmailCredentials }
@@ -70,6 +72,14 @@ function resolveTarget():
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   try {
+    // Same ADMIN_API_TOKEN that gates schedules.ts — this endpoint forces an
+    // immediate send for one of that same project's schedules, so it needs
+    // the same owner-only guard.
+    if (!isBearerTokenValid(request.headers.authorization, readEnv("ADMIN_API_TOKEN"))) {
+      response.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     if (request.method !== "POST") {
       response.status(405).json({ error: "Method not allowed" });
       return;
