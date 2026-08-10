@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.3] - 2026-08-10
+### Fixed
+- O endpoint que força o envio imediato de um relatório agendado (`/api/run-schedule-now`) não checava nenhum token de autenticação — qualquer requisição POST com um `scheduleId` válido disparava o envio pelo Gmail. Agora exige `Authorization: Bearer <ADMIN_API_TOKEN>`, o mesmo token que já protege a gestão de agendamentos.
+### Changed
+- A política de segurança de conteúdo (CSP) do painel, que rodava em modo somente-observação (`Content-Security-Policy-Report-Only`) desde a versão anterior sem violações inesperadas, passou a ser aplicada de fato (`Content-Security-Policy`).
+- Dependências atualizadas via `npm audit fix` (postcss e nanoid), corrigindo duas vulnerabilidades sem mudança de major version.
+
 ## [1.11.2] - 2026-08-03
 ### Fixed
 - O banner de aviso "somente-leitura" no dashboard compartilhado usava uma cor de fundo que se tornava clara no tema escuro, deixando o texto branco ilegível. A cor agora é fixa, com contraste garantido em ambos os temas.
