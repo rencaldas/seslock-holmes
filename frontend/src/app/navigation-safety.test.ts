@@ -1,21 +1,18 @@
-// Trava de regressão para GHSA-wrjc-x8rr-h8h6 (open redirect via backslash em
-// <Link> e useNavigate), que afeta todo o react-router 6.0.0–7.17.0.
+// Trava de defesa em profundidade contra open redirect via <Link>/useNavigate
+// (classe de bug coberta por GHSA-wrjc-x8rr-h8h6, que afetou o react-router
+// 6.0.0–7.17.0 e já está corrigida na versão instalada — ver package.json).
 //
-// A 6.30.4 que usamos está dentro do range vulnerável e não existe correção na
-// linha 6.x — a 6.30.4 é a última. Corrigir exigiria migrar para a v7, uma
-// major que toca todas as rotas. A auditoria mediu a exposição real como nula
-// e optou-se por permanecer na 6.30.4, com esta trava no lugar.
+// A CVE original só era explorável quando um valor controlado por terceiros
+// definia o INÍCIO do destino da navegação (ex.: `\\evil.com` ou `//evil.com`
+// sendo tratado como URL absoluta). Hoje toda navegação do app começa com um
+// caminho literal (`/events/`, `/investigate?`, `/settings`), então o trecho
+// dinâmico nunca ocupa a primeira posição e não consegue trocar a origem —
+// essa propriedade continua valendo independentemente da versão do router,
+// então o teste fica como guarda permanente, não como mitigação temporária.
 //
-// A CVE só é explorável quando um valor controlado por terceiros define o
-// INÍCIO do destino da navegação (ex.: `\\evil.com` ou `//evil.com` sendo
-// tratado como URL absoluta). Hoje toda navegação do app começa com um caminho
-// literal (`/events/`, `/investigate?`, `/settings`), então o trecho dinâmico
-// nunca ocupa a primeira posição e não consegue trocar a origem.
-//
-// Este teste garante que essa propriedade continue valendo: qualquer destino
-// novo que não comece com literal falha aqui e força uma revisão consciente.
-// Se a exceção for legítima, adicione-a a ALLOWED_DYNAMIC_TARGETS com a
-// justificativa. Quando migrarmos para a v7, este arquivo pode ser removido.
+// Qualquer destino novo que não comece com literal falha aqui e força uma
+// revisão consciente. Se a exceção for legítima, adicione-a a
+// ALLOWED_DYNAMIC_TARGETS com a justificativa.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -111,7 +108,7 @@ function startsWithLiteralPath(expression: string): boolean {
   return /^["'`]\//.test(expression);
 }
 
-describe("segurança de navegação (react-router 6.30.4)", () => {
+describe("segurança de navegação (destino sempre começa com caminho literal)", () => {
   const targets = collectSourceFiles(SRC_DIR).flatMap(extractNavigationTargets);
 
   it("encontra as navegações do app", () => {
@@ -136,11 +133,11 @@ describe("segurança de navegação (react-router 6.30.4)", () => {
 
     expect(
       unexpected.map((target) => `${target.file}: ${target.expression}`),
-      "Destino de navegação que não começa com caminho literal. Enquanto " +
-        "estivermos no react-router 6.30.4 (GHSA-wrjc-x8rr-h8h6), um valor " +
+      "Destino de navegação que não começa com caminho literal. Um valor " +
         "externo na primeira posição pode virar redirecionamento para outra " +
-        "origem. Garanta o prefixo literal ou adicione a exceção, com " +
-        "justificativa, em ALLOWED_DYNAMIC_TARGETS.",
+        "origem (classe de bug coberta por GHSA-wrjc-x8rr-h8h6). Garanta o " +
+        "prefixo literal ou adicione a exceção, com justificativa, em " +
+        "ALLOWED_DYNAMIC_TARGETS.",
     ).toEqual([]);
   });
 
