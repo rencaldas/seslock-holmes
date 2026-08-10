@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -33,5 +34,11 @@ export default defineConfig({
       // actually meant to be run.
       allow: [path.resolve(__dirname, ".."), path.resolve(__dirname)],
     },
+  },
+  test: {
+    // e2e/ holds Playwright specs (npm run test:e2e), not Vitest ones —
+    // without this, Vitest's default *.spec.ts discovery picks them up too
+    // and fails, since they call Playwright's own test()/expect().
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });
