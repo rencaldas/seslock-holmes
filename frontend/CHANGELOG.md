@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.4] - 2026-08-10
+### Fixed
+- Atualizada a dependência `react-router-dom` de `^6.30.1` para `^7.18.2`, corrigindo a vulnerabilidade moderate de open redirect via backslash em `<Link>`/`useNavigate` (GHSA-wrjc-x8rr-h8h6), sem patch disponível na faixa 6.x. Nenhuma mudança de comportamento da aplicação: o projeto já usava a API de data router (`createBrowserRouter`/`RouterProvider`) mantida em v7.
+
 ## [1.11.3] - 2026-08-10
 ### Fixed
 - O endpoint que força o envio imediato de um relatório agendado (`/api/run-schedule-now`) não checava nenhum token de autenticação — qualquer requisição POST com um `scheduleId` válido disparava o envio pelo Gmail. Agora exige `Authorization: Bearer <ADMIN_API_TOKEN>`, o mesmo token que já protege a gestão de agendamentos.
