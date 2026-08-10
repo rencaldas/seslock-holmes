@@ -11,6 +11,13 @@ function trendTone(direction: "up" | "down" | "flat", goodDirection: "up" | "dow
   return direction === goodDirection ? ("success" as const) : ("danger" as const);
 }
 
+function deliveryRateForPoint(point: EventTimeSeriesPoint) {
+  if (point.sent > 0) {
+    return (point.delivered / point.sent) * 100;
+  }
+  return point.total > 0 ? (point.delivered / point.total) * 100 : 0;
+}
+
 export function TopMetrics({
   analytics,
   timeSeries,
@@ -21,6 +28,7 @@ export function TopMetrics({
   const t = useI18n();
 
   const deliveredTrendDirection = pickTrendDirection(timeSeries, (point) => point.delivered);
+  const deliveryRateTrendDirection = pickTrendDirection(timeSeries, deliveryRateForPoint);
   const bounceTrendDirection = pickTrendDirection(timeSeries, (point) => point.bounced);
   const complaintTrendDirection = pickTrendDirection(timeSeries, (point) => point.complained);
 
@@ -47,6 +55,12 @@ export function TopMetrics({
         suffix="%"
         tone="brand"
         highlighted
+        sparklineData={extractSeries(timeSeries, deliveryRateForPoint)}
+        trend={{
+          direction: deliveryRateTrendDirection,
+          tone: trendTone(deliveryRateTrendDirection, "up"),
+          label: t.overview.analytics.trendVsPrevious,
+        }}
       />
       <MetricCard
         icon={AlertTriangle}
