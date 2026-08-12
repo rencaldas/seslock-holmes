@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0] - 2026-08-12
+### Added
+- A tela de Investigação (`/investigate`) ganhou o mesmo menu de exportação de relatório (PDF, CSV e JSON) já existente na Visão Geral. O relatório respeita a busca atual (destinatário, remetente ou provedor) e os demais filtros aplicados, trazendo todos os eventos correspondentes — não só a página de 25 exibida na tela.
+### Changed
+- A seção "Links compartilhados" saiu de Configurações e agora é uma aba própria em Relatórios Agendados, ao lado de "Agendamentos" e "Configuração".
+
 ## [1.11.4] - 2026-08-10
 ### Fixed
 - Atualizada a dependência `react-router-dom` de `^6.30.1` para `^7.18.2`, corrigindo a vulnerabilidade moderate de open redirect via backslash em `<Link>`/`useNavigate` (GHSA-wrjc-x8rr-h8h6), sem patch disponível na faixa 6.x. Nenhuma mudança de comportamento da aplicação: o projeto já usava a API de data router (`createBrowserRouter`/`RouterProvider`) mantida em v7.

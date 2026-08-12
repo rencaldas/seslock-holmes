@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { DashboardSharesSection } from "@/features/dashboard-share/dashboard-shares-section";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { AppClockFormat, AppLanguage, AppUpdateInterval } from "@/lib/i18n/types";
 import {
@@ -274,8 +273,6 @@ export function SettingsPage() {
           {error ? <p className="text-sm font-medium text-rose-700 dark:text-rose-400">{error}</p> : null}
         </CardContent>
       </Card>
-
-      <DashboardSharesSection />
     </div>
   );
 }

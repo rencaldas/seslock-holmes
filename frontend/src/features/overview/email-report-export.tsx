@@ -18,6 +18,7 @@ type ExportFormat = "pdf" | "csv" | "json";
 export function EmailReportExport({
   loadEvents,
   query,
+  description,
 }: {
   // Recebe um carregador em vez da lista pronta: o relatório é o único lugar
   // que ainda precisa de TODAS as linhas da consulta, e antes essa busca
@@ -25,6 +26,10 @@ export function EmailReportExport({
   // exportava nada. Agora só custa quando alguém clica.
   loadEvents: () => Promise<EmailEvent[]>;
   query: Record<string, string>;
+  // Sobrescreve o texto padrão (pensado para a Visão Geral) quando o
+  // consumidor precisa deixar explícito um comportamento diferente, como a
+  // Investigação ignorar o destinatário buscado e exportar todos mesmo assim.
+  description?: string;
 }) {
   const t = useI18n();
   const language = useAppLanguage();
@@ -87,7 +92,7 @@ export function EmailReportExport({
         {t.overview.exportReport}
       </summary>
       <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-card border border-slate-200 bg-white p-2 shadow-hover dark:border-slate-700 dark:bg-slate-900 md:left-0 md:right-auto">
-        <p className="px-3 py-2 text-xs leading-5 text-ink-muted">{t.overview.exportAllResults}</p>
+        <p className="px-3 py-2 text-xs leading-5 text-ink-muted">{description ?? t.overview.exportAllResults}</p>
         <div className="px-3 pb-2">
           <label className="mb-1 block text-xs font-medium text-ink-muted">{t.overview.exportSortLabel}</label>
           <Select

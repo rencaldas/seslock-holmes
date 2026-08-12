@@ -260,6 +260,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       kicker: "Investigação",
       title: "Diagnostique um endereço desde o primeiro envio até o resultado final.",
       backToOverview: "Voltar para a visão geral",
+      exportAllResults: "Inclui todos os eventos da busca e dos filtros atuais, não apenas a página atual, respeitando o limite de linhas escolhido nos filtros.",
       searchModeLabel: "Tipo de busca",
       searchPlaceholderAll: "Busque em todos os campos",
       searchPlaceholderRecipient: "maria@exemplo.com",
@@ -461,6 +462,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       tabs: {
         schedules: "Agendamentos",
         setup: "Configuração",
+        sharedLinks: "Links compartilhados",
       },
       setup: {
         title: "Configuração necessária",
@@ -881,6 +883,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       kicker: "Investigation",
       title: "Diagnose an address from the first send to the final outcome.",
       backToOverview: "Back to overview",
+      exportAllResults: "Includes every event matching the current search and filters, not only the current page, up to the row limit chosen in the filters.",
       searchModeLabel: "Search type",
       searchPlaceholderAll: "Search across all fields",
       searchPlaceholderRecipient: "maria@example.com",
@@ -1082,6 +1085,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       tabs: {
         schedules: "Schedules",
         setup: "Setup",
+        sharedLinks: "Shared links",
       },
       setup: {
         title: "Setup required",

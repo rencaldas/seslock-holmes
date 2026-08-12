@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -7,6 +8,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { SetupState } from "@/components/states/setup-state";
 import { TruncationNotice } from "@/components/states/truncation-notice";
+import { EmailReportExport } from "@/features/overview/email-report-export";
 import { RecipientResults } from "@/features/recipient-search/recipient-results";
 import { RelatedEmailSuggestions } from "@/features/recipient-search/related-email-suggestions";
 import { useFilters } from "@/lib/filters/filters-context";
@@ -14,7 +16,10 @@ import { normalizeEmail } from "@/lib/formatters/email";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { parseSearchMode } from "@/lib/recipient-search/search-mode";
 import { useSupabase } from "@/lib/supabase/context";
-import { fetchRecipientInvestigation } from "@/lib/supabase/queries/recipient-investigation";
+import {
+  fetchAllMatchingRecipientEvents,
+  fetchRecipientInvestigation,
+} from "@/lib/supabase/queries/recipient-investigation";
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
@@ -72,6 +77,26 @@ export function RecipientInvestigationPage() {
       }),
   });
 
+  // O relatório exportado usa a mesma busca e os mesmos filtros aplicados na
+  // tela (sem a paginação de 25 em 25) — se a investigação está filtrada por
+  // "compras@ramada.com.br", o relatório traz só os eventos desse endereço.
+  const loadReportEvents = useCallback(async () => {
+    return fetchAllMatchingRecipientEvents(supabase.client!, supabase.eventsTable!, {
+      searchText,
+      searchMode,
+      timeMode: appliedFilters.timeMode,
+      windowDays: appliedFilters.windowDays,
+      startAt: appliedFilters.startAt,
+      endAt: appliedFilters.endAt,
+      status: appliedFilters.status,
+      bounceSubType: appliedFilters.bounceSubType,
+      origin: appliedFilters.origin,
+      subject: appliedFilters.subject,
+      provider: appliedFilters.provider,
+      rowLimit: appliedFilters.rowLimit,
+    });
+  }, [supabase.client, supabase.eventsTable, searchText, searchMode, appliedFilters]);
+
   if (!supabase.ready) {
     return <LoadingState title={t.common.loadingSupabase} description={t.common.loadingDescription} />;
   }
@@ -97,10 +122,30 @@ export function RecipientInvestigationPage() {
             {t.investigation.title}
           </h2>
         </div>
-        <Button variant="secondary" onClick={() => navigate("/")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t.investigation.backToOverview}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <EmailReportExport
+            loadEvents={loadReportEvents}
+            query={{
+              search: searchText,
+              searchMode,
+              timeMode: appliedFilters.timeMode,
+              windowDays: String(appliedFilters.windowDays),
+              startAt: appliedFilters.timeMode === "custom" ? appliedFilters.startAt : "",
+              endAt: appliedFilters.timeMode === "custom" ? appliedFilters.endAt : "",
+              status: appliedFilters.status,
+              bounceSubType: appliedFilters.bounceSubType,
+              origin: appliedFilters.origin,
+              subject: appliedFilters.subject,
+              provider: appliedFilters.provider,
+              rows: String(appliedFilters.rowLimit),
+            }}
+            description={t.investigation.exportAllResults}
+          />
+          <Button variant="secondary" onClick={() => navigate("/")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t.investigation.backToOverview}
+          </Button>
+        </div>
       </div>
 
       {!searchText ? (
