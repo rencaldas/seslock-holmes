@@ -110,15 +110,19 @@ function buildRelatedEmails(events: EmailEvent[], searchText: string, mode: Reci
     .map(({ email, count }) => ({ email, count }));
 }
 
-export async function fetchRecipientInvestigation(
+type RecipientMatchQueryInput = Omit<RecipientInvestigationQueryInput, "page" | "pageSize">;
+
+// Núcleo compartilhado entre a busca paginada da tela e o carregador do
+// relatório exportável: ambos precisam do mesmo conjunto de eventos que
+// combina com o destinatário/remetente/provedor buscado, só que um pagina o
+// resultado e o outro exporta tudo.
+async function fetchMatchingRecipientEvents(
   client: SupabaseClient,
   tableName: string,
-  input: RecipientInvestigationQueryInput,
-): Promise<RecipientInvestigationResult> {
+  input: RecipientMatchQueryInput,
+) {
   const searchText = input.searchText.trim();
   const normalizedSearchText = normalizeEmail(searchText);
-  const from = (input.page - 1) * input.pageSize;
-  const to = from + input.pageSize - 1;
   const { startIso, endIso } = resolveTimeRange(input);
   const eventTable = tableName || getEventTable();
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(input.status);
@@ -166,6 +170,19 @@ export async function fetchRecipientInvestigation(
     .sort((a, b) => getAwsSnsOccurredAt(b).localeCompare(getAwsSnsOccurredAt(a)))
     .map((row) => rowToEmailEvent(row));
 
+  return { searchText, normalizedSearchText, scopedRows, matchingEvents, truncated };
+}
+
+export async function fetchRecipientInvestigation(
+  client: SupabaseClient,
+  tableName: string,
+  input: RecipientInvestigationQueryInput,
+): Promise<RecipientInvestigationResult> {
+  const from = (input.page - 1) * input.pageSize;
+  const to = from + input.pageSize - 1;
+  const { searchText, normalizedSearchText, scopedRows, matchingEvents, truncated } =
+    await fetchMatchingRecipientEvents(client, tableName, input);
+
   const pageEvents = matchingEvents.slice(from, to + 1);
   const relatedEmails = matchingEvents.length ? [] : buildRelatedEmails(scopedRows.map((row) => rowToEmailEvent(row)), searchText, input.searchMode);
 
@@ -183,4 +200,16 @@ export async function fetchRecipientInvestigation(
     relatedEmails,
     truncated,
   };
+}
+
+// Usado pelo relatório exportável do Investigate: mesma busca/filtros da
+// tela, mas sem paginação — o relatório precisa de todos os eventos que
+// combinam com a busca atual, não só a página visível.
+export async function fetchAllMatchingRecipientEvents(
+  client: SupabaseClient,
+  tableName: string,
+  input: RecipientMatchQueryInput,
+): Promise<EmailEvent[]> {
+  const { matchingEvents } = await fetchMatchingRecipientEvents(client, tableName, input);
+  return matchingEvents;
 }

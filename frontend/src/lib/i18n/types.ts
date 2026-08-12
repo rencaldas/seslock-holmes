@@ -257,6 +257,7 @@ export type TranslationBundle = {
     kicker: string;
     title: string;
     backToOverview: string;
+    exportAllResults: string;
     searchModeLabel: string;
     searchPlaceholderAll: string;
     searchPlaceholderRecipient: string;
