@@ -446,6 +446,7 @@ export type TranslationBundle = {
     tabs: {
       schedules: string;
       setup: string;
+      sharedLinks: string;
     };
     setup: {
       title: string;

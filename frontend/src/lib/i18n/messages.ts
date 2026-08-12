@@ -462,6 +462,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       tabs: {
         schedules: "Agendamentos",
         setup: "Configuração",
+        sharedLinks: "Links compartilhados",
       },
       setup: {
         title: "Configuração necessária",
@@ -1084,6 +1085,7 @@ export const translations: Record<AppLanguage, TranslationBundle> = {
       tabs: {
         schedules: "Schedules",
         setup: "Setup",
+        sharedLinks: "Shared links",
       },
       setup: {
         title: "Setup required",

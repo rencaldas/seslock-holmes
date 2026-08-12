@@ -28,6 +28,7 @@ import {
   adminUpdateSchedule,
 } from "@/lib/scheduled-reports/admin-queries";
 import type { ReportSchedule, ScheduleInput } from "@/lib/scheduled-reports/types";
+import { DashboardSharesSection } from "@/features/dashboard-share/dashboard-shares-section";
 import { SetupPanel } from "@/features/scheduled-reports/setup-panel";
 import { ScheduleForm } from "@/features/scheduled-reports/schedule-form";
 import { ScheduleHistory } from "@/features/scheduled-reports/schedule-history";
@@ -49,7 +50,7 @@ export function ScheduledReportsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"schedules" | "setup">("schedules");
+  const [activeTab, setActiveTab] = useState<"schedules" | "setup" | "sharedLinks">("schedules");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export function ScheduledReportsPage() {
 
   const tabItems = [
     { value: "schedules", label: t.scheduledReports.tabs.schedules },
+    { value: "sharedLinks", label: t.scheduledReports.tabs.sharedLinks },
     { value: "setup", label: t.scheduledReports.tabs.setup },
   ];
 
@@ -334,6 +336,8 @@ export function ScheduledReportsPage() {
       ) : null}
 
       {activeTab === "setup" ? <SetupPanel collapsedByDefault={false} /> : null}
+
+      {activeTab === "sharedLinks" ? <DashboardSharesSection /> : null}
     </div>
   );
 }
