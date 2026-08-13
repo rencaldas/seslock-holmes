@@ -7,7 +7,7 @@ Ele foi feito para apoiar suporte, operações e análise na leitura de eventos,
 
 Graças ao Seslock Holmes, é possível investigar e corrigir problemas de entregabilidade em produção. Os números falam por si:
 
-| Métrica | Antes | Depois | Redução |
+| Métricas | Antes | Depois | Redução |
 |---|---|---|---|
 | Bounce rate (1 provedor) | 11,6% | 0,8% | **-93%** |
 | Bounce rate geral | 6,8% | 1,8% | **-74%** |
