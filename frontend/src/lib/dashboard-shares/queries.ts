@@ -8,6 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DASHBOARD_SHARES_TABLE, type CreateDashboardShareInput, type DashboardShare } from "@/lib/dashboard-shares/types";
 import { hashShareToken } from "@/lib/dashboard-shares/token";
+import { recordAuditEvent } from "@/lib/audit-log/queries";
 
 const SHARE_COLUMNS =
   "id, label, events_table, filters, include_recent_activity, created_at, expires_at, revoked_at, last_accessed_at";
@@ -83,7 +84,18 @@ export async function createDashboardShare(
     .single();
 
   if (error) throw error;
-  return rowToShare(data as ShareRow);
+  const share = rowToShare(data as ShareRow);
+  // Não aguardado de propósito — mesmo motivo do comentário equivalente em
+  // scheduled-reports/queries.ts: chamado do navegador, sem risco de a
+  // função congelar antes da escrita terminar, e recordAuditEvent já trata
+  // os próprios erros internamente.
+  void recordAuditEvent(client, {
+    action: "share.created",
+    resourceType: "dashboard_share",
+    resourceId: share.id,
+    metadata: { label: share.label, includeRecentActivity: share.includeRecentActivity },
+  });
+  return share;
 }
 
 export async function revokeDashboardShare(client: SupabaseClient, id: string): Promise<void> {
@@ -93,4 +105,19 @@ export async function revokeDashboardShare(client: SupabaseClient, id: string): 
     .eq("id", id);
 
   if (error) throw error;
+  void recordAuditEvent(client, { action: "share.revoked", resourceType: "dashboard_share", resourceId: id });
+}
+
+// Não existe forma de recuperar o texto puro de um link já criado — só o
+// hash é armazenado (ver token.ts). "Perdi o link" na prática só tem uma
+// saída: gerar um token novo para a mesma linha (mesmo label/filtros), o que
+// invalida o link antigo de propósito — quem ainda tiver a URL perdida
+// também perde o acesso, exatamente como um "esqueci minha senha".
+export async function regenerateDashboardShareToken(client: SupabaseClient, id: string, token: string): Promise<void> {
+  const tokenHash = await hashShareToken(token);
+
+  const { error } = await client.from(DASHBOARD_SHARES_TABLE).update({ token_hash: tokenHash }).eq("id", id);
+
+  if (error) throw error;
+  void recordAuditEvent(client, { action: "share.link_regenerated", resourceType: "dashboard_share", resourceId: id });
 }

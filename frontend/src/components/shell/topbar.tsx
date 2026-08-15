@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/use-i18n";
 import { useFilters } from "@/lib/filters/filters-context";
 import { signOut } from "@/lib/supabase/auth";
 import { useSupabase } from "@/lib/supabase/context";
+import { useUserRole } from "@/lib/user-roles/use-user-role";
 
 export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const t = useI18n();
@@ -15,10 +16,13 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const { filters } = useFilters();
   const location = useLocation();
   const [shareOpen, setShareOpen] = useState(false);
+  const { role } = useUserRole();
   // Só faz sentido compartilhar a Visão geral (é a única página cujos dados
-  // vêm de filtros travados) e só quem tem sessão pode criar links — a
-  // policy de dashboard_shares exige o papel `authenticated`.
-  const canShare = location.pathname === "/" && Boolean(session && client);
+  // vêm de filtros travados), só quem tem sessão pode criar links — a policy
+  // de dashboard_shares exige o papel `authenticated` — e, desde o RBAC leve
+  // (20260814090000), só manager pode de fato inserir a linha (viewer levaria
+  // 403 da RLS; isto só evita mostrar o botão nesse caso).
+  const canShare = location.pathname === "/" && Boolean(session && client) && role === "manager";
 
   return (
     <>

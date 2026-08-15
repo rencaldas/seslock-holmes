@@ -32,6 +32,8 @@ import { DashboardSharesSection } from "@/features/dashboard-share/dashboard-sha
 import { SetupPanel } from "@/features/scheduled-reports/setup-panel";
 import { ScheduleForm } from "@/features/scheduled-reports/schedule-form";
 import { ScheduleHistory } from "@/features/scheduled-reports/schedule-history";
+import { useUserRole } from "@/lib/user-roles/use-user-role";
+import { AuditLogTab } from "@/features/audit-log/audit-log-tab";
 
 function describeFilters(schedule: ReportSchedule, windowLabel: string) {
   const parts = [`${schedule.filters.windowDays}d`, schedule.filters.status];
@@ -50,7 +52,7 @@ export function ScheduledReportsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"schedules" | "setup" | "sharedLinks">("schedules");
+  const [activeTab, setActiveTab] = useState<"schedules" | "setup" | "sharedLinks" | "auditLog">("schedules");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReportSchedule | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
@@ -64,6 +66,12 @@ export function ScheduledReportsPage() {
   // their own Supabase project never needs one, since they talk to their own
   // project directly with their own anon key.
   const canManageSchedules = isDefaultProject ? Boolean(adminToken) : Boolean(supabase.client);
+  // Gate de UX apenas — a aplicação real é a policy no banco (ver
+  // 20260814090000_user_roles_rbac.sql). Um viewer que force uma chamada
+  // direta ainda leva 403 da RLS; isto só evita mostrar um botão que sempre
+  // falharia.
+  const { role } = useUserRole();
+  const isManager = role === "manager";
 
   const schedulesQuery = useQuery({
     queryKey: ["scheduled-reports", supabase.eventsTable, isDefaultProject, adminToken],
@@ -133,6 +141,7 @@ export function ScheduledReportsPage() {
   const tabItems = [
     { value: "schedules", label: t.scheduledReports.tabs.schedules },
     { value: "sharedLinks", label: t.scheduledReports.tabs.sharedLinks },
+    { value: "auditLog", label: t.scheduledReports.tabs.auditLog },
     { value: "setup", label: t.scheduledReports.tabs.setup },
   ];
 
@@ -163,7 +172,7 @@ export function ScheduledReportsPage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-ink">{list.sectionTitle}</h2>
-              {!formOpen ? (
+              {!formOpen && isManager ? (
                 <Button
                   onClick={() => {
                     setEditing(null);
@@ -175,7 +184,7 @@ export function ScheduledReportsPage() {
               ) : null}
             </div>
 
-            {formOpen ? (
+            {formOpen && isManager ? (
               <ScheduleForm
                 initial={editing ?? undefined}
                 eventsTable={supabase.eventsTable ?? "aws_sns"}
@@ -249,27 +258,31 @@ export function ScheduledReportsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => {
-                                setEditing(schedule);
-                                setFormOpen(true);
-                              }}
-                              aria-label={list.edit}
-                              title={list.edit}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => toggleActiveMutation.mutate({ id: schedule.id, isActive: !schedule.isActive })}
-                              aria-label={schedule.isActive ? list.pause : list.resume}
-                              title={schedule.isActive ? list.pause : list.resume}
-                            >
-                              {schedule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                            </Button>
+                            {isManager ? (
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  setEditing(schedule);
+                                  setFormOpen(true);
+                                }}
+                                aria-label={list.edit}
+                                title={list.edit}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                            {isManager ? (
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => toggleActiveMutation.mutate({ id: schedule.id, isActive: !schedule.isActive })}
+                                aria-label={schedule.isActive ? list.pause : list.resume}
+                                title={schedule.isActive ? list.pause : list.resume}
+                              >
+                                {schedule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                              </Button>
+                            ) : null}
                             <Button
                               variant="ghost"
                               className="h-8 w-8 p-0"
@@ -279,33 +292,37 @@ export function ScheduledReportsPage() {
                             >
                               <History className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              disabled={runNowMutation.isPending && runNowMutation.variables === schedule.id}
-                              onClick={() => {
-                                if (window.confirm(list.forceRunConfirm)) {
-                                  runNowMutation.mutate(schedule.id);
-                                }
-                              }}
-                              aria-label={list.forceRun}
-                              title={list.forceRun}
-                            >
-                              <Zap className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => {
-                                if (window.confirm(list.confirmDelete)) {
-                                  deleteMutation.mutate(schedule.id);
-                                }
-                              }}
-                              aria-label={list.delete}
-                              title={list.delete}
-                            >
-                              <Trash2 className="h-4 w-4 text-danger" />
-                            </Button>
+                            {isManager ? (
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                disabled={runNowMutation.isPending && runNowMutation.variables === schedule.id}
+                                onClick={() => {
+                                  if (window.confirm(list.forceRunConfirm)) {
+                                    runNowMutation.mutate(schedule.id);
+                                  }
+                                }}
+                                aria-label={list.forceRun}
+                                title={list.forceRun}
+                              >
+                                <Zap className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                            {isManager ? (
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  if (window.confirm(list.confirmDelete)) {
+                                    deleteMutation.mutate(schedule.id);
+                                  }
+                                }}
+                                aria-label={list.delete}
+                                title={list.delete}
+                              >
+                                <Trash2 className="h-4 w-4 text-danger" />
+                              </Button>
+                            ) : null}
                           </div>
                           {runNowFeedback[schedule.id] ? (
                             <p
@@ -338,6 +355,8 @@ export function ScheduledReportsPage() {
       {activeTab === "setup" ? <SetupPanel collapsedByDefault={false} /> : null}
 
       {activeTab === "sharedLinks" ? <DashboardSharesSection /> : null}
+
+      {activeTab === "auditLog" ? <AuditLogTab /> : null}
     </div>
   );
 }

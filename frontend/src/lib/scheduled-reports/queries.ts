@@ -6,6 +6,8 @@ import {
   type ReportScheduleRun,
   type ScheduleInput,
 } from "@/lib/scheduled-reports/types";
+import { recordAuditEvent } from "@/lib/audit-log/queries";
+import { scheduleAuditMetadata } from "@/lib/scheduled-reports/audit-metadata";
 
 interface ScheduleRow {
   id: string;
@@ -110,7 +112,20 @@ export async function createSchedule(client: SupabaseClient, input: ScheduleInpu
     .single();
 
   if (error) throw error;
-  return rowToSchedule(data as ScheduleRow);
+  const schedule = rowToSchedule(data as ScheduleRow);
+  // Não aguardado de propósito: é o navegador chamando (não uma função
+  // serverless, que poderia congelar antes da escrita terminar — ver o
+  // comentário equivalente em report-runner.ts), e recordAuditEvent já
+  // engole os próprios erros internamente, então não há promise rejeitada
+  // sem tratamento. Devolver o agendamento criado não precisa esperar o
+  // round-trip extra do log de auditoria.
+  void recordAuditEvent(client, {
+    action: "schedule.created",
+    resourceType: "report_schedule",
+    resourceId: schedule.id,
+    metadata: scheduleAuditMetadata(input),
+  });
+  return schedule;
 }
 
 export async function updateSchedule(client: SupabaseClient, id: string, input: ScheduleInput): Promise<ReportSchedule> {
@@ -122,12 +137,20 @@ export async function updateSchedule(client: SupabaseClient, id: string, input: 
     .single();
 
   if (error) throw error;
-  return rowToSchedule(data as ScheduleRow);
+  const schedule = rowToSchedule(data as ScheduleRow);
+  void recordAuditEvent(client, {
+    action: "schedule.updated",
+    resourceType: "report_schedule",
+    resourceId: schedule.id,
+    metadata: scheduleAuditMetadata(input),
+  });
+  return schedule;
 }
 
 export async function deleteSchedule(client: SupabaseClient, id: string): Promise<void> {
   const { error } = await client.from(REPORT_SCHEDULES_TABLE).delete().eq("id", id);
   if (error) throw error;
+  void recordAuditEvent(client, { action: "schedule.deleted", resourceType: "report_schedule", resourceId: id });
 }
 
 export async function setScheduleActive(client: SupabaseClient, id: string, isActive: boolean): Promise<ReportSchedule> {
@@ -139,7 +162,13 @@ export async function setScheduleActive(client: SupabaseClient, id: string, isAc
     .single();
 
   if (error) throw error;
-  return rowToSchedule(data as ScheduleRow);
+  const schedule = rowToSchedule(data as ScheduleRow);
+  void recordAuditEvent(client, {
+    action: isActive ? "schedule.resumed" : "schedule.paused",
+    resourceType: "report_schedule",
+    resourceId: schedule.id,
+  });
+  return schedule;
 }
 
 export async function runScheduleNow(scheduleId: string): Promise<void> {

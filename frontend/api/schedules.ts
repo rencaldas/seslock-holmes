@@ -26,6 +26,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, readEnv } from "../src/lib/scheduled-reports/report-runner.js";
 import { isBearerTokenValid } from "../src/lib/server/request-auth.js";
+import { recordAuditEventFromServer } from "../src/lib/audit-log/record-server.js";
+import { scheduleAuditMetadata } from "../src/lib/scheduled-reports/audit-metadata.js";
+
+const AUDIT_ACTOR = { actorType: "admin_token" as const, actorLabel: "Admin Token" };
 
 const REPORT_SCHEDULES_TABLE = "report_schedules";
 const REPORT_SCHEDULE_RUNS_TABLE = "report_schedule_runs";
@@ -101,9 +105,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (request.method === "POST") {
+      const body = (request.body ?? {}) as Record<string, unknown>;
       const { data, error } = await client
         .from(REPORT_SCHEDULES_TABLE)
-        .insert(scheduleInputToRow((request.body ?? {}) as Record<string, unknown>))
+        .insert(scheduleInputToRow(body))
         .select("*")
         .single();
 
@@ -111,6 +116,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
         response.status(500).json({ error: error.message });
         return;
       }
+      // Aguardado de propósito, ao contrário do equivalente em
+      // scheduled-reports/queries.ts (chamado do navegador): esta é uma
+      // função serverless — a Vercel pode congelar/reciclar o processo assim
+      // que a resposta é enviada, então uma escrita não aguardada iniciada
+      // antes de response.json() correria risco real de nunca terminar.
+      await recordAuditEventFromServer(client, {
+        action: "schedule.created",
+        resourceType: "report_schedule",
+        resourceId: (data as { id: string }).id,
+        ...AUDIT_ACTOR,
+        metadata: scheduleAuditMetadata(body),
+      });
       response.status(201).json({ schedule: data });
       return;
     }
@@ -122,10 +139,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       }
 
       const body = (request.body ?? {}) as Record<string, unknown>;
-      const patch =
-        typeof body.isActive === "boolean" && Object.keys(body).length === 1
-          ? { is_active: body.isActive }
-          : scheduleInputToRow(body);
+      const isToggleOnly = typeof body.isActive === "boolean" && Object.keys(body).length === 1;
+      const patch = isToggleOnly ? { is_active: body.isActive } : scheduleInputToRow(body);
 
       const { data, error } = await client
         .from(REPORT_SCHEDULES_TABLE)
@@ -138,6 +153,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
         response.status(500).json({ error: error.message });
         return;
       }
+      await recordAuditEventFromServer(client, {
+        action: isToggleOnly ? (body.isActive ? "schedule.resumed" : "schedule.paused") : "schedule.updated",
+        resourceType: "report_schedule",
+        resourceId: scheduleId,
+        ...AUDIT_ACTOR,
+        metadata: isToggleOnly ? {} : scheduleAuditMetadata(body),
+      });
       response.status(200).json({ schedule: data });
       return;
     }
@@ -153,6 +175,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
         response.status(500).json({ error: error.message });
         return;
       }
+      await recordAuditEventFromServer(client, {
+        action: "schedule.deleted",
+        resourceType: "report_schedule",
+        resourceId: scheduleId,
+        ...AUDIT_ACTOR,
+      });
       response.status(200).json({ status: "deleted" });
       return;
     }

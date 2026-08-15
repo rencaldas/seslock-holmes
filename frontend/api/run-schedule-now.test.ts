@@ -123,7 +123,10 @@ describe("run-schedule-now handler", () => {
     expect(response.body).toEqual({ status: "success" });
     expect(buildReportForSchedule).toHaveBeenCalledWith(expect.anything(), schedule);
     expect(sendReportEmail).toHaveBeenCalledWith(schedule, report, expect.any(Object), { forced: true });
-    expect(recordScheduleRun).toHaveBeenCalledWith(expect.anything(), schedule, "success", report, undefined);
+    expect(recordScheduleRun).toHaveBeenCalledWith(expect.anything(), schedule, "success", report, undefined, {
+      type: "admin_token",
+      label: "Admin Token",
+    });
     expect(recordLastRunOnly).toHaveBeenCalledWith(expect.anything(), schedule.id, "success", undefined);
   });
 });
