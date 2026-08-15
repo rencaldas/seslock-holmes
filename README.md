@@ -319,14 +319,14 @@ Abra o endereço mostrado pelo Vite no navegador.
 
 ### Com Docker
 
-Também é possível rodar o frontend em um container, útil para testar em outra máquina ou expor a build local via túnel:
+Também é possível rodar o frontend em um container, útil para testar em outra máquina:
 
 ```bash
 cd frontend
 docker compose up
 ```
 
-Isso sobe o servidor de desenvolvimento do Vite em `http://localhost:5173` e um túnel ngrok opcional (porta `4040` para a UI do ngrok). Ajuste ou remova o serviço `ngrok` do `docker-compose.yml` conforme a sua necessidade — não reutilize o authtoken de exemplo do repositório.
+Isso sobe o servidor de desenvolvimento do Vite em `http://localhost:5173`.
 
 ## Deploy
 
