@@ -1,4 +1,5 @@
-import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { RefreshCw, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { listDashboardShares, revokeDashboardShare } from "@/lib/dashboard-shares/queries";
 import type { DashboardShare } from "@/lib/dashboard-shares/types";
+import { useUserRole } from "@/lib/user-roles/use-user-role";
+import { RegenerateLinkDialog } from "@/features/dashboard-share/regenerate-link-dialog";
 
 function describeFilters(share: DashboardShare, allLabel: string) {
   const parts = [`${share.filters.windowDays}d`, share.filters.status === "all" ? allLabel : share.filters.status];
@@ -31,6 +34,9 @@ export function DashboardSharesSection() {
   const s = t.dashboardShare;
   const supabase = useSupabase();
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
+  const isManager = role === "manager";
+  const [regenerateTarget, setRegenerateTarget] = useState<DashboardShare | null>(null);
 
   const sharesQuery = useQuery({
     queryKey: ["dashboard-shares", supabase.eventsTable],
@@ -74,6 +80,7 @@ export function DashboardSharesSection() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{s.labelHeader}</TableHead>
+                  <TableHead>{s.createdHeader}</TableHead>
                   <TableHead>{s.filtersHeader}</TableHead>
                   <TableHead>{s.piiHeader}</TableHead>
                   <TableHead>{s.expiresHeader}</TableHead>
@@ -88,6 +95,9 @@ export function DashboardSharesSection() {
                   return (
                     <TableRow key={share.id}>
                       <TableCell className="font-semibold">{share.label || "—"}</TableCell>
+                      <TableCell className="text-xs text-ink-muted">
+                        {new Date(share.createdAt).toLocaleDateString()}
+                      </TableCell>
                       <TableCell className="max-w-xs text-xs text-ink-muted">
                         {describeFilters(share, t.overview.filters.options.all)}
                       </TableCell>
@@ -108,20 +118,31 @@ export function DashboardSharesSection() {
                         {share.lastAccessedAt ? new Date(share.lastAccessedAt).toLocaleString() : s.lastAccessedNever}
                       </TableCell>
                       <TableCell>
-                        {status === "active" ? (
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                            aria-label={s.revokeButton}
-                            title={s.revokeButton}
-                            onClick={() => {
-                              if (window.confirm(s.confirmRevoke)) {
-                                revokeMutation.mutate(share.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-danger" />
-                          </Button>
+                        {status === "active" && isManager ? (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              aria-label={s.regenerateLinkButton}
+                              title={s.regenerateLinkButton}
+                              onClick={() => setRegenerateTarget(share)}
+                            >
+                              <RefreshCw className="h-4 w-4 text-ink-muted" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              aria-label={s.revokeButton}
+                              title={s.revokeButton}
+                              onClick={() => {
+                                if (window.confirm(s.confirmRevoke)) {
+                                  revokeMutation.mutate(share.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-danger" />
+                            </Button>
+                          </div>
                         ) : null}
                       </TableCell>
                     </TableRow>
@@ -132,6 +153,9 @@ export function DashboardSharesSection() {
           </div>
         )}
       </CardContent>
+      {regenerateTarget ? (
+        <RegenerateLinkDialog share={regenerateTarget} onClose={() => setRegenerateTarget(null)} />
+      ) : null}
     </Card>
   );
 }

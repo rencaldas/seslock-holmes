@@ -447,6 +447,7 @@ export type TranslationBundle = {
       schedules: string;
       setup: string;
       sharedLinks: string;
+      auditLog: string;
     };
     setup: {
       title: string;
@@ -587,6 +588,14 @@ export type TranslationBundle = {
     lastAccessedNever: string;
     revokeButton: string;
     confirmRevoke: string;
+    regenerateLinkButton: string;
+    regenerateLinkDialogTitle: string;
+    regenerateLinkDialogDescription: string;
+    regenerateLinkConfirmButton: string;
+    regenerateLinkGenerating: string;
+    regenerateLinkReadyTitle: string;
+    regenerateLinkReadyDescription: string;
+    regenerateLinkErrorGeneric: string;
     publicPage: {
       banner: string;
       loadingTitle: string;
@@ -599,6 +608,36 @@ export type TranslationBundle = {
       invalidLinkTitle: string;
       invalidLinkDescription: string;
       recentActivityTitle: string;
+    };
+  };
+  auditLog: {
+    tabLabel: string;
+    title: string;
+    description: string;
+    notConfiguredTitle: string;
+    notConfiguredDescription: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    timeHeader: string;
+    actorHeader: string;
+    actionHeader: string;
+    resourceHeader: string;
+    actorTypeUser: string;
+    actorTypeAdminToken: string;
+    actorTypeCron: string;
+    actions: {
+      scheduleCreated: string;
+      scheduleUpdated: string;
+      schedulePaused: string;
+      scheduleResumed: string;
+      scheduleDeleted: string;
+      scheduleRunCompleted: string;
+      scheduleRunFailed: string;
+      scheduleRunNowSucceeded: string;
+      scheduleRunNowFailed: string;
+      shareCreated: string;
+      shareRevoked: string;
+      shareLinkRegenerated: string;
     };
   };
 };

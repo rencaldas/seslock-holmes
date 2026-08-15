@@ -118,7 +118,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     async function recordRunSafely(status: "success" | "error", report: Awaited<ReturnType<typeof buildReportForSchedule>> | undefined, errorMessage: string | undefined) {
       try {
-        await recordScheduleRun(client, row, status, report, errorMessage);
+        await recordScheduleRun(client, row, status, report, errorMessage, { type: "admin_token", label: "Admin Token" });
         await recordLastRunOnly(client, row.id, status, errorMessage);
       } catch (recordError) {
         console.error("run-schedule-now: failed to record run history", recordError);

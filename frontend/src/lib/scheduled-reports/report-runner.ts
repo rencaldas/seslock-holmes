@@ -41,6 +41,7 @@ import {
   type EmailReportSortBy,
 } from "../email-report.js";
 import { PROBLEM_EVENT_TYPES, type EmailEventType } from "../supabase/types.js";
+import { recordAuditEventFromServer } from "../audit-log/record-server.js";
 
 // Hosted as a real static asset (public/email-logo.png -> served at the
 // site root, no build hash) rather than embedded as a base64 data URI.
@@ -475,8 +476,9 @@ export async function recordScheduleRun(
   client: SupabaseClient,
   schedule: ReportScheduleRow,
   status: "success" | "error",
-  report?: EmailReport,
-  errorMessage?: string,
+  report: EmailReport | undefined,
+  errorMessage: string | undefined,
+  actor: { type: "cron" | "admin_token"; label: string },
 ) {
   await client.from("report_schedule_runs").insert({
     schedule_id: schedule.id,
@@ -484,6 +486,27 @@ export async function recordScheduleRun(
     report: report ?? null,
     error_message: errorMessage ?? null,
     recipients_sent: status === "success" ? schedule.recipients : null,
+  });
+
+  // Non-fatal: audit_log pode não existir ainda num projeto self-hosted que
+  // não rodou a migration 20260814100000 — isso nunca pode transformar um
+  // envio real (ou uma execução do cron) em falha.
+  const action =
+    actor.type === "cron"
+      ? status === "success"
+        ? "schedule.run_completed"
+        : "schedule.run_failed"
+      : status === "success"
+        ? "schedule.run_now_succeeded"
+        : "schedule.run_now_failed";
+
+  await recordAuditEventFromServer(client, {
+    action,
+    resourceType: "report_schedule",
+    resourceId: schedule.id,
+    actorType: actor.type,
+    actorLabel: actor.label,
+    metadata: { scheduleName: schedule.name, errorMessage: errorMessage ?? null },
   });
 }
 
@@ -560,7 +583,7 @@ export async function runDueSchedules(client: SupabaseClient, credentials: Gmail
     errorMessage: string | undefined,
   ) {
     try {
-      await recordScheduleRun(client, schedule, status, report, errorMessage);
+      await recordScheduleRun(client, schedule, status, report, errorMessage, { type: "cron", label: "Cron" });
       await advanceNextRun(client, schedule, status, errorMessage);
     } catch (recordError) {
       console.error(`runDueSchedules: failed to record run for schedule ${schedule.id}`, recordError);
