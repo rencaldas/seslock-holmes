@@ -427,12 +427,15 @@ export type TranslationBundle = {
     sections: {
       about: string;
       usage: string;
+      reports: string;
+      access: string;
       data: string;
       support: string;
     };
+    allSectionsLabel: string;
   };
   faqItems: Array<{
-    section: string;
+    section: "about" | "usage" | "reports" | "access" | "data" | "support";
     question: string;
     answer: string;
   }>;

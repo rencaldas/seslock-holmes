@@ -1,8 +1,31 @@
 import { useMemo, useState } from "react";
-import { BookOpen, Search } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  BadgeCheck,
+  BookOpen,
+  ChevronDown,
+  Compass,
+  Database,
+  LifeBuoy,
+  Mail,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs } from "@/components/ui/tabs";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { cn } from "@/lib/utils";
+
+type FaqSectionKey = "about" | "usage" | "reports" | "access" | "data" | "support";
+
+const SECTION_ICONS: Record<FaqSectionKey, typeof BookOpen> = {
+  about: BookOpen,
+  usage: Compass,
+  reports: Mail,
+  access: ShieldCheck,
+  data: Database,
+  support: LifeBuoy,
+};
 
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase();
@@ -30,24 +53,75 @@ function getFaqItemRelevance(item: { question: string; answer: string }, queryTo
 export function FaqPage() {
   const t = useI18n();
   const [search, setSearch] = useState("");
+  const [activeSection, setActiveSection] = useState<FaqSectionKey | "all">("all");
+  const [openQuestion, setOpenQuestion] = useState<string | null>(null);
   const query = search.trim().toLowerCase();
-  const sections = [
+
+  const sections: Array<{ key: FaqSectionKey; title: string }> = [
     { key: "about", title: t.faq.sections.about },
     { key: "usage", title: t.faq.sections.usage },
+    { key: "reports", title: t.faq.sections.reports },
+    { key: "access", title: t.faq.sections.access },
     { key: "data", title: t.faq.sections.data },
     { key: "support", title: t.faq.sections.support },
+  ];
+
+  const sectionCounts = useMemo(() => {
+    const counts = new Map<FaqSectionKey, number>();
+    for (const item of t.faqItems) {
+      counts.set(item.section, (counts.get(item.section) ?? 0) + 1);
+    }
+    return counts;
+  }, [t]);
+
+  const tabItems = [
+    {
+      value: "all",
+      label: t.faq.allSectionsLabel,
+      badge: (
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+            activeSection === "all" ? "bg-white/25 text-white" : "bg-slate-100 text-ink-muted dark:bg-slate-800",
+          )}
+        >
+          {t.faqItems.length}
+        </span>
+      ),
+    },
+    ...sections.map((section) => ({
+      value: section.key,
+      label: section.title,
+      badge: (
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+            activeSection === section.key ? "bg-white/25 text-white" : "bg-slate-100 text-ink-muted dark:bg-slate-800",
+          )}
+        >
+          {sectionCounts.get(section.key) ?? 0}
+        </span>
+      ),
+    })),
   ];
 
   const visibleSections = useMemo(
     () =>
       sections
+        .filter((section) => activeSection === "all" || section.key === activeSection)
         .map((section) => ({
           ...section,
-          items: t.faqItems.filter((item) => item.section === section.key && (item.question.toLowerCase().includes(query) || item.answer.toLowerCase().includes(query))),
+          items: t.faqItems.filter(
+            (item) =>
+              item.section === section.key &&
+              (item.question.toLowerCase().includes(query) || item.answer.toLowerCase().includes(query)),
+          ),
         }))
         .filter((section) => section.items.length > 0),
-    [query, t],
+    [activeSection, query, t],
   );
+
+  const totalVisible = visibleSections.reduce((sum, section) => sum + section.items.length, 0);
 
   const similarSuggestions = useMemo(() => {
     const tokens = searchTokens(query);
@@ -67,115 +141,138 @@ export function FaqPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-white/95 p-8 shadow-soft dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-3 rounded-full bg-slate-100 px-4 py-2 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              <BookOpen className="h-5 w-5" />
-              <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{t.faq.title}</span>
-            </div>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">{t.faq.subtitle}</h1>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Read only</span>
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Filters</span>
-              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">Supabase</span>
-            </div>
-          </div>
-          <Card className="border-slate-200 bg-white shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <CardHeader className="border-b-0 px-6 py-4">
-              <CardTitle className="text-slate-950 dark:text-slate-50">{t.faq.searchHelpTitle}</CardTitle>
-              <CardDescription className="text-slate-500 dark:text-slate-400">
-                {t.faq.searchPlaceholder}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-6 py-5">
-              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/95">
-                <Search className="h-5 w-5 text-slate-400 dark:text-slate-300" />
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder={t.faq.searchPlaceholder}
-                  className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:ring-slate-400/20 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-600 dark:focus:ring-slate-600/20"
-                />
-              </div>
-              <div className="mt-6 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                <p>{t.faq.searchHelpDescription}</p>
-              </div>
-            </CardContent>
-          </Card>
+      <section className="space-y-3">
+        <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-brand">
+          <Sparkles className="h-3.5 w-3.5" />
+          {t.faq.title}
+        </p>
+        <h1 className="max-w-3xl text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{t.faq.subtitle}</h1>
+
+        <div className="flex items-center gap-3 rounded-control border border-slate-200 bg-white px-4 py-3 shadow-sm transition focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 dark:border-slate-800 dark:bg-slate-900">
+          <Search className="h-4.5 w-4.5 shrink-0 text-ink-muted" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t.faq.searchPlaceholder}
+            className="border-0 bg-transparent p-0 text-sm text-ink shadow-none placeholder:text-ink-muted focus-visible:ring-0"
+          />
         </div>
       </section>
 
-      <section className="space-y-6">
-        {visibleSections.length ? (
-          visibleSections.map((section) => (
-            <div key={section.key} className="space-y-4">
-              <div className="px-2 py-2">
-                <h2 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50 sm:text-4xl">
-                  {section.title}
-                </h2>
+      <div className="sticky top-16 z-10 -mx-4 bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <Tabs
+          items={tabItems}
+          value={activeSection}
+          onChange={(value) => setActiveSection(value as FaqSectionKey | "all")}
+        />
+      </div>
+
+      <section className="space-y-8">
+        {totalVisible ? (
+          visibleSections.map((section) => {
+            const Icon = SECTION_ICONS[section.key];
+            return (
+              <div key={section.key} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-control bg-brand-soft text-brand">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <h2 className="text-lg font-bold tracking-tight text-ink sm:text-xl">{section.title}</h2>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {section.items.map((item) => {
+                    const isOpen = openQuestion === item.question;
+                    return (
+                      <div
+                        key={item.question}
+                        className={cn(
+                          "overflow-hidden rounded-card border border-slate-200 bg-white shadow-sm transition dark:border-slate-800 dark:bg-slate-900",
+                          isOpen && "border-brand/40 shadow-card",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setOpenQuestion(isOpen ? null : item.question)}
+                          aria-expanded={isOpen}
+                          className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left text-sm font-semibold text-ink transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        >
+                          <span>{item.question}</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 shrink-0 text-ink-muted transition-transform duration-200",
+                              isOpen && "rotate-180 text-brand",
+                            )}
+                          />
+                        </button>
+                        <div
+                          className={cn(
+                            "grid transition-all duration-200 ease-out",
+                            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                          )}
+                        >
+                          <div className="overflow-hidden">
+                            <p className="border-t border-slate-100 px-5 py-4 text-sm leading-6 text-ink-muted dark:border-slate-800">
+                              {item.answer}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-4">
-                {section.items.map((item) => (
-                  <details key={item.question} className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft transition duration-200 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
-                    <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-base font-semibold text-slate-950 transition hover:bg-slate-50 dark:text-slate-50 dark:hover:bg-slate-800/60">
-                      <span>{item.question}</span>
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-500 transition duration-200 group-open:rotate-45 group-open:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:group-open:border-slate-600">
-                        +
-                      </span>
-                    </summary>
-                    <div className="border-t border-slate-100 px-6 py-5 text-sm leading-7 text-slate-600 dark:border-slate-800 dark:text-slate-300">{item.answer}</div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-soft dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-lg font-semibold text-slate-950 dark:text-slate-50">{t.faq.emptyTitle}</p>
-            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{t.faq.emptyDescription}</p>
+          <div className="rounded-panel border border-slate-200 bg-white p-10 text-center shadow-card dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-lg font-bold text-ink">{t.faq.emptyTitle}</p>
+            <p className="mt-2 text-sm leading-6 text-ink-muted">{t.faq.emptyDescription}</p>
 
             {similarSuggestions.length ? (
               <div className="mt-8 text-left">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t.faq.suggestionsTitle}</p>
+                <p className="text-sm font-semibold text-ink">{t.faq.suggestionsTitle}</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {similarSuggestions.map((item) => (
                     <button
                       key={item.question}
                       type="button"
-                      onClick={() => setSearch(item.question)}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      onClick={() => {
+                        setSearch(item.question);
+                        setActiveSection("all");
+                      }}
+                      className="rounded-control border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-ink transition hover:border-brand/40 hover:bg-brand-soft dark:border-slate-700 dark:bg-slate-800/60"
                     >
                       {item.question}
                     </button>
                   ))}
                 </div>
               </div>
-            ) : (
-              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">{t.faq.emptyDescription}</p>
-            )}
+            ) : null}
           </div>
         )}
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm leading-7 text-slate-600 shadow-soft dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="flex flex-col gap-4 rounded-panel border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
+            <BadgeCheck className="h-4.5 w-4.5" />
+          </span>
           <div>
-            <p className="font-semibold text-slate-950 dark:text-slate-50">{t.faq.suggestionsTitle}</p>
-            <p className="mt-3 max-w-2xl">
-              {t.faq.sendSuggestion}:{' '}
-              <a href="mailto:renato.deacaldas@gmail.com" className="font-semibold text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">
+            <p className="text-sm font-bold text-ink">{t.faq.suggestionsTitle}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
+              {t.faq.sendSuggestion}{" "}
+              <a href="mailto:renato.deacaldas@gmail.com" className="font-semibold text-brand hover:text-brand-hover">
                 renato.deacaldas@gmail.com
               </a>
             </p>
           </div>
-          <a
-            href="mailto:renato.deacaldas@gmail.com"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
-          >
-            {t.faq.suggestionsEmail}
-          </a>
         </div>
+        <a
+          href="mailto:renato.deacaldas@gmail.com"
+          className="inline-flex shrink-0 items-center justify-center rounded-control bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
+        >
+          {t.faq.suggestionsEmail}
+        </a>
       </section>
     </div>
   );
