@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-08-15
+### Added
+- Perfis de acesso (RBAC): contas agora são viewer ou manager. Viewers só visualizam; managers também criam e editam agendamentos e links compartilhados. Contas novas começam como viewer.
+- Log de auditoria: registro somente-leitura, aberto a qualquer usuário autenticado, com todas as ações administrativas — criação, edição, pausa, exclusão e envio forçado de agendamentos, resultado dos envios automáticos, e criação ou revogação de links compartilhados. Uma nova aba "Log de auditoria" foi adicionada em Relatórios Agendados.
+- Regeneração de link de compartilhamento: agora dá para gerar um novo link para um dashboard compartilhado sem perder o nome, os filtros e a validade já configurados — o link antigo deixa de funcionar assim que o novo é criado.
+- Comparação com período anterior no Overview: um novo toggle liga uma segunda consulta com a mesma duração do período atual, deslocada para trás, mostrando a variação percentual com seta de alta/baixa em cada cartão de métrica do topo. Desligado por padrão.
+- Suíte de testes end-to-end com Playwright (login, busca de investigação, exportação de relatório e agendamentos) rodando automaticamente em um novo workflow de CI no GitHub Actions.
+### Changed
+- A FAQ foi redesenhada como "Central de Ajuda", agora organizada em abas por seção, incluindo novas seções de relatórios/compartilhamento e permissões/auditoria, com as perguntas atualizadas para cobrir as features recentes.
+
 ## [1.12.0] - 2026-08-12
 ### Added
 - A tela de Investigação (`/investigate`) ganhou o mesmo menu de exportação de relatório (PDF, CSV e JSON) já existente na Visão Geral. O relatório respeita a busca atual (destinatário, remetente ou provedor) e os demais filtros aplicados, trazendo todos os eventos correspondentes — não só a página de 25 exibida na tela.
