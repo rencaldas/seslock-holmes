@@ -192,6 +192,8 @@ export type TranslationBundle = {
       eventsOverTimeTitle: string;
       eventsOverTimeDescription: string;
       trendVsPrevious: string;
+      trendVsPriorPeriod: string;
+      compareToggleLabel: string;
       bounceHealthyHint: string;
       complaintHealthyHint: string;
       viewPercent: string;

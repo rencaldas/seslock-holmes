@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildDefaultCustomRange, parseTimeFilterState, resolveTimeRange } from "./time-filters";
+import { buildDefaultCustomRange, parseTimeFilterState, resolvePriorTimeRange, resolveTimeRange } from "./time-filters";
 
 describe("time filters", () => {
   it("creates a default custom range based on the selected window", () => {
@@ -45,5 +45,47 @@ describe("time filters", () => {
 
     expect(range.startIso).toBeDefined();
     expect(range.endIso).toBeUndefined();
+  });
+
+  it("resolves the prior window of equal length in window mode", () => {
+    const asOf = new Date("2025-01-21T12:00:00.000Z");
+    const filters = { timeMode: "window" as const, windowDays: 7, startAt: "", endAt: "" };
+
+    const prior = resolvePriorTimeRange(filters, asOf);
+
+    // Current window is 2025-01-14T12:00Z..2025-01-21T12:00Z (7 days), so the
+    // prior window is the 7 days immediately before that.
+    expect(prior).toEqual({
+      startIso: "2025-01-07T12:00:00.000Z",
+      endIso: "2025-01-14T12:00:00.000Z",
+    });
+  });
+
+  it("resolves the prior window of equal length in custom mode", () => {
+    const filters = {
+      timeMode: "custom" as const,
+      windowDays: 30,
+      startAt: "2025-01-10T00:00:00.000Z",
+      endAt: "2025-01-12T00:00:00.000Z",
+    };
+
+    const prior = resolvePriorTimeRange(filters);
+
+    expect(prior).toEqual({
+      startIso: "2025-01-08T00:00:00.000Z",
+      endIso: "2025-01-10T00:00:00.000Z",
+    });
+  });
+
+  it("falls back to window-based math when the custom range is invalid", () => {
+    const asOf = new Date("2025-01-21T12:00:00.000Z");
+    const filters = { timeMode: "custom" as const, windowDays: 2, startAt: "", endAt: "" };
+
+    const prior = resolvePriorTimeRange(filters, asOf);
+
+    expect(prior).toEqual({
+      startIso: "2025-01-17T12:00:00.000Z",
+      endIso: "2025-01-19T12:00:00.000Z",
+    });
   });
 });

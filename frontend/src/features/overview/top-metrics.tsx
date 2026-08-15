@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Gauge, MailWarning } from "lucide-react";
 import { MetricCard } from "@/components/metrics/metric-card";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { OverviewAnalytics } from "@/lib/overview/analytics";
+import { computeDelta, type MetricDelta } from "@/lib/overview/comparison";
 import { extractSeries, pickTrendDirection, type EventTimeSeriesPoint } from "@/lib/overview/timeseries";
 
 function trendTone(direction: "up" | "down" | "flat", goodDirection: "up" | "down") {
@@ -18,12 +19,54 @@ function deliveryRateForPoint(point: EventTimeSeriesPoint) {
   return point.total > 0 ? (point.delivered / point.total) * 100 : 0;
 }
 
+function formatDeltaLabel(delta: MetricDelta, comparisonLabel: string): string {
+  if (delta.percent === null) {
+    return comparisonLabel;
+  }
+  const formatted = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+    signDisplay: "exceptZero",
+  }).format(delta.percent);
+  return `${formatted}% ${comparisonLabel}`;
+}
+
+// Um card usa a comparação real (delta) quando o toggle está ligado e os
+// dados já chegaram; caso contrário cai de volta na heurística de metade da
+// janela atual (pickTrendDirection) — mesmo formato de retorno nos dois
+// casos, só a fonte do direction/label muda.
+function buildTrend(
+  delta: MetricDelta | null,
+  fallbackDirection: "up" | "down" | "flat",
+  goodDirection: "up" | "down",
+  priorPeriodLabel: string,
+  currentWindowLabel: string,
+) {
+  if (delta) {
+    return {
+      direction: delta.direction,
+      tone: trendTone(delta.direction, goodDirection),
+      label: formatDeltaLabel(delta, priorPeriodLabel),
+    };
+  }
+  return {
+    direction: fallbackDirection,
+    tone: trendTone(fallbackDirection, goodDirection),
+    label: currentWindowLabel,
+  };
+}
+
 export function TopMetrics({
   analytics,
   timeSeries,
+  comparison,
 }: {
   analytics: OverviewAnalytics;
   timeSeries: EventTimeSeriesPoint[];
+  // Quando presente (toggle "Comparar com período anterior" ligado), o
+  // rótulo/direção de tendência de cada card passa a refletir uma
+  // comparação real com o período anterior, em vez de só a metade final vs.
+  // inicial da própria janela atual (pickTrendDirection).
+  comparison?: OverviewAnalytics | null;
 }) {
   const t = useI18n();
 
@@ -31,6 +74,13 @@ export function TopMetrics({
   const deliveryRateTrendDirection = pickTrendDirection(timeSeries, deliveryRateForPoint);
   const bounceTrendDirection = pickTrendDirection(timeSeries, (point) => point.bounced);
   const complaintTrendDirection = pickTrendDirection(timeSeries, (point) => point.complained);
+
+  const deliveredDelta = comparison ? computeDelta(analytics.deliveredCount, comparison.deliveredCount) : null;
+  const deliveryRateDelta = comparison
+    ? computeDelta(analytics.deliveryRate ?? 0, comparison.deliveryRate ?? 0)
+    : null;
+  const bounceDelta = comparison ? computeDelta(analytics.bouncedCount, comparison.bouncedCount) : null;
+  const complaintDelta = comparison ? computeDelta(analytics.complaintCount, comparison.complaintCount) : null;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -41,11 +91,13 @@ export function TopMetrics({
         tone="success"
         highlighted
         sparklineData={extractSeries(timeSeries, (point) => point.delivered)}
-        trend={{
-          direction: deliveredTrendDirection,
-          tone: trendTone(deliveredTrendDirection, "up"),
-          label: t.overview.analytics.trendVsPrevious,
-        }}
+        trend={buildTrend(
+          deliveredDelta,
+          deliveredTrendDirection,
+          "up",
+          t.overview.analytics.trendVsPriorPeriod,
+          t.overview.analytics.trendVsPrevious,
+        )}
       />
       <MetricCard
         icon={Gauge}
@@ -56,11 +108,13 @@ export function TopMetrics({
         tone="brand"
         highlighted
         sparklineData={extractSeries(timeSeries, deliveryRateForPoint)}
-        trend={{
-          direction: deliveryRateTrendDirection,
-          tone: trendTone(deliveryRateTrendDirection, "up"),
-          label: t.overview.analytics.trendVsPrevious,
-        }}
+        trend={buildTrend(
+          deliveryRateDelta,
+          deliveryRateTrendDirection,
+          "up",
+          t.overview.analytics.trendVsPriorPeriod,
+          t.overview.analytics.trendVsPrevious,
+        )}
       />
       <MetricCard
         icon={AlertTriangle}
@@ -69,11 +123,13 @@ export function TopMetrics({
         tone={analytics.bouncedCount > 0 ? "danger" : "neutral"}
         highlighted
         sparklineData={extractSeries(timeSeries, (point) => point.bounced)}
-        trend={{
-          direction: bounceTrendDirection,
-          tone: trendTone(bounceTrendDirection, "down"),
-          label: t.overview.analytics.trendVsPrevious,
-        }}
+        trend={buildTrend(
+          bounceDelta,
+          bounceTrendDirection,
+          "down",
+          t.overview.analytics.trendVsPriorPeriod,
+          t.overview.analytics.trendVsPrevious,
+        )}
       />
       <MetricCard
         icon={MailWarning}
@@ -82,11 +138,13 @@ export function TopMetrics({
         tone={analytics.complaintCount > 0 ? "warning" : "neutral"}
         highlighted
         sparklineData={extractSeries(timeSeries, (point) => point.complained)}
-        trend={{
-          direction: complaintTrendDirection,
-          tone: trendTone(complaintTrendDirection, "down"),
-          label: t.overview.analytics.trendVsPrevious,
-        }}
+        trend={buildTrend(
+          complaintDelta,
+          complaintTrendDirection,
+          "down",
+          t.overview.analytics.trendVsPriorPeriod,
+          t.overview.analytics.trendVsPrevious,
+        )}
       />
     </div>
   );

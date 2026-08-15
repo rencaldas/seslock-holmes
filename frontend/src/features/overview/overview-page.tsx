@@ -1,8 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { GitCompareArrows } from "lucide-react";
 import overviewLogo from "@/assets/overview-logo.webp";
 import overviewLogoBlack from "@/assets/overview-logo-black.webp";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { OverviewSkeleton } from "@/components/states/overview-skeleton";
@@ -23,9 +25,10 @@ import {
   EMAIL_EVENT_LIST_COLUMNS,
   fetchEventRowsWithTimeFallback,
 } from "@/lib/supabase/queries/fetch-event-rows";
-import { resolveTimeRange } from "@/lib/time-filters";
+import { resolvePriorTimeRange, resolveTimeRange } from "@/lib/time-filters";
 import { buildSearchParams } from "@/lib/overview/overview-search-params";
 import { parsePageSize } from "@/lib/page-size";
+import { cn } from "@/lib/utils";
 
 function parsePage(value: string | null) {
   const parsed = Number(value);
@@ -40,6 +43,11 @@ export function OverviewPage() {
   const { filters: appliedFilters } = useFilters();
   const page = parsePage(searchParams.get("page"));
   const pageSize = parsePageSize(searchParams.get("pageSize"));
+
+  // Desligado por padrão: liga uma segunda consulta agregada ao banco (janela
+  // anterior de mesma duração), então não vale pagar esse custo extra pra
+  // quem não pediu a comparação.
+  const [compareEnabled, setCompareEnabled] = useState(false);
 
   const overviewQuery = useQuery({
     queryKey: [
@@ -99,6 +107,52 @@ export function OverviewPage() {
         hasPreviousPage: page > 1,
         hasNextPage: page < totalPages,
       };
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const comparisonQuery = useQuery({
+    queryKey: [
+      "overview-comparison",
+      language,
+      appliedFilters.timeMode,
+      appliedFilters.windowDays,
+      appliedFilters.startAt,
+      appliedFilters.endAt,
+      appliedFilters.status,
+      appliedFilters.bounceSubType,
+      appliedFilters.origin,
+      appliedFilters.subject,
+      appliedFilters.provider,
+      supabase.eventsTable,
+    ],
+    enabled: compareEnabled && Boolean(supabase.client && supabase.eventsTable),
+    // Mesma RPC overview_analytics da consulta principal, só que com a janela
+    // anterior de mesma duração — ver resolvePriorTimeRange. Reaproveitar a
+    // função existente evita alargar a assinatura da RPC (risco documentado
+    // em fetchOverviewAggregate).
+    queryFn: async () => {
+      const prior = resolvePriorTimeRange(appliedFilters);
+      const aggregate = await fetchOverviewAggregate(
+        supabase.client!,
+        {
+          page: 1,
+          pageSize: 1,
+          timeMode: "custom",
+          windowDays: appliedFilters.windowDays,
+          startAt: prior.startIso,
+          endAt: prior.endIso,
+          recentActivitySort: appliedFilters.recentActivitySort,
+          status: appliedFilters.status,
+          bounceSubType: appliedFilters.bounceSubType,
+          origin: appliedFilters.origin,
+          subject: appliedFilters.subject,
+          provider: appliedFilters.provider,
+          rowLimit: appliedFilters.rowLimit,
+        },
+        language,
+      );
+      return aggregate.analytics;
     },
     placeholderData: keepPreviousData,
   });
@@ -172,7 +226,23 @@ export function OverviewPage() {
           }`}
         >
           <DomainHealthHero analytics={overviewQuery.data.analytics} />
-          <TopMetrics analytics={overviewQuery.data.analytics} timeSeries={timeSeries.points} />
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant={compareEnabled ? "default" : "secondary"}
+              className={cn("gap-2", compareEnabled ? undefined : "text-ink-muted")}
+              onClick={() => setCompareEnabled((current) => !current)}
+              aria-pressed={compareEnabled}
+            >
+              <GitCompareArrows className="h-4 w-4" />
+              {t.overview.analytics.compareToggleLabel}
+            </Button>
+          </div>
+          <TopMetrics
+            analytics={overviewQuery.data.analytics}
+            timeSeries={timeSeries.points}
+            comparison={compareEnabled ? comparisonQuery.data : undefined}
+          />
           <OverviewAnalyticsPanel
             analytics={overviewQuery.data.analytics}
             uniqueMessagesCount={overviewQuery.data.uniqueMessagesCount}
