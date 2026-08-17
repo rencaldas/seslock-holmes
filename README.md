@@ -17,7 +17,7 @@ Cada bounce diagnosticado virou uma correção concreta:
 - 🌐 Domínios sem registro MX corrigidos
 - 🔐 Falhas de autenticação DMARC ajustadas
 
-O resultado indireto é tão importante quanto o número: **reputação de envio melhorada**, menos mensagens caindo em spam, e menor risco de provedores bloquearem o envio por reputação baixa.
+O resultado indireto é tão importante quanto o número: **reputação de envio melhorada**, menos mensagens caindo em spam, e menor risco de provedores bloquearem o envio por conta da reputação baixa.
 
 
 ## Demo
