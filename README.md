@@ -22,7 +22,7 @@ O resultado indireto é tão importante quanto o número: **reputação de envio
 
 ## Demo
 
-O projeto está disponível em produção através da Vercel:
+O projeto está disponível através da Vercel:
 
 🔗 **https://seslock-holmes.vercel.app/**
 
