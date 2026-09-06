@@ -160,16 +160,12 @@ async function looksLikeFrontendDirectory(directory: FileSystemDirectoryHandle) 
   try {
     await directory.getFileHandle("vite.config.ts");
     return true;
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   try {
     await directory.getDirectoryHandle("src");
     return true;
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   return false;
 }
@@ -184,9 +180,7 @@ async function resolveTargetDirectory(root: FileSystemDirectoryHandle) {
     if (await looksLikeFrontendDirectory(frontendDirectory)) {
       return frontendDirectory;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   return root;
 }

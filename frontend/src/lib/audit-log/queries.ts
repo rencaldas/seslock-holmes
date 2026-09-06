@@ -29,9 +29,7 @@ function rowToEntry(row: AuditLogRow): AuditLogEntry {
   };
 }
 
-// Código do PostgREST para "relação não existe" — a migration
-// 20260814100000 ainda não foi aplicada no projeto em uso. Mesmo padrão de
-// checkScheduledReportsConfigured/checkDashboardSharesConfigured.
+// 42P01 = undefined_table — ver docs/ARCHITECTURE.md#referência-códigos-de-erro-do-postgrestpostgresql.
 const UNDEFINED_TABLE_ERROR_CODE = "42P01";
 
 export async function checkAuditLogConfigured(client: SupabaseClient): Promise<boolean> {
@@ -45,13 +43,7 @@ export async function checkAuditLogConfigured(client: SupabaseClient): Promise<b
   return true;
 }
 
-// Usado pelo caminho direto-Supabase do navegador (queries.ts de
-// scheduled-reports e dashboard-shares) — chama a RPC record_audit_event, que
-// resolve o ator a partir do próprio JWT da sessão (auth.uid()/email), nunca
-// de um valor mandado pelo cliente. Non-fatal de propósito: uma falha aqui
-// (ex.: projeto self-hosted que ainda não rodou a migration 20260814100000)
-// nunca deve derrubar a ação real (criar/editar/excluir um agendamento ou
-// link) que já foi bem-sucedida.
+// Non-fatal de propósito — ver docs/SECURITY.md#log-de-auditoria-e-origem-do-ator.
 export async function recordAuditEvent(
   client: SupabaseClient,
   event: { action: string; resourceType: string; resourceId?: string; metadata?: Record<string, unknown> },

@@ -71,7 +71,6 @@ describe("fetchEventRowsWithTimeFallback", () => {
     expect(result.rows).toHaveLength(UNLIMITED_ROW_LIMIT_CAP);
     expect(result.truncated).toBe(true);
     expect(query.range).toHaveBeenCalledTimes(UNLIMITED_ROW_LIMIT_CAP / 1000);
-    // Nunca pede além do teto.
     expect(query.range).toHaveBeenLastCalledWith(UNLIMITED_ROW_LIMIT_CAP - 1000, UNLIMITED_ROW_LIMIT_CAP - 1);
   });
 

@@ -1,15 +1,8 @@
-// Client-side counterpart to queries.ts, used only when the browser is
-// pointed at THIS deployment's own default Supabase project (i.e. nobody
-// overrode Settings with their own project). That project's report_schedules
-// table now denies the anon role entirely (see
-// supabase/migrations/20260730140000_lock_default_report_schedules.sql), so
-// every read/write goes through the admin-gated /api/schedules endpoint
-// instead of a direct supabase-js call — see api/schedules.ts for the
-// server-side half of this and why it exists.
-//
-// A visitor's OWN registered Supabase project never goes through here: it
-// keeps using queries.ts directly, with their own anon key, since it's their
-// own data and their own project's RLS to manage.
+// Client-side counterpart to queries.ts, used only for THIS deployment's own
+// default Supabase project — every read/write goes through the admin-gated
+// /api/schedules endpoint instead of a direct supabase-js call. A visitor's
+// OWN Supabase project never goes through here (see queries.ts). See
+// docs/ARCHITECTURE.md#fluxo-de-dados-postgres-como-fonte-da-verdade.
 
 import type { ReportSchedule, ReportScheduleRun, ScheduleInput } from "@/lib/scheduled-reports/types";
 
@@ -105,8 +98,7 @@ async function adminFetch(adminToken: string, path: string, init: RequestInit = 
   return body;
 }
 
-// PostgREST error code for "relation does not exist" — surfaced when the
-// scheduled-reports migration hasn't been run yet on this Supabase project.
+// 42P01 = undefined_table — ver docs/ARCHITECTURE.md#referência-códigos-de-erro-do-postgrestpostgresql.
 const UNDEFINED_TABLE_ERROR_CODE = "42P01";
 
 export async function adminCheckScheduledReportsConfigured(adminToken: string): Promise<boolean> {

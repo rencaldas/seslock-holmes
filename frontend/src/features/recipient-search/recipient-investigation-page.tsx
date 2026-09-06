@@ -77,9 +77,7 @@ export function RecipientInvestigationPage() {
       }),
   });
 
-  // O relatório exportado usa a mesma busca e os mesmos filtros aplicados na
-  // tela (sem a paginação de 25 em 25) — se a investigação está filtrada por
-  // "compras@ramada.com.br", o relatório traz só os eventos desse endereço.
+  // Mesma busca/filtros da tela, sem a paginação de 25 em 25.
   const loadReportEvents = useCallback(async () => {
     return fetchAllMatchingRecipientEvents(supabase.client!, supabase.eventsTable!, {
       searchText,

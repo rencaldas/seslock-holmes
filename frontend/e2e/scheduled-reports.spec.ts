@@ -1,9 +1,6 @@
-// CRUD de agendamentos na tela de Relatórios Agendados, pelo caminho
-// direto-Supabase (queries.ts) — força isDefaultProject=false salvando uma
-// URL/anonKey em Configurações antes de navegar, o que evita ter que também
-// mockar o token de admin e a rota /api/schedules (caminho do projeto
-// padrão). Mantém um array em memória no próprio handler de rota para que
-// GET reflita create/update/delete subsequentes, como uma tabela de verdade.
+// CRUD de agendamentos pelo caminho direto-Supabase (queries.ts) — força
+// isDefaultProject=false salvando URL/anonKey em Configurações antes de
+// navegar, evitando também mockar o token de admin e /api/schedules.
 import { test, expect, type Route } from "@playwright/test";
 import { mockAuth } from "./fixtures/supabase-mock";
 

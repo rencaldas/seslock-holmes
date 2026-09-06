@@ -79,8 +79,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       if (nextSession) {
-        // Entrou: o motivo de exigir login deixou de valer. Sem isto a tela
-        // de login continuaria no lugar mesmo com a sessão ativa.
         setAuthRequired(false);
       }
     });

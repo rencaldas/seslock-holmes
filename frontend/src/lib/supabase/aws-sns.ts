@@ -70,9 +70,7 @@ function toEmailList(value: unknown): string[] {
     if (text.startsWith("[") || text.startsWith("{")) {
       try {
         return toEmailList(JSON.parse(text));
-      } catch {
-        // Keep non-JSON strings usable as-is.
-      }
+      } catch {}
     }
 
     return [text];
