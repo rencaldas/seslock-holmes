@@ -42,20 +42,22 @@ Além da leitura, o projeto também escreve em duas áreas próprias, protegidas
 
 ## Principais Funcionalidades
 
-- Visão geral com atividade recente, eventos problemáticos e principais origens, com indicadores calculados no próprio banco (via RPC) para refletir o período inteiro filtrado, não apenas uma amostra.
+- Visão geral com atividade recente, eventos problemáticos e principais origens, com indicadores calculados no próprio banco (via RPC) para refletir o período inteiro filtrado, não apenas uma amostra. Um toggle opcional compara os indicadores com o período anterior de mesma duração, com seta de alta/baixa em cada cartão.
 - Painel de analytics com distribuição de eventos, reputação, taxa de bounce (com filtro por subtipo: suppressed, general, mailbox full, content rejected, undetermined), tempo médio de entrega, último evento recebido, principais provedores, principais motivos de bounce e aplicações/origens.
 - Investigação por destinatário, remetente, provedor (domínio do destinatário) ou diagnóstico de bounce.
 - Busca global no cabeçalho, disponível em qualquer página, com persistência de texto/modo/filtros entre navegações.
 - Detalhes completos do evento com assunto, remetente, destinatário, status e metadados de falha.
 - Rastreamento cronológico da mensagem, com os dados mais relevantes de cada evento (origem/IP, tempo de processamento, resposta SMTP, tipo/subtipo de bounce, diagnostic code, feedback de reclamação) exibidos diretamente no card.
-- Exportação de relatório em CSV/PDF e por e-mail sob demanda.
+- Exportação de relatório em CSV/PDF e por e-mail sob demanda, na Visão geral e na Investigação.
 - **Relatórios agendados**: criação de agendamentos recorrentes (diário/semanal/etc.) com filtros próprios, múltiplos destinatários, histórico de execuções, pausa/retomada, exclusão e disparo manual ("forçar agora"). O disparo periódico roda por um workflow do GitHub Actions a cada 15 minutos, com o cron da Vercel como reforço diário.
-- **Compartilhamento de dashboard**: botão "Compartilhar" na Visão geral gera um link público somente-leitura com os filtros atuais travados, protegido por token de 256 bits, sem exigir conta de quem acessa. A lista de atividade recente é opcional por link. Links criados podem ser listados e revogados em Configurações.
+- **Compartilhamento de dashboard**: botão "Compartilhar" na Visão geral gera um link público somente-leitura com os filtros atuais travados, protegido por token de 256 bits, sem exigir conta de quem acessa. A lista de atividade recente é opcional por link. Links criados podem ser listados, regenerados (invalida o link antigo) e revogados na aba "Links compartilhados", em Relatórios Agendados.
+- **Perfis de acesso (RBAC)**: contas autenticadas são `viewer` ou `manager`. Viewers só visualizam; managers também criam e editam agendamentos e links compartilhados. Contas novas começam como viewer.
+- **Log de auditoria**: registro somente-leitura, visível a qualquer usuário autenticado, de toda ação administrativa — criação, edição, pausa, exclusão e envio forçado de agendamentos, resultado dos envios automáticos, e criação/revogação/regeneração de links compartilhados. Aba "Log de auditoria" em Relatórios Agendados.
 - Login por e-mail e senha, exibido sob demanda apenas quando uma consulta é recusada por falta de permissão (contas são criadas por um administrador, sem cadastro aberto).
 - Paginação no banco na atividade recente e na investigação por busca.
 - Sugestões de e-mails semelhantes quando não há correspondência exata.
 - Tema claro/escuro.
-- Página de FAQ pesquisável para dúvidas operacionais e de uso.
+- Página de FAQ pesquisável (Central de Ajuda, organizada em abas) para dúvidas operacionais e de uso.
 - Página de configurações para ajustar idioma, fuso horário, relógio, intervalo de atualização, conexão com Supabase e token de administração dos relatórios agendados.
 
 ## Rotas
@@ -95,6 +97,8 @@ seslock-holmes/
 │       │   ├── scheduled-reports/ # criação, histórico e gestão de relatórios agendados
 │       │   └── settings/          # preferências e configuração do Supabase
 │       ├── lib/
+│       │   ├── audit-log/         # queries e tipos do log de auditoria
+│       │   ├── user-roles/        # RBAC leve (viewer/manager)
 │       │   ├── dashboard-shares/  # token, link e queries dos links compartilhados
 │       │   ├── data/              # listas e opções de filtro
 │       │   ├── filters/           # normalização e aplicação de filtros
@@ -112,6 +116,7 @@ seslock-holmes/
 ├── supabase/
 │   └── migrations/                # migrations SQL (RLS, RPCs de analytics, schedules, shares)
 ├── .github/workflows/             # disparo periódico dos relatórios agendados (GitHub Actions)
+├── docs/                          # documentação técnica (arquitetura e segurança) — leia antes de mexer
 ├── specs/                         # documentação da feature
 └── README.md
 ```
@@ -184,9 +189,20 @@ Na Visão geral, o botão "Compartilhar" permite:
 - decidir se a lista de atividade recente entra no link (desligada por padrão, pois expõe e-mail de destinatário);
 - definir uma validade para o link (ou nenhuma).
 
-Quem abre `/share/:token` vê uma versão somente-leitura do dashboard, sem precisar de conta. Os links criados ficam listados em Configurações, onde também podem ser revogados a qualquer momento.
+Quem abre `/share/:token` vê uma versão somente-leitura do dashboard, sem precisar de conta. Os links criados ficam listados na aba "Links compartilhados" em Relatórios Agendados, onde também podem ser regenerados ou revogados a qualquer momento. Só contas `manager` podem criar ou gerenciar links.
 
-### 7. Configurações
+### 7. Perfis de Acesso e Log de Auditoria
+
+Toda conta autenticada tem um papel:
+
+- **viewer**: só visualiza — Overview, investigação, detalhes de evento, histórico de agendamentos e links.
+- **manager**: além de visualizar, cria e edita agendamentos e links de compartilhamento.
+
+Contas novas começam como `viewer`; a promoção para `manager` é feita diretamente no banco pelo administrador do projeto Supabase.
+
+A aba "Log de auditoria", em Relatórios Agendados, lista (somente leitura, visível a qualquer usuário autenticado) todas as ações administrativas: criação, edição, pausa, exclusão e disparo forçado de agendamentos, o resultado de cada envio automático, e a criação, regeneração ou revogação de links de compartilhamento.
+
+### 8. Configurações
 
 A tela de configurações permite ajustar:
 
@@ -197,8 +213,7 @@ A tela de configurações permite ajustar:
 - URL do Supabase;
 - chave pública/publishable do Supabase;
 - nome da tabela ou view de eventos;
-- token de administração usado para gerenciar os relatórios agendados do projeto padrão;
-- lista e revogação dos links de compartilhamento de dashboard já criados.
+- token de administração usado para gerenciar os relatórios agendados do projeto padrão.
 
 As configurações podem ser:
 
@@ -362,7 +377,7 @@ Para obter a melhor experiência:
 - crie uma política RLS que permita `SELECT` na tabela de eventos apenas para usuários autenticados esperados (sem acesso anônimo);
 - crie as contas de acesso pelo painel do Supabase — não há cadastro aberto pela aplicação;
 - garanta que a tabela ou view exponha os dados necessários para investigação;
-- aplique as migrations de `supabase/migrations/` que criam as RPCs de analytics e as tabelas de relatórios agendados (`report_schedules`) e links compartilhados (`dashboard_shares`), cada uma com sua própria política de RLS;
+- aplique as migrations de `supabase/migrations/` que criam as RPCs de analytics, as tabelas de relatórios agendados (`report_schedules`) e links compartilhados (`dashboard_shares`), o RBAC leve (`user_roles`) e o log de auditoria (`audit_log`), cada uma com sua própria política de RLS;
 - mantenha índices nos campos usados com frequência, como:
   - `timestamp`
   - `messageId`
@@ -377,7 +392,7 @@ Para obter a melhor experiência:
 - O deploy inclui cabeçalhos de segurança HTTP (proteção contra clickjacking, controle de referenciador, HSTS, Permissions-Policy) e uma Content-Security-Policy em modo de observação.
 - Links de compartilhamento usam token de 256 bits e não expõem nada além do que o criador do link escolheu incluir.
 - O painel não é indexado por buscadores (`robots.txt` e meta tag `noindex`).
-- Consulte o [CHANGELOG](frontend/CHANGELOG.md) para o histórico de correções de segurança já aplicadas.
+- Consulte o [CHANGELOG](frontend/CHANGELOG.md) para o histórico de correções de segurança já aplicadas, e [docs/SECURITY.md](docs/SECURITY.md) para o raciocínio completo por trás delas (RLS, tokens, tela de login, links de compartilhamento).
 
 ## Troubleshooting
 
@@ -413,6 +428,13 @@ Isso acontece quando o painel está apontando para o projeto Supabase padrão (n
 - O frontend usa chave secreta do Supabase? Não. Ele usa apenas URL e chave pública/publishable; a chave de service role só existe no backend dos relatórios agendados.
 - A página inicial precisa virar `/dashboard`? Não necessariamente. `/` já é a rota mais limpa para a home do produto.
 - Quem abre um link de compartilhamento vê tudo do dashboard? Não. Só vê a visão com os filtros travados pelo criador do link, e a atividade recente só aparece se o criador tiver escolhido incluí-la.
+
+## Documentação Técnica
+
+A pasta [`docs/`](docs/README.md) explica decisões de código que não são óbvias só de ler os arquivos — leia antes de mexer em autenticação, RLS, tokens, RBAC, compartilhamento ou relatórios agendados:
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — como o sistema funciona: fluxo de dados, RPCs de analytics, RBAC, relatórios agendados, compartilhamento, log de auditoria, convenções da Vercel.
+- [docs/SECURITY.md](docs/SECURITY.md) — modelo de segurança: RLS, dois incidentes reais já corrigidos, tokens de administração, tela de login, tokens de compartilhamento.
 
 ## Documentação da Feature
 
