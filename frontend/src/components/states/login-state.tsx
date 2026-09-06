@@ -11,13 +11,8 @@ import overviewLogo from "@/assets/overview-logo.webp";
 import overviewLogoBlack from "@/assets/overview-logo-black.webp";
 
 // Tela exibida quando uma consulta é recusada por permissão e ainda não há
-// sessão. Não é a porta de entrada do app: quem usa um Supabase com a RLS
-// aberta nunca chega aqui (ver o comentário de topo em lib/supabase/auth.ts).
-//
-// Não existe link de "criar conta" de propósito. O cadastro público fica
-// desabilitado no painel do Supabase — com ele aberto, exigir o papel
-// `authenticated` não protegeria nada, já que qualquer pessoa criaria uma
-// conta e voltaria a ler tudo. As contas são criadas por um administrador.
+// sessão — não é a porta de entrada do app. Sem link de "criar conta" de
+// propósito. Ver docs/SECURITY.md#tela-de-login.
 export function LoginState() {
   const t = useI18n();
   const { client } = useSupabase();

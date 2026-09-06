@@ -1,25 +1,12 @@
 // Server-only module (Node.js, not for the browser bundle) shared by both
 // /api/send-scheduled-reports.ts (Vercel Cron) and /api/run-schedule-now.ts
-// (manual "force run" trigger from the app): builds the report for a
-// schedule, emails it via Gmail SMTP, and records the run.
+// (manual "force run"): builds the report for a schedule, emails it via
+// Gmail SMTP, and records the run.
 //
-// Lives under src/lib instead of api/ on purpose: Vercel's Serverless
-// Functions build excludes any file or directory whose name starts with `_`
-// from the deployed bundle entirely — not just from routing — so an earlier
-// api/_lib/scheduled-report-runner.ts here made both endpoints fail with
-// "Cannot find module" at runtime. src/lib is already known-good: it's where
-// email-report.ts and the other modules this file reuses already live, and
-// they're traced and included correctly by Vercel's Node builder via
-// relative imports from api/*.ts.
-//
-// Sends through a real Gmail account (SMTP + App Password) instead of a
-// transactional email API, since those all require verifying a domain the
-// sender owns — not an option here. Gmail's daily sending limit (~500/day
-// for a regular account) comfortably covers a handful of scheduled reports.
-//
-// Only relative imports are used below (including inside the reused
-// src/lib/* modules) because Vercel's Node.js function bundler does not
-// resolve the `@/` tsconfig path alias Vite uses for the browser build.
+// Lives under src/lib instead of api/, and only uses relative imports with
+// `.js` extensions, on purpose — see
+// docs/ARCHITECTURE.md#onde-este-módulo-vive-e-por-quê before moving or
+// re-importing anything here.
 
 import nodemailer, { type Transporter } from "nodemailer";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -43,16 +30,9 @@ import {
 import { PROBLEM_EVENT_TYPES, type EmailEventType } from "../supabase/types.js";
 import { recordAuditEventFromServer } from "../audit-log/record-server.js";
 
-// Hosted as a real static asset (public/email-logo.png -> served at the
-// site root, no build hash) rather than embedded as a base64 data URI.
-// Data URIs looked appealing (self-contained, no dependency on the domain
-// being reachable) but Gmail's own renderer -- the exact client this whole
-// deliverability pass targets -- doesn't reliably display inline
-// data:image sources: the header showed as an empty broken-image box in
-// production even though the same HTML rendered the image fine in a
-// browser iframe preview. Sized down from the app's 404x497 source
-// (src/assets/overview-logo.png, the light/white variant used on dark
-// surfaces) to 130x160 to keep the file small.
+// Static asset, not a data: URI — Gmail's own renderer doesn't reliably
+// display inline data:image sources. See
+// docs/ARCHITECTURE.md#por-que-gmail-smtp-e-não-uma-api-transacional.
 const LOGO_URL = "https://seslock-holmes.vercel.app/email-logo.png";
 
 export interface ScheduleFilters {

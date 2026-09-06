@@ -1,13 +1,7 @@
 // Chama a função overview_analytics do Postgres, que agrega os eventos no
-// banco em vez de mandar linha bruta para o navegador.
-//
-// O caminho antigo (fetch-event-rows) buscava até 20.000 linhas em lotes de
-// 1000 — 20 idas e voltas sequenciais — e calculava tudo em JS. Além de lento,
-// entregava número errado: com 99 mil eventos em 30 dias, o teto cobria só os
-// 8 dias mais recentes, então a taxa de bounce exibida (2,53%) não era a do
-// período (3,01%). O rótulo dizia 30 dias, o dado era de 8.
-//
-// Aqui volta ~50 linhas agregadas, exatas sobre 100% da janela.
+// banco em vez de mandar linha bruta para o navegador — substituiu um
+// caminho antigo que dava números errados fora da amostra baixada. Ver
+// docs/ARCHITECTURE.md#overview-agregação-no-banco-via-rpc.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppLanguage } from "@/lib/i18n/types";
@@ -114,21 +108,9 @@ export async function fetchOverviewEventsPage(
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),
-    // rowLimit é deliberadamente NÃO repassado (a função aceita p_row_limit,
-    // mas o padrão null significa "sem teto"). O painel sempre reflete a
-    // janela inteira que o usuário escolheu.
-    //
-    // Aquele seletor existia como válvula de performance: era o que impedia o
-    // navegador de baixar a tabela toda. Esse motivo acabou — a agregação
-    // acontece no banco e "sem limite" custa ~3,5 KB a mais de tráfego que
-    // "100 linhas". O que sobrava dele era uma armadilha: com 100 linhas os
-    // cards mostravam bounce 0% quando o real do período era 3%, porque a
-    // amostra cobria só os últimos minutos. Um filtro de período que devolve
-    // a taxa de outro período é pior que filtro nenhum.
-    //
-    // O seletor continua valendo para o relatório CSV/PDF (ver
-    // loadReportEvents em overview-page.tsx), onde limitar o tamanho do
-    // arquivo gerado é uma função real.
+    // rowLimit é deliberadamente NÃO repassado — "sem teto" é o padrão da
+    // função, e o painel sempre reflete a janela inteira escolhida. Ver
+    // docs/ARCHITECTURE.md#o-seletor-de-linhas-legado-e-a-armadilha-que-ele-deixou.
     p_sort: input.recentActivitySort,
     p_limit: input.pageSize,
     p_offset: (input.page - 1) * input.pageSize,
@@ -161,21 +143,9 @@ export async function fetchOverviewAggregate(
     p_origin: input.origin.trim(),
     p_subject: input.subject.trim(),
     p_provider: input.provider.trim(),
-    // rowLimit é deliberadamente NÃO repassado (a função aceita p_row_limit,
-    // mas o padrão null significa "sem teto"). O painel sempre reflete a
-    // janela inteira que o usuário escolheu.
-    //
-    // Aquele seletor existia como válvula de performance: era o que impedia o
-    // navegador de baixar a tabela toda. Esse motivo acabou — a agregação
-    // acontece no banco e "sem limite" custa ~3,5 KB a mais de tráfego que
-    // "100 linhas". O que sobrava dele era uma armadilha: com 100 linhas os
-    // cards mostravam bounce 0% quando o real do período era 3%, porque a
-    // amostra cobria só os últimos minutos. Um filtro de período que devolve
-    // a taxa de outro período é pior que filtro nenhum.
-    //
-    // O seletor continua valendo para o relatório CSV/PDF (ver
-    // loadReportEvents em overview-page.tsx), onde limitar o tamanho do
-    // arquivo gerado é uma função real.
+    // rowLimit é deliberadamente NÃO repassado — "sem teto" é o padrão da
+    // função, e o painel sempre reflete a janela inteira escolhida. Ver
+    // docs/ARCHITECTURE.md#o-seletor-de-linhas-legado-e-a-armadilha-que-ele-deixou.
   });
 
   if (error) {

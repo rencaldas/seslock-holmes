@@ -17,11 +17,9 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const location = useLocation();
   const [shareOpen, setShareOpen] = useState(false);
   const { role } = useUserRole();
-  // Só faz sentido compartilhar a Visão geral (é a única página cujos dados
-  // vêm de filtros travados), só quem tem sessão pode criar links — a policy
-  // de dashboard_shares exige o papel `authenticated` — e, desde o RBAC leve
-  // (20260814090000), só manager pode de fato inserir a linha (viewer levaria
-  // 403 da RLS; isto só evita mostrar o botão nesse caso).
+  // UX only (server enforces via RLS + RBAC) — ver docs/ARCHITECTURE.md#rbac-leve-viewer-e-manager.
+  // Só a Visão Geral tem filtros travados para compartilhar, só sessão ativa
+  // pode criar links, e só manager evita o botão que daria 403 pro viewer.
   const canShare = location.pathname === "/" && Boolean(session && client) && role === "manager";
 
   return (

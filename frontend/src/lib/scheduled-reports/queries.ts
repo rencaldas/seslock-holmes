@@ -67,8 +67,7 @@ function rowToRun(row: ScheduleRunRow): ReportScheduleRun {
   };
 }
 
-// PostgREST error code for "relation does not exist" — surfaced when the
-// scheduled-reports migration hasn't been run yet on this Supabase project.
+// 42P01 = undefined_table — ver docs/ARCHITECTURE.md#referência-códigos-de-erro-do-postgrestpostgresql.
 const UNDEFINED_TABLE_ERROR_CODE = "42P01";
 
 export async function checkScheduledReportsConfigured(client: SupabaseClient): Promise<boolean> {

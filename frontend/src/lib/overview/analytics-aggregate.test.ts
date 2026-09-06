@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildOverviewAnalyticsFromAggregate, type OverviewAggregate } from "./analytics";
 
-// Molde com números plausíveis da base real (janela de 30 dias), para os
-// testes falarem de valores reconhecíveis em vez de 1, 2, 3.
 function aggregate(overrides: Partial<OverviewAggregate> = {}): OverviewAggregate {
   return {
     totalEventCount: 99012,
@@ -156,9 +154,9 @@ describe("buildOverviewAnalyticsFromAggregate", () => {
     // @ts-expect-error simula um retorno sem as listas, que o jsonb_agg
     // devolveria como null se o coalesce da função falhasse.
     parcial.topProviders = null;
-    // @ts-expect-error idem
+    // @ts-expect-error
     parcial.topBounceReasons = null;
-    // @ts-expect-error idem
+    // @ts-expect-error
     parcial.originApplications = null;
 
     const result = buildOverviewAnalyticsFromAggregate(parcial, "pt-BR");

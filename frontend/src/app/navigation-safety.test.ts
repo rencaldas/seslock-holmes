@@ -1,14 +1,7 @@
 // Trava de defesa em profundidade contra open redirect via <Link>/useNavigate
-// (classe de bug coberta por GHSA-wrjc-x8rr-h8h6, que afetou o react-router
-// 6.0.0–7.17.0 e já está corrigida na versão instalada — ver package.json).
-//
-// A CVE original só era explorável quando um valor controlado por terceiros
-// definia o INÍCIO do destino da navegação (ex.: `\\evil.com` ou `//evil.com`
-// sendo tratado como URL absoluta). Hoje toda navegação do app começa com um
-// caminho literal (`/events/`, `/investigate?`, `/settings`), então o trecho
-// dinâmico nunca ocupa a primeira posição e não consegue trocar a origem —
-// essa propriedade continua valendo independentemente da versão do router,
-// então o teste fica como guarda permanente, não como mitigação temporária.
+// (GHSA-wrjc-x8rr-h8h6). Guarda permanente, não mitigação temporária — ver
+// docs/SECURITY.md#guarda-contra-open-redirect-navigation-safety para por
+// que a propriedade que ela verifica vale independente da versão do router.
 //
 // Qualquer destino novo que não comece com literal falha aqui e força uma
 // revisão consciente. Se a exceção for legítima, adicione-a a

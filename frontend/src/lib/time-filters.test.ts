@@ -53,8 +53,6 @@ describe("time filters", () => {
 
     const prior = resolvePriorTimeRange(filters, asOf);
 
-    // Current window is 2025-01-14T12:00Z..2025-01-21T12:00Z (7 days), so the
-    // prior window is the 7 days immediately before that.
     expect(prior).toEqual({
       startIso: "2025-01-07T12:00:00.000Z",
       endIso: "2025-01-14T12:00:00.000Z",

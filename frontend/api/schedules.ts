@@ -1,26 +1,9 @@
 // Admin-gated CRUD for `report_schedules` on THIS deployment's own default
-// Supabase project (the one baked into the frontend build via
-// VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).
-//
-// Exists because that project's report_schedules/report_schedule_runs RLS
-// was locked down to deny the `anon` role entirely (see
-// supabase/migrations/20260730140000_lock_default_report_schedules.sql) —
-// before that migration, ANY visitor of this site, with no login, could
-// write schedules straight into the owner's own Supabase project using the
-// anon key baked into the public JS bundle, and the shared cron would then
-// email them out through the owner's own Gmail account. Visitors bringing
-// their OWN Supabase project are unaffected: their report_schedules table
-// keeps the portable, anon-writable RLS from 20260730120000, since it's
-// their own data/risk to manage, and they still talk to it directly via
-// supabase-js with their own anon key (see src/lib/scheduled-reports/queries.ts).
-//
-// Every request here must carry `Authorization: Bearer <ADMIN_API_TOKEN>`
-// matching the Vercel env var of the same name — this project's owner sets
-// that token once in their own browser's Settings page, and it never ships
-// in the public bundle (it's read from process.env server-side only).
-//
-// Only relative imports (with explicit .js extensions) are used below —
-// see the matching comment in report-runner.ts.
+// Supabase project only — visitors with their own Supabase talk to it
+// directly via supabase-js (see scheduled-reports/queries.ts). Every request
+// must carry `Authorization: Bearer <ADMIN_API_TOKEN>`, never shipped in the
+// public bundle. See docs/ARCHITECTURE.md#fluxo-de-dados-postgres-como-fonte-da-verdade
+// and docs/SECURITY.md#tokens-de-administração-e-cron.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

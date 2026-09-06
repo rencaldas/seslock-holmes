@@ -1,40 +1,11 @@
-// Manual "force run" trigger for a single report schedule, called from the
-// "Forçar agendamento de relatório" button on the Scheduled reports page.
-// Builds and sends the report immediately, independent of Vercel Cron and
-// WITHOUT touching next_run_at — the schedule's real cadence (see
-// send-scheduled-reports.ts) is left untouched, this is purely an
-// out-of-band send for testing or urgent situations.
-//
-// Takes { scheduleId } and runs it against this deployment's own project,
-// using the same SUPABASE_SERVICE_ROLE_KEY / GMAIL_USER / GMAIL_APP_PASSWORD
-// env vars as the cron endpoint.
-//
-// It also accepted { connectionId, token } to force-run a schedule on a
-// visitor's own project registered in `report_connections`. That registry was
-// removed along with the unauthenticated endpoint that populated it — see the
-// matching note in send-scheduled-reports.ts.
-//
-// Only relative imports are used below because Vercel's Node.js function
-// bundler does not resolve the `@/` tsconfig path alias Vite uses for the
-// browser build.
-//
-// report-runner is imported statically (like the other local api/* imports)
-// rather than via a dynamic `await import(...)` — a dynamic import was tried
-// first, on the theory that deferring it into the try/catch below would turn
-// a module-load crash into a catchable error, but that wasn't the actual
-// problem. Confirmed via Vercel's function logs: @vercel/node transpiles
-// each file individually and ships them as separate compiled .js files (it
-// does not bundle everything into one file), so relative imports are
-// resolved by Node's own ESM loader at runtime — and that loader, unlike a
-// bundler, requires an explicit file extension. The `.js` extension below
-// (on this and every other relative import reachable from this file, e.g. in
-// report-runner.ts / aws-sns.ts) is required for that reason, even though
-// the real source files are .ts — this is Node ESM's own convention for
-// TypeScript projects, not a typo. Omitting it produces
-// "Error [ERR_MODULE_NOT_FOUND]: Cannot find module ... imported from
-// .../run-schedule-now.js" in production. Nothing at report-runner's module
-// top level actually throws (readEnv returns null instead of throwing), so
-// there's no crash-on-load risk to defer against with a dynamic import here.
+// Manual "force run" trigger for a single report schedule ("Forçar
+// agendamento de relatório" button). Builds and sends immediately,
+// independent of Vercel Cron and WITHOUT touching next_run_at — the
+// schedule's real cadence is left untouched. See
+// docs/ARCHITECTURE.md#relatórios-agendados and
+// docs/ARCHITECTURE.md#convenções-de-infraestrutura-vercel (why every
+// relative import below needs an explicit `.js` extension, and why a
+// dynamic `await import(...)` here was tried and reverted).
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

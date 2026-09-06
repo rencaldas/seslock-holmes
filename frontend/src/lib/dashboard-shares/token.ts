@@ -1,12 +1,6 @@
-// Token opaco de 256 bits para links de dashboard compartilhados.
-//
-// Gerado e hasheado inteiramente no navegador com Web Crypto (crypto.subtle
-// exige um contexto seguro — https ou localhost — que é sempre o caso aqui).
-// Só o hash SHA-256 (hex) vai para o banco, em dashboard_shares.token_hash;
-// o texto puro só existe na URL mostrada uma vez a quem cria o link. A
-// função get_shared_dashboard (ver a migration 20260802120000) refaz o mesmo
-// hash com pgcrypto.digest() do lado do servidor para comparar — SHA-256 do
-// mesmo texto produz o mesmo hex nos dois lados.
+// Token opaco de 256 bits para links de dashboard compartilhados. Gerado e
+// hasheado no navegador com Web Crypto; só o hash vai para o banco. Ver
+// docs/SECURITY.md#links-de-compartilhamento para o modelo completo.
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)

@@ -1,9 +1,7 @@
-// CRUD de dashboard_shares — sempre via supabase-js direto com o client
-// autenticado do navegador, no projeto padrão OU num projeto próprio
-// (Configurações). Ao contrário de report_schedules, essa tabela nunca
-// permitiu escrita do papel anon em nenhum dos dois casos (ver a migration
-// 20260802120000), então não existe o desvio via /api com ADMIN_API_TOKEN
-// que scheduled-reports precisa para o projeto padrão.
+// CRUD de dashboard_shares — sempre via supabase-js direto (nunca via /api):
+// ao contrário de report_schedules, esta tabela nunca permitiu escrita do
+// papel anon em nenhum projeto (migration 20260802120000). Ver
+// docs/ARCHITECTURE.md#fluxo-de-dados-postgres-como-fonte-da-verdade.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DASHBOARD_SHARES_TABLE, type CreateDashboardShareInput, type DashboardShare } from "@/lib/dashboard-shares/types";
@@ -39,8 +37,7 @@ function rowToShare(row: ShareRow): DashboardShare {
   };
 }
 
-// Código do PostgREST para "relação não existe" — a migration
-// 20260802120000 ainda não foi aplicada no projeto em uso.
+// 42P01 = undefined_table — ver docs/ARCHITECTURE.md#referência-códigos-de-erro-do-postgrestpostgresql.
 const UNDEFINED_TABLE_ERROR_CODE = "42P01";
 
 export async function checkDashboardSharesConfigured(client: SupabaseClient): Promise<boolean> {
@@ -85,10 +82,8 @@ export async function createDashboardShare(
 
   if (error) throw error;
   const share = rowToShare(data as ShareRow);
-  // Não aguardado de propósito — mesmo motivo do comentário equivalente em
-  // scheduled-reports/queries.ts: chamado do navegador, sem risco de a
-  // função congelar antes da escrita terminar, e recordAuditEvent já trata
-  // os próprios erros internamente.
+  // Fire-and-forget: chamado do navegador (sem risco de a função congelar
+  // antes de terminar), e recordAuditEvent já trata os próprios erros.
   void recordAuditEvent(client, {
     action: "share.created",
     resourceType: "dashboard_share",
@@ -108,11 +103,8 @@ export async function revokeDashboardShare(client: SupabaseClient, id: string): 
   void recordAuditEvent(client, { action: "share.revoked", resourceType: "dashboard_share", resourceId: id });
 }
 
-// Não existe forma de recuperar o texto puro de um link já criado — só o
-// hash é armazenado (ver token.ts). "Perdi o link" na prática só tem uma
-// saída: gerar um token novo para a mesma linha (mesmo label/filtros), o que
-// invalida o link antigo de propósito — quem ainda tiver a URL perdida
-// também perde o acesso, exatamente como um "esqueci minha senha".
+// Gera um token novo para a mesma linha e invalida o antigo de propósito —
+// ver docs/SECURITY.md#links-de-compartilhamento.
 export async function regenerateDashboardShareToken(client: SupabaseClient, id: string, token: string): Promise<void> {
   const tokenHash = await hashShareToken(token);
 
