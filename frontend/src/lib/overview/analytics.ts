@@ -1,7 +1,15 @@
 import type { AppLanguage } from "@/lib/i18n/types";
 import type { EmailEvent, EmailEventType } from "@/lib/supabase/types";
+import {
+  BOUNCE_RATE_ATTENTION_PERCENT,
+  BOUNCE_RATE_CRITICAL_PERCENT,
+  COMPLAINT_RATE_ATTENTION_PERCENT,
+  COMPLAINT_RATE_CRITICAL_PERCENT,
+  getReputationStatus,
+  type ReputationStatus,
+} from "@/lib/overview/reputation-thresholds";
 
-export type OverviewReputationStatus = "healthy" | "attention" | "critical";
+export type OverviewReputationStatus = ReputationStatus;
 
 export interface OverviewTopProvider {
   domain: string;
@@ -221,35 +229,23 @@ function getBounceReasonDetail(reason: string, language: AppLanguage) {
 function formatReputationReason(language: AppLanguage, bounceRate: number, complaintRate: number) {
   const isEnglish = language === "en-US";
 
-  if (bounceRate > 5) {
+  if (bounceRate > BOUNCE_RATE_CRITICAL_PERCENT) {
     return isEnglish ? "Bounce rate is above the recommended threshold" : "Bounce acima do recomendado";
   }
 
-  if (complaintRate > 0.3) {
+  if (complaintRate > COMPLAINT_RATE_CRITICAL_PERCENT) {
     return isEnglish ? "Complaint rate is above the limit" : "Reclamações acima do limite";
   }
 
-  if (bounceRate >= 2) {
+  if (bounceRate >= BOUNCE_RATE_ATTENTION_PERCENT) {
     return isEnglish ? "Bounce rate is in the attention zone" : "Bounce em zona de atenção";
   }
 
-  if (complaintRate > 0.1) {
+  if (complaintRate > COMPLAINT_RATE_ATTENTION_PERCENT) {
     return isEnglish ? "Complaint rate is above expectations" : "Reclamações acima do esperado";
   }
 
   return isEnglish ? "Within the recommended thresholds" : "Dentro dos parâmetros recomendados";
-}
-
-function getReputationStatus(bounceRate: number, complaintRate: number): OverviewReputationStatus {
-  if (bounceRate > 5 || complaintRate > 0.3) {
-    return "critical";
-  }
-
-  if (bounceRate >= 2 || complaintRate > 0.1) {
-    return "attention";
-  }
-
-  return "healthy";
 }
 
 function computeAverageDeliveryTimeMs(events: EmailEvent[]) {
