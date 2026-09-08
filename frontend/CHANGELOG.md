@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0] - 2026-09-08
+### Added
+- Modo de relatório "Simplificado" para exportação de emails (PDF/CSV), tanto no download imediato quanto em agendamentos: uma linha por destinatário com email, assuntos, quantidade de eventos, datas de primeiro/último envio e uma "Situação" em linguagem simples (sem termos técnicos como bounce, configuration set ou domínio), pensado para quem só precisa validar se os envios chegaram.
+- Selo de saúde do envio no email de relatórios agendados: cartões com taxa de entrega, devoluções (bounce) e reclamações, e um selo Saudável/Atenção/Crítico usando os mesmos limiares do dashboard.
+- Lista de "Destinatários que precisam de atenção" no email de relatórios agendados, com os destinatários com mais eventos de problema no período e a data do último evento.
+### Changed
+- Refatorados os limiares de taxa de bounce/reclamação (usados no Overview) para um módulo compartilhado, reaproveitado agora também pelo selo de saúde do envio agendado.
+
 ## [1.13.0] - 2026-08-15
 ### Added
 - Perfis de acesso (RBAC): contas agora são viewer ou manager. Viewers só visualizam; managers também criam e editam agendamentos e links compartilhados. Contas novas começam como viewer.
