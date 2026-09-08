@@ -53,6 +53,11 @@ export type EmailReportSortBy =
   | "domain"
   | "problemRate";
 
+// "full" é o relatório técnico de sempre (todas as colunas). "simplified" é
+// pensado para funcionários administrativos e clientes validarem envios sem
+// precisar entender termos como configuration set, origem ou domínio.
+export type ReportMode = "full" | "simplified";
+
 interface EmailReportOptions {
   language: AppLanguage;
   query?: Record<string, string>;
@@ -391,7 +396,25 @@ function escapeCsv(value: string | number) {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
-export function emailReportToCsv(report: EmailReport) {
+export function emailReportToCsv(report: EmailReport, mode: ReportMode = "full") {
+  if (mode === "simplified") {
+    const headers =
+      report.language === "en-US"
+        ? ["Email", "Subjects", "Event count", "First send", "Last send", "Status"]
+        : ["Email", "Assuntos", "Quantidade de eventos", "Primeiro envio", "Último envio", "Situação"];
+
+    const rows = report.recipients.map((recipient) => [
+      recipient.email,
+      recipient.subjects.join(" | "),
+      recipient.totalEvents,
+      formatShortDateBR(recipient.firstEventAt),
+      formatShortDateBR(recipient.lastEventAt),
+      recipientSituationLabel(recipient, report.language),
+    ]);
+
+    return `﻿${[headers, ...rows].map((row) => row.map(escapeCsv).join(";")).join("\r\n")}`;
+  }
+
   const headers =
     report.language === "en-US"
       ? [
@@ -487,6 +510,23 @@ function formatDateTimeBR(value: string) {
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
+// dd/mm/aa fixo em horário de Brasília via Intl (não getDate()/getMonth(), que
+// usam o fuso da máquina): o relatório simplificado é lido por gente não
+// técnica e por isso vale mais uma data curta e certa do que uma com hora,
+// e o runner de agendamentos roda em UTC na Vercel, então sem timezone
+// explícito o dia sairia errado para horários noturnos no Brasil.
+const SHORT_DATE_BR_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+});
+
+export function formatShortDateBR(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : SHORT_DATE_BR_FORMATTER.format(date);
+}
+
 const EVENT_TYPE_LABELS: Record<AppLanguage, Record<EmailEventType, string>> = {
   "en-US": {
     sent: "Sent",
@@ -513,6 +553,103 @@ function eventCountLabels(recipient: EmailReportRecipient, language: AppLanguage
   return EVENT_TYPES.filter((eventType) => recipient.eventCounts[eventType] > 0).map(
     (eventType) => `${labels[eventType]}: ${recipient.eventCounts[eventType]}`,
   );
+}
+
+// --- Situação simplificada -------------------------------------------------
+// Traduz os contadores técnicos de eventos num único rótulo em linguagem
+// simples, para o relatório simplificado (sem "bounce", "rendering failure"
+// etc). Ordem de precedência: reclamação é o sinal mais grave e vence
+// qualquer outro; depois falha de entrega (vira "recebeu em parte" se também
+// houve delivered); "atrasado" só é mostrado se nada chegou a ser entregue,
+// já que um atraso que terminou em entrega não é mais um problema para quem
+// está validando o envio.
+export type RecipientSituation =
+  | "complained"
+  | "notReceived"
+  | "partiallyReceived"
+  | "received"
+  | "delayed"
+  | "sentOnly"
+  | "unknown";
+
+const SITUATION_LABELS: Record<AppLanguage, Record<RecipientSituation, string>> = {
+  "pt-BR": {
+    complained: "Reclamou do email",
+    notReceived: "Não recebeu",
+    partiallyReceived: "Recebeu em parte",
+    received: "Recebeu normalmente",
+    delayed: "Entrega atrasada",
+    sentOnly: "Enviado, sem confirmação",
+    unknown: "Sem informação",
+  },
+  "en-US": {
+    complained: "Marked as spam",
+    notReceived: "Did not receive",
+    partiallyReceived: "Partially received",
+    received: "Received normally",
+    delayed: "Delivery delayed",
+    sentOnly: "Sent, unconfirmed",
+    unknown: "No information",
+  },
+};
+
+export function getRecipientSituation(recipient: EmailReportRecipient): RecipientSituation {
+  const counts = recipient.eventCounts;
+  const failed = counts.bounced + counts.rejected + counts.rendering_failure;
+
+  if (counts.complained > 0) return "complained";
+  if (failed > 0) return counts.delivered > 0 ? "partiallyReceived" : "notReceived";
+  if (counts.delivered > 0) return "received";
+  if (counts.delayed > 0) return "delayed";
+  if (counts.sent > 0) return "sentOnly";
+  return "unknown";
+}
+
+export function recipientSituationLabel(recipient: EmailReportRecipient, language: AppLanguage) {
+  return SITUATION_LABELS[language][getRecipientSituation(recipient)];
+}
+
+// --- Taxas agregadas (usadas no selo de saúde do email agendado) ----------
+// Reimplementa as mesmas fórmulas de lib/overview/analytics.ts (deliveryRate
+// sobre sentCount com fallback para o total, bounceRate/complaintRate sobre o
+// total) em vez de reusar aquele módulo: o runner de emails agendados só tem
+// o EmailReport já agregado por destinatário, nunca a lista de EmailEvent[]
+// que buildOverviewAnalytics exige.
+export interface EmailReportRates {
+  sentCount: number;
+  deliveredCount: number;
+  bouncedCount: number;
+  complaintCount: number;
+  totalCount: number;
+  deliveryRate: number | null;
+  bounceRate: number;
+  complaintRate: number;
+}
+
+export function summarizeEmailReportRates(report: EmailReport): EmailReportRates {
+  const totals = createEventCounts();
+  for (const recipient of report.recipients) {
+    for (const eventType of EVENT_TYPES) {
+      totals[eventType] += recipient.eventCounts[eventType];
+    }
+  }
+
+  const totalCount = report.summary.totalEvents;
+  const sentCount = totals.sent;
+  const deliveredCount = totals.delivered;
+  const bouncedCount = totals.bounced;
+  const complaintCount = totals.complained;
+
+  const deliveryRate =
+    sentCount > 0
+      ? (deliveredCount / sentCount) * 100
+      : totalCount > 0
+        ? (deliveredCount / totalCount) * 100
+        : null;
+  const bounceRate = totalCount > 0 ? (bouncedCount / totalCount) * 100 : 0;
+  const complaintRate = totalCount > 0 ? (complaintCount / totalCount) * 100 : 0;
+
+  return { sentCount, deliveredCount, bouncedCount, complaintCount, totalCount, deliveryRate, bounceRate, complaintRate };
 }
 
 // --- PDF layout engine -----------------------------------------------------
@@ -554,6 +691,19 @@ function columnChars(width: number, size: number, bold: boolean) {
 const CATEGORY_TABLE_CATEGORY_X = MARGIN_LEFT;
 const CATEGORY_TABLE_SUBJECTS_X = MARGIN_LEFT + 330;
 const CATEGORY_TABLE_RECIPIENTS_X = MARGIN_LEFT + 420;
+
+// Colunas da tabela do modo simplificado (largura útil: 595 - 50 - 50 = 495pt).
+const SIMPLE_TABLE_EMAIL_X = MARGIN_LEFT;
+const SIMPLE_TABLE_SUBJECTS_X = MARGIN_LEFT + 140;
+const SIMPLE_TABLE_COUNT_X = MARGIN_LEFT + 260;
+const SIMPLE_TABLE_FIRST_X = MARGIN_LEFT + 290;
+const SIMPLE_TABLE_LAST_X = MARGIN_LEFT + 342;
+const SIMPLE_TABLE_SITUATION_X = MARGIN_LEFT + 394;
+const SIMPLE_TABLE_ROW_LEADING = 12;
+// Altura exata que rule() consome (ver createPdfLayout: ensureSpace(12) + 5 +
+// 7 de deslocamento) — usada para prever a régua separadora entre linhas ao
+// decidir se uma linha "cabe" na página atual.
+const SIMPLE_TABLE_ROW_SEPARATOR_HEIGHT = 12;
 
 function createPdfLayout() {
   const pages: PdfCommand[][] = [[]];
@@ -660,7 +810,7 @@ function createPdfLayout() {
   } };
 }
 
-function buildPdfPages(report: EmailReport) {
+function buildPdfPages(report: EmailReport, mode: ReportMode = "full") {
   const isEnglish = report.language === "en-US";
   const labels = isEnglish
     ? {
@@ -687,6 +837,12 @@ function buildPdfPages(report: EmailReport) {
         subjectsColumn: "Subjects",
         uniqueRecipientsColumn: "Unique recipients",
         noCategories: "No subjects classified.",
+        emailColumn: "Email",
+        countColumn: "Qty.",
+        firstSendColumn: "First",
+        lastSendColumn: "Last",
+        situationColumn: "Status",
+        noSubjectRecorded: "No subject recorded",
       }
     : {
         title: "Relatório de Emails SES",
@@ -712,6 +868,12 @@ function buildPdfPages(report: EmailReport) {
         subjectsColumn: "Assuntos",
         uniqueRecipientsColumn: "Destinatários únicos",
         noCategories: "Nenhum assunto classificado.",
+        emailColumn: "Email",
+        countColumn: "Qtde",
+        firstSendColumn: "Primeiro",
+        lastSendColumn: "Último",
+        situationColumn: "Situação",
+        noSubjectRecorded: "Nenhum assunto registrado",
       };
 
   const layout = createPdfLayout();
@@ -806,39 +968,138 @@ function buildPdfPages(report: EmailReport) {
 
   if (!report.recipients.length) {
     layout.textLine(MARGIN_LEFT, "F1", 10, VALUE_GRAY, labels.noRecipients);
+  } else if (mode === "simplified") {
+    renderSimplifiedRecipientTable(layout, report, labels);
+  } else {
+    report.recipients.forEach((recipient, index) => {
+      layout.ensureSpace(70);
+      layout.textLine(MARGIN_LEFT, "F2", 12.5, TITLE_GRAY, `${index + 1}. ${recipient.email}`, 18);
+      layout.textLine(
+        MARGIN_LEFT,
+        "F1",
+        9.5,
+        META_GRAY,
+        `${labels.domain}: ${recipient.domain || "-"}   •   ${recipient.totalEvents} ${labels.events}   •   ${recipient.uniqueMessages} ${labels.uniqueMessagesShort}`,
+      );
+      layout.textLine(
+        MARGIN_LEFT,
+        "F1",
+        9.5,
+        META_GRAY,
+        `${labels.period}: ${formatDateTimeBR(recipient.firstEventAt)} - ${formatDateTimeBR(recipient.lastEventAt)}`,
+      );
+      layout.spacer(5);
+
+      layout.field(MARGIN_LEFT, `${labels.statuses}:`, eventCountLabels(recipient, report.language), labels.none);
+      layout.field(MARGIN_LEFT, `${labels.origins}:`, recipient.origins, labels.none);
+      layout.field(MARGIN_LEFT, `${labels.reasons}:`, recipient.possibleReasons, labels.none);
+      layout.field(MARGIN_LEFT, `${labels.recommendations}:`, recipient.recommendations, labels.none);
+      layout.field(MARGIN_LEFT, `${labels.subjects}:`, recipient.subjects, labels.none);
+
+      layout.spacer(4);
+      layout.rule();
+      layout.spacer(8);
+    });
   }
 
-  report.recipients.forEach((recipient, index) => {
-    layout.ensureSpace(70);
-    layout.textLine(MARGIN_LEFT, "F2", 12.5, TITLE_GRAY, `${index + 1}. ${recipient.email}`, 18);
-    layout.textLine(
-      MARGIN_LEFT,
-      "F1",
-      9.5,
-      META_GRAY,
-      `${labels.domain}: ${recipient.domain || "-"}   •   ${recipient.totalEvents} ${labels.events}   •   ${recipient.uniqueMessages} ${labels.uniqueMessagesShort}`,
-    );
-    layout.textLine(
-      MARGIN_LEFT,
-      "F1",
-      9.5,
-      META_GRAY,
-      `${labels.period}: ${formatDateTimeBR(recipient.firstEventAt)} - ${formatDateTimeBR(recipient.lastEventAt)}`,
-    );
-    layout.spacer(5);
-
-    layout.field(MARGIN_LEFT, `${labels.statuses}:`, eventCountLabels(recipient, report.language), labels.none);
-    layout.field(MARGIN_LEFT, `${labels.origins}:`, recipient.origins, labels.none);
-    layout.field(MARGIN_LEFT, `${labels.reasons}:`, recipient.possibleReasons, labels.none);
-    layout.field(MARGIN_LEFT, `${labels.recommendations}:`, recipient.recommendations, labels.none);
-    layout.field(MARGIN_LEFT, `${labels.subjects}:`, recipient.subjects, labels.none);
-
-    layout.spacer(4);
-    layout.rule();
-    layout.spacer(8);
-  });
-
   return layout.pages;
+}
+
+type PdfLayout = ReturnType<typeof createPdfLayout>;
+
+function simplifiedSubjectsCell(recipient: EmailReportRecipient, noSubjectRecorded: string) {
+  const shown = recipient.subjects.slice(0, 3);
+  const remaining = recipient.subjects.length - shown.length;
+  const text = shown.join(" | ");
+  if (!text) return noSubjectRecorded;
+  return remaining > 0 ? `${text} (+${remaining})` : text;
+}
+
+// Tabela do modo simplificado: uma linha por destinatário com as 6 colunas
+// pensadas para validação (sem domínio/origens/motivos técnicos). Repete o
+// cabeçalho da tabela sempre que uma linha for cair numa página nova — o
+// motor de layout (createPdfLayout) não expõe newPage() nem avisa quando
+// columnRow() quebra a página sozinho, então o truque é: sempre que o cálculo
+// de espaço disponível bate exatamente com o que columnRow também vai
+// calcular internamente, força a quebra por fora chamando ensureSpace com uma
+// altura maior que qualquer página (garantidamente estoura o espaço restante,
+// de qualquer y) e desenha o cabeçalho de novo antes da linha em si.
+function renderSimplifiedRecipientTable(
+  layout: PdfLayout,
+  report: EmailReport,
+  labels: {
+    emailColumn: string;
+    subjectsColumn: string;
+    countColumn: string;
+    firstSendColumn: string;
+    lastSendColumn: string;
+    situationColumn: string;
+    noSubjectRecorded: string;
+  },
+) {
+  function renderHeader() {
+    layout.columnRow(
+      [
+        { x: SIMPLE_TABLE_EMAIL_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.emailColumn] },
+        { x: SIMPLE_TABLE_SUBJECTS_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.subjectsColumn] },
+        { x: SIMPLE_TABLE_COUNT_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.countColumn] },
+        { x: SIMPLE_TABLE_FIRST_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.firstSendColumn] },
+        { x: SIMPLE_TABLE_LAST_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.lastSendColumn] },
+        { x: SIMPLE_TABLE_SITUATION_X, font: "F2", size: 9.5, gray: HEADING_GRAY, lines: [labels.situationColumn] },
+      ],
+      SIMPLE_TABLE_ROW_LEADING,
+    );
+    layout.rule();
+  }
+
+  renderHeader();
+
+  report.recipients.forEach((recipient, index) => {
+    const emailLines = wrapText(recipient.email, columnChars(SIMPLE_TABLE_SUBJECTS_X - SIMPLE_TABLE_EMAIL_X - 10, 9, false));
+    const subjectsLines = wrapText(
+      simplifiedSubjectsCell(recipient, labels.noSubjectRecorded),
+      columnChars(SIMPLE_TABLE_COUNT_X - SIMPLE_TABLE_SUBJECTS_X - 10, 9, false),
+    );
+    const situationLines = wrapText(
+      recipientSituationLabel(recipient, report.language),
+      columnChars(PAGE_WIDTH - MARGIN_RIGHT - SIMPLE_TABLE_SITUATION_X, 9, false),
+    );
+
+    const rowHeight = Math.max(1, emailLines.length, subjectsLines.length, situationLines.length) * SIMPLE_TABLE_ROW_LEADING;
+    const isLastRow = index === report.recipients.length - 1;
+    // A régua separadora que vem depois da linha (exceto na última) também
+    // consome espaço (rule() sempre reserva 12pt: ensureSpace(12) + 5 + 7 de
+    // deslocamento). Sem somar isso aqui, uma linha que cabe "por pouco" no
+    // fim da página é desenhada normalmente, mas a régua seguinte estoura o
+    // espaço restante e quebra a página SOZINHA — aí a próxima leva de linhas
+    // começa numa página nova sem que este código saiba, e sem cabeçalho.
+    const rowBlockHeight = rowHeight + (isLastRow ? 0 : SIMPLE_TABLE_ROW_SEPARATOR_HEIGHT);
+
+    if (layout.y - rowBlockHeight < MARGIN_BOTTOM) {
+      layout.ensureSpace(PAGE_HEIGHT);
+      renderHeader();
+    }
+
+    layout.columnRow(
+      [
+        { x: SIMPLE_TABLE_EMAIL_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: emailLines },
+        { x: SIMPLE_TABLE_SUBJECTS_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: subjectsLines },
+        { x: SIMPLE_TABLE_COUNT_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: [String(recipient.totalEvents)] },
+        { x: SIMPLE_TABLE_FIRST_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: [formatShortDateBR(recipient.firstEventAt)] },
+        { x: SIMPLE_TABLE_LAST_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: [formatShortDateBR(recipient.lastEventAt)] },
+        { x: SIMPLE_TABLE_SITUATION_X, font: "F1", size: 9, gray: VALUE_GRAY, lines: situationLines },
+      ],
+      SIMPLE_TABLE_ROW_LEADING,
+    );
+    // Sem régua depois da ÚLTIMA linha: como rule() sempre reserva seu
+    // próprio espaço via ensureSpace, desenhá-la ali só para decorar o fim da
+    // tabela às vezes empurra uma página final em branco (sem cabeçalho, sem
+    // linhas) — visível num relatório de qualquer tamanho que termine perto
+    // da quebra de página.
+    if (index < report.recipients.length - 1) {
+      layout.rule(RULE_GRAY, 0.5);
+    }
+  });
 }
 
 function toPdfBinaryString(value: string) {
@@ -892,8 +1153,8 @@ function renderPdfPageContent(commands: PdfCommand[], pageNumber: number, totalP
   return [...commands.map(renderPdfCommand), footer].join("\n");
 }
 
-export function emailReportToPdf(report: EmailReport) {
-  const pages = buildPdfPages(report);
+export function emailReportToPdf(report: EmailReport, mode: ReportMode = "full") {
+  const pages = buildPdfPages(report, mode);
   const regularFontId = 3 + pages.length * 2;
   const boldFontId = regularFontId + 1;
   const objects = new Map<number, string>();
@@ -965,6 +1226,11 @@ function formatFilenameTimestamp(value: string) {
   return `${parts.day}-${parts.month}-${parts.year}_${parts.hour}-${parts.minute}-${parts.second}`;
 }
 
-export function createEmailReportFilename(extension: "pdf" | "csv" | "json", generatedAt: string) {
-  return `relatorio-emails-${formatFilenameTimestamp(generatedAt)}.${extension}`;
+export function createEmailReportFilename(
+  extension: "pdf" | "csv" | "json",
+  generatedAt: string,
+  mode: ReportMode = "full",
+) {
+  const infix = mode === "simplified" ? "simplificado-" : "";
+  return `relatorio-emails-${infix}${formatFilenameTimestamp(generatedAt)}.${extension}`;
 }

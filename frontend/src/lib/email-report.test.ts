@@ -5,6 +5,10 @@ import {
   emailReportToCsv,
   emailReportToJson,
   emailReportToPdf,
+  getRecipientSituation,
+  recipientSituationLabel,
+  summarizeEmailReportRates,
+  type EmailReportRecipient,
 } from "@/lib/email-report";
 import type { EmailEvent } from "@/lib/supabase/types";
 
@@ -184,5 +188,163 @@ describe("email report", () => {
     expect(createEmailReportFilename("csv", "2026-01-01T02:00:00.000Z")).toBe(
       "relatorio-emails-31-12-2025_23-00-00.csv",
     );
+  });
+
+  it("adds a 'simplificado' infix to the filename in simplified mode, without disturbing the full-mode name", () => {
+    expect(createEmailReportFilename("csv", "2026-07-27T12:00:00.000Z", "simplified")).toBe(
+      "relatorio-emails-simplificado-27-07-2026_09-00-00.csv",
+    );
+    expect(createEmailReportFilename("pdf", "2026-07-27T12:00:00.000Z", "full")).toBe(
+      "relatorio-emails-27-07-2026_09-00-00.pdf",
+    );
+  });
+
+  it("exports a simplified CSV with only the columns relevant for validation", () => {
+    const report = buildEmailReport(events, {
+      language: "pt-BR",
+      generatedAt: "2026-07-27T12:00:00.000Z",
+    });
+    const csv = emailReportToCsv(report, "simplified");
+
+    expect(csv).toContain(
+      '"Email";"Assuntos";"Quantidade de eventos";"Primeiro envio";"Último envio";"Situação"',
+    );
+    expect(csv).not.toContain("Domínio");
+    expect(csv).not.toContain("Configuration set");
+    expect(csv).not.toContain("Possíveis motivos");
+    expect(csv).not.toContain("Recomendações");
+    // 2026-07-20T10:00:00.000Z é 07:00 em America/Sao_Paulo, ainda dia 20.
+    expect(csv).toContain("20/07/26");
+  });
+
+  it("repeats the simplified table header when recipients overflow onto a new PDF page", async () => {
+    const manyEvents: EmailEvent[] = Array.from({ length: 60 }, (_, index) =>
+      createEvent({
+        id: `bulk-${index}`,
+        messageId: `bulk-message-${index}`,
+        recipientEmail: `cliente${index}@example.com`,
+        subject: `Assunto de teste número ${index}`,
+      }),
+    );
+    const report = buildEmailReport(manyEvents, { language: "pt-BR", generatedAt: "2026-07-27T12:00:00.000Z" });
+    const pdf = emailReportToPdf(report, "simplified");
+    const bytes = await pdf.arrayBuffer();
+    const body = new TextDecoder("latin1").decode(bytes);
+
+    // /Count N no objeto /Pages diz quantas páginas o PDF tem — mais de uma
+    // confirma que a quebra de página aconteceu de fato com 60 destinatários.
+    const pageCount = Number(body.match(/\/Count (\d+)/)?.[1]);
+    expect(pageCount).toBeGreaterThan(1);
+    // O cabeçalho da tabela precisa se repetir em toda página nova, não só na
+    // primeira — senão a partir da segunda página ninguém sabe o que cada
+    // coluna significa.
+    const emailHeaderOccurrences = body.split("(Email)").length - 1;
+    expect(emailHeaderOccurrences).toBe(pageCount);
+  });
+
+  it("creates a simplified PDF as a compact table, without the full mode's technical fields", async () => {
+    const report = buildEmailReport(events, {
+      language: "pt-BR",
+      generatedAt: "2026-07-27T12:00:00.000Z",
+    });
+    const pdf = emailReportToPdf(report, "simplified");
+    const bytes = await pdf.arrayBuffer();
+    const header = new TextDecoder().decode(bytes.slice(0, 8));
+    const body = new TextDecoder("latin1").decode(bytes);
+
+    expect(pdf.type).toBe("application/pdf");
+    expect(header).toBe("%PDF-1.4");
+    expect(body).toContain("Situação");
+    expect(body).not.toContain("Possíveis motivos");
+    expect(body).not.toContain("Recomendações");
+    expect(body).not.toContain("Origem");
+  });
+
+  it("summarizes rates without NaN when the report has no events", () => {
+    const report = buildEmailReport([], { language: "pt-BR", generatedAt: "2026-07-27T12:00:00.000Z" });
+    expect(summarizeEmailReportRates(report)).toEqual({
+      sentCount: 0,
+      deliveredCount: 0,
+      bouncedCount: 0,
+      complaintCount: 0,
+      totalCount: 0,
+      deliveryRate: null,
+      bounceRate: 0,
+      complaintRate: 0,
+    });
+  });
+
+  it("computes rates using the same formulas as the overview dashboard", () => {
+    const rateEvents = [
+      createEvent({ id: "r1", eventType: "sent", recipientEmail: "a@example.com" }),
+      createEvent({ id: "r2", eventType: "delivered", recipientEmail: "a@example.com" }),
+      createEvent({ id: "r3", eventType: "bounced", recipientEmail: "b@example.com" }),
+      createEvent({ id: "r4", eventType: "complained", recipientEmail: "c@example.com" }),
+    ];
+    const report = buildEmailReport(rateEvents, { language: "pt-BR", generatedAt: "2026-07-27T12:00:00.000Z" });
+    const rates = summarizeEmailReportRates(report);
+
+    expect(rates.totalCount).toBe(4);
+    expect(rates.deliveryRate).toBe(100);
+    expect(rates.bounceRate).toBe(25);
+    expect(rates.complaintRate).toBe(25);
+  });
+});
+
+function createRecipient(counts: Partial<EmailReportRecipient["eventCounts"]>): EmailReportRecipient {
+  return {
+    email: "cliente@example.com",
+    domain: "example.com",
+    totalEvents: 0,
+    uniqueMessages: 0,
+    firstEventAt: "2026-08-01T00:00:00.000Z",
+    lastEventAt: "2026-08-01T00:00:00.000Z",
+    eventCounts: {
+      sent: 0,
+      delivered: 0,
+      bounced: 0,
+      complained: 0,
+      delayed: 0,
+      rejected: 0,
+      rendering_failure: 0,
+      ...counts,
+    },
+    origins: [],
+    possibleReasons: [],
+    recommendations: [],
+    subjects: [],
+  };
+}
+
+describe("getRecipientSituation", () => {
+  it("prioritizes a complaint over any other signal", () => {
+    expect(getRecipientSituation(createRecipient({ complained: 1, bounced: 3, delivered: 2 }))).toBe("complained");
+  });
+
+  it("reports a full failure as not received when nothing was delivered", () => {
+    expect(getRecipientSituation(createRecipient({ bounced: 2 }))).toBe("notReceived");
+  });
+
+  it("reports a mix of failure and delivery as partially received", () => {
+    expect(getRecipientSituation(createRecipient({ bounced: 1, delivered: 1 }))).toBe("partiallyReceived");
+  });
+
+  it("treats a delay as resolved once the message was actually delivered", () => {
+    expect(getRecipientSituation(createRecipient({ delayed: 1, delivered: 1 }))).toBe("received");
+  });
+
+  it("keeps a pure delay as delayed when nothing was delivered", () => {
+    expect(getRecipientSituation(createRecipient({ delayed: 1 }))).toBe("delayed");
+  });
+
+  it("falls back to sent-only and unknown when there is nothing else to go on", () => {
+    expect(getRecipientSituation(createRecipient({ sent: 1 }))).toBe("sentOnly");
+    expect(getRecipientSituation(createRecipient({}))).toBe("unknown");
+  });
+
+  it("labels situations in plain language, in both supported languages", () => {
+    const recipient = createRecipient({ delivered: 1 });
+    expect(recipientSituationLabel(recipient, "pt-BR")).toBe("Recebeu normalmente");
+    expect(recipientSituationLabel(recipient, "en-US")).toBe("Received normally");
   });
 });
