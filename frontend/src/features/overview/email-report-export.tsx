@@ -10,6 +10,7 @@ import {
   emailReportToJson,
   emailReportToPdf,
   type EmailReportSortBy,
+  type ReportMode,
 } from "@/lib/email-report";
 import type { EmailEvent } from "@/lib/supabase/types";
 
@@ -35,6 +36,7 @@ export function EmailReportExport({
   const language = useAppLanguage();
   const menuRef = useRef<HTMLDetailsElement>(null);
   const [sortBy, setSortBy] = useState<EmailReportSortBy>("email");
+  const [reportMode, setReportMode] = useState<ReportMode>("full");
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -66,12 +68,15 @@ export function EmailReportExport({
     try {
       const events = await loadEvents();
       const report = buildEmailReport(events, { language, query, sortBy });
-      const filename = createEmailReportFilename(format, report.generatedAt);
+      // JSON continua sempre completo: é o formato de uso técnico/programático,
+      // então o seletor "Tipo de relatório" não se aplica a ele.
+      const mode = format === "json" ? "full" : reportMode;
+      const filename = createEmailReportFilename(format, report.generatedAt, mode);
 
       if (format === "pdf") {
-        downloadBlob(emailReportToPdf(report), filename);
+        downloadBlob(emailReportToPdf(report, mode), filename);
       } else if (format === "csv") {
-        downloadBlob(new Blob([emailReportToCsv(report)], { type: "text/csv;charset=utf-8" }), filename);
+        downloadBlob(new Blob([emailReportToCsv(report, mode)], { type: "text/csv;charset=utf-8" }), filename);
       } else {
         downloadBlob(
           new Blob([emailReportToJson(report)], { type: "application/json;charset=utf-8" }),
@@ -93,6 +98,19 @@ export function EmailReportExport({
       </summary>
       <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-card border border-slate-200 bg-white p-2 shadow-hover dark:border-slate-700 dark:bg-slate-900 md:left-0 md:right-auto">
         <p className="px-3 py-2 text-xs leading-5 text-ink-muted">{description ?? t.overview.exportAllResults}</p>
+        <div className="px-3 pb-2">
+          <label className="mb-1 block text-xs font-medium text-ink-muted">{t.overview.exportModeLabel}</label>
+          <Select
+            className="h-9 text-xs"
+            options={[
+              { value: "full", label: t.overview.exportModeFull },
+              { value: "simplified", label: t.overview.exportModeSimplified },
+            ]}
+            value={reportMode}
+            onChange={(event) => setReportMode(event.target.value as ReportMode)}
+          />
+          <p className="mt-1 text-[11px] leading-4 text-ink-muted">{t.overview.exportModeHint}</p>
+        </div>
         <div className="px-3 pb-2">
           <label className="mb-1 block text-xs font-medium text-ink-muted">{t.overview.exportSortLabel}</label>
           <Select

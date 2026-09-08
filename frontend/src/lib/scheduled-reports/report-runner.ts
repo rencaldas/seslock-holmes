@@ -24,9 +24,19 @@ import {
   createEmailReportFilename,
   emailReportToCsv,
   emailReportToPdf,
+  summarizeEmailReportRates,
   type EmailReport,
   type EmailReportSortBy,
+  type ReportMode,
 } from "../email-report.js";
+import {
+  BOUNCE_RATE_ATTENTION_PERCENT,
+  BOUNCE_RATE_CRITICAL_PERCENT,
+  COMPLAINT_RATE_ATTENTION_PERCENT,
+  COMPLAINT_RATE_CRITICAL_PERCENT,
+  getReputationStatus,
+  type ReputationStatus,
+} from "../overview/reputation-thresholds.js";
 import { PROBLEM_EVENT_TYPES, type EmailEventType } from "../supabase/types.js";
 import { recordAuditEventFromServer } from "../audit-log/record-server.js";
 
@@ -43,6 +53,17 @@ export interface ScheduleFilters {
   provider?: string;
   rowLimit: number | "all";
   sortBy?: EmailReportSortBy;
+  // Opcional de propósito: agendamentos gravados antes deste campo existir
+  // não o têm em `filters` (jsonb sem CHECK constraint) e devem continuar
+  // enviando o relatório Completo de sempre — ver reportModeOf() abaixo.
+  reportMode?: ReportMode;
+}
+
+// Nunca usar `filters.reportMode ?? "full"` diretamente: como `filters` é
+// jsonb sem validação no banco, um valor corrompido/inesperado também deve
+// cair em Completo, não em "simplified" por engano.
+function reportModeOf(filters: ScheduleFilters): ReportMode {
+  return filters.reportMode === "simplified" ? "simplified" : "full";
 }
 
 export interface ScheduleFrequency {
@@ -150,6 +171,169 @@ function formatRecurringProblemList(recurring: ReturnType<typeof findRecurringPr
   const shown = recurring.slice(0, RECURRING_PROBLEM_LIST_LIMIT).map((entry) => entry.email);
   const remaining = recurring.length - shown.length;
   return remaining > 0 ? `${shown.join(", ")} e mais ${remaining}` : shown.join(", ");
+}
+
+// --- Saúde do envio (taxas + selo) -----------------------------------------
+// Mesmos limiares do dashboard (lib/overview/reputation-thresholds.ts), para
+// o selo do email nunca contradizer o que o admin vê na Visão Geral.
+
+type RateCardTone = "neutral" | ReputationStatus;
+
+const RATE_CARD_PALETTE: Record<RateCardTone, { bg: string; fg: string }> = {
+  neutral: { bg: "#f8fafc", fg: "#0f172a" },
+  healthy: { bg: "#dcfce7", fg: "#166534" },
+  attention: { bg: "#fef3c7", fg: "#92400e" },
+  critical: { bg: "#fee2e2", fg: "#991b1b" },
+};
+
+const REPUTATION_BADGE_LABEL: Record<ReputationStatus, string> = {
+  healthy: "Saudável",
+  attention: "Atenção",
+  critical: "Crítico",
+};
+
+function bounceCardTone(bounceRate: number): RateCardTone {
+  if (bounceRate > BOUNCE_RATE_CRITICAL_PERCENT) return "critical";
+  if (bounceRate >= BOUNCE_RATE_ATTENTION_PERCENT) return "attention";
+  return "healthy";
+}
+
+function complaintCardTone(complaintRate: number): RateCardTone {
+  if (complaintRate > COMPLAINT_RATE_CRITICAL_PERCENT) return "critical";
+  if (complaintRate > COMPLAINT_RATE_ATTENTION_PERCENT) return "attention";
+  return "healthy";
+}
+
+// Reclamação usa 2 casas decimais (as demais usam 1): o limiar crítico é
+// 0,3% e o de atenção é 0,1% — arredondados para 1 casa, os dois colapsam no
+// mesmo "0,1%"/"0,3%" e o selo deixa de fazer sentido visualmente.
+function formatRatePercent(value: number | null, decimals: number) {
+  if (value === null) return "—";
+  return `${value.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`;
+}
+
+function renderRateCardHtml(value: string, label: string, tone: RateCardTone) {
+  const palette = RATE_CARD_PALETTE[tone];
+  return `<td style="width:33.33%;padding:0 6px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="background-color:${palette.bg};border:1px solid #e2e8f0;border-radius:10px;padding:14px 8px;text-align:center;">
+                  <div style="font-size:20px;line-height:1.2;font-weight:700;color:${palette.fg};">${value}</div>
+                  <div style="margin-top:4px;font-size:11px;font-weight:600;color:${palette.fg};text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(label)}</div>
+                </td></tr>
+              </table>
+            </td>`;
+}
+
+function renderHealthSectionHtml(report: EmailReport) {
+  const rates = summarizeEmailReportRates(report);
+  const status = getReputationStatus(rates.bounceRate, rates.complaintRate);
+  const palette = RATE_CARD_PALETTE[status];
+  const cards = [
+    renderRateCardHtml(formatRatePercent(rates.deliveryRate, 1), "Taxa de entrega", "neutral"),
+    renderRateCardHtml(formatRatePercent(rates.bounceRate, 1), "Devoluções (bounce)", bounceCardTone(rates.bounceRate)),
+    renderRateCardHtml(formatRatePercent(rates.complaintRate, 2), "Reclamações", complaintCardTone(rates.complaintRate)),
+  ].join("");
+
+  return `<tr>
+      <td style="padding:20px 32px 4px;">
+        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Saúde do envio</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cards}</tr></table>
+        <div style="margin-top:10px;">
+          <span style="display:inline-block;background-color:${palette.bg};color:${palette.fg};font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;">${REPUTATION_BADGE_LABEL[status]}</span>
+        </div>
+      </td>
+    </tr>`;
+}
+
+function renderHealthSectionText(report: EmailReport) {
+  const rates = summarizeEmailReportRates(report);
+  const status = getReputationStatus(rates.bounceRate, rates.complaintRate);
+  return [
+    "",
+    "SAÚDE DO ENVIO",
+    `Situação: ${REPUTATION_BADGE_LABEL[status]}`,
+    `Taxa de entrega: ${formatRatePercent(rates.deliveryRate, 1)} · Devoluções (bounce): ${formatRatePercent(rates.bounceRate, 1)} · Reclamações: ${formatRatePercent(rates.complaintRate, 2)}`,
+  ];
+}
+
+// --- Destinatários que precisam de atenção ---------------------------------
+// Complementa findRecurringProblemRecipients (que só sinaliza problemas de
+// LONGA duração, ≥30 dias) com uma lista mais ampla, ordenada por gravidade,
+// para quem só lê o email (sem abrir os anexos) já ver quem chamar.
+const ATTENTION_RECIPIENT_LIST_LIMIT = 8;
+
+function findAttentionRecipients(report: EmailReport) {
+  return report.recipients
+    .map((recipient) => {
+      const problemCount = PROBLEM_EVENT_TYPES.reduce((sum, type) => sum + recipient.eventCounts[type], 0);
+      return { email: recipient.email, problemCount, lastEventAt: recipient.lastEventAt };
+    })
+    .filter((entry) => entry.problemCount > 0)
+    .sort(
+      (a, b) => b.problemCount - a.problemCount || new Date(b.lastEventAt).getTime() - new Date(a.lastEventAt).getTime(),
+    )
+    .slice(0, ATTENTION_RECIPIENT_LIST_LIMIT);
+}
+
+function formatAttentionLastEvent(value: string, timezone: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR", { timeZone: timezone, day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
+function renderAttentionRecipientsHtml(report: EmailReport, schedule: ReportScheduleRow) {
+  const attention = findAttentionRecipients(report);
+  const body = attention.length
+    ? attention
+        .map((entry, index) => {
+          const background = index % 2 === 0 ? "#ffffff" : "#f8fafc";
+          return `<tr style="background-color:${background};">
+                <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;color:#1e293b;font-size:13px;">${escapeHtml(entry.email)}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;color:#1e293b;font-size:13px;text-align:right;">${entry.problemCount.toLocaleString("pt-BR")}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;color:#1e293b;font-size:13px;text-align:right;">${formatAttentionLastEvent(entry.lastEventAt, schedule.timezone)}</td>
+              </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="3" style="padding:14px 12px;color:#166534;font-size:13px;background-color:#f0fdf4;">Nenhum destinatário com problema no período. ✓</td></tr>`;
+
+  return `<tr>
+      <td style="padding:20px 32px 4px;">
+        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Destinatários que precisam de atenção</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #eef2f7;border-radius:8px;">
+          <thead>
+            <tr style="background-color:#f8fafc;">
+              <th style="padding:10px 12px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.03em;">Destinatário</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.03em;">Eventos com problema</th>
+              <th style="padding:10px 12px;text-align:right;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.03em;">Último evento</th>
+            </tr>
+          </thead>
+          <tbody>${body}</tbody>
+        </table>
+      </td>
+    </tr>`;
+}
+
+function renderAttentionRecipientsText(report: EmailReport, schedule: ReportScheduleRow) {
+  const attention = findAttentionRecipients(report);
+  const lines = ["", "DESTINATÁRIOS QUE PRECISAM DE ATENÇÃO"];
+
+  if (!attention.length) {
+    lines.push("Nenhum destinatário com problema no período.");
+    return lines;
+  }
+
+  for (const entry of attention) {
+    lines.push(
+      `- ${entry.email}: ${entry.problemCount} evento(s) com problema, último em ${formatAttentionLastEvent(entry.lastEventAt, schedule.timezone)}`,
+    );
+  }
+  return lines;
+}
+
+function attachmentsNote(mode: ReportMode) {
+  return mode === "simplified"
+    ? "CSV e PDF em anexo, na versão simplificada (um resumo por destinatário, sem termos técnicos)."
+    : "CSV e PDF em anexo, na versão completa (todos os detalhes técnicos).";
 }
 
 // Written for the non-technical admin who receives this report and isn't
@@ -304,7 +488,10 @@ function renderCategoryRowsHtml(categories: EmailReport["categories"]) {
     .join("");
 }
 
-function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced: boolean) {
+// Exportadas (só para teste — nunca importadas fora deste módulo em
+// produção) para lib/scheduled-reports/report-runner.test.ts poder cobrir o
+// HTML/texto renderizado sem precisar mockar nodemailer inteiro.
+export function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced: boolean, mode: ReportMode = "full") {
   const subtitle = reportSubtitle(schedule, report, forced);
   const preheader = `${report.summary.totalEvents.toLocaleString("pt-BR")} eventos · ${report.summary.uniqueRecipients.toLocaleString("pt-BR")} destinatários · ${humanFrequency(schedule.frequency)}`;
   const statCards = [
@@ -338,7 +525,9 @@ function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${statCards}</tr></table>
       </td>
     </tr>
+    ${renderHealthSectionHtml(report)}
     ${renderActionGuidanceHtml(schedule, report)}
+    ${renderAttentionRecipientsHtml(report, schedule)}
     ${renderFiltersHtml(report.query)}
     <tr>
       <td style="padding:20px 32px 4px;">
@@ -358,7 +547,7 @@ function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced
     <tr>
       <td style="padding:24px 32px 28px;">
         <div style="border-top:1px solid #e2e8f0;padding-top:16px;">
-          <p style="margin:0 0 4px;color:#64748b;font-size:12px;">CSV e PDF completos em anexo.</p>
+          <p style="margin:0 0 4px;color:#64748b;font-size:12px;">${escapeHtml(attachmentsNote(mode))}</p>
           <p style="margin:0;color:#94a3b8;font-size:12px;">Este agendamento também fica disponível na página "Relatórios agendados" do dashboard.</p>
         </div>
       </td>
@@ -372,7 +561,7 @@ function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced
 // multipart/alternative. An HTML-only body is one of the more common signals
 // spam filters (Gmail's own included) score against — this isn't optional
 // polish, it measurably affects whether these reports land in the inbox.
-function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced: boolean) {
+export function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced: boolean, mode: ReportMode = "full") {
   const lines: string[] = [
     "SESLOCK HOLMES",
     `Relatório agendado: ${schedule.name}${forced ? " (forçado)" : ""}`,
@@ -382,7 +571,9 @@ function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced
     `Eventos: ${report.summary.totalEvents.toLocaleString("pt-BR")}`,
     `Mensagens únicas: ${report.summary.uniqueMessages.toLocaleString("pt-BR")}`,
     `Destinatários: ${report.summary.uniqueRecipients.toLocaleString("pt-BR")}`,
+    ...renderHealthSectionText(report),
     ...renderActionGuidanceText(schedule, report),
+    ...renderAttentionRecipientsText(report, schedule),
   ];
 
   const filterEntries = Object.entries(report.query);
@@ -402,7 +593,7 @@ function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced
 
   lines.push(
     "",
-    "CSV e PDF completos em anexo.",
+    attachmentsNote(mode),
     'Este agendamento também fica disponível na página "Relatórios agendados" do dashboard.',
     "",
     "Enviado automaticamente pelo Seslock Holmes — não é necessário responder este email.",
@@ -420,12 +611,13 @@ export async function sendReportEmail(
   const transporter = getGmailTransporter(credentials);
   const fromName = credentials.gmailFromName || GMAIL_FROM_NAME;
   const forced = options.forced ?? false;
+  const mode = reportModeOf(schedule.filters);
 
-  const csv = emailReportToCsv(report);
-  const pdfBlob = emailReportToPdf(report);
+  const csv = emailReportToCsv(report, mode);
+  const pdfBlob = emailReportToPdf(report, mode);
   const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
-  const csvFilename = createEmailReportFilename("csv", report.generatedAt);
-  const pdfFilename = createEmailReportFilename("pdf", report.generatedAt);
+  const csvFilename = createEmailReportFilename("csv", report.generatedAt, mode);
+  const pdfFilename = createEmailReportFilename("pdf", report.generatedAt, mode);
 
   // A mailto: List-Unsubscribe (RFC 2369) doesn't require any endpoint of
   // our own — it's a one-line signal to spam filters that this is a
@@ -440,8 +632,8 @@ export async function sendReportEmail(
     from: `"${fromName}" <${credentials.gmailUser}>`,
     to: schedule.recipients,
     subject: `Relatório agendado: ${schedule.name}${forced ? " (forçado)" : ""}`,
-    text: buildEmailText(schedule, report, forced),
-    html: buildEmailHtml(schedule, report, forced),
+    text: buildEmailText(schedule, report, forced, mode),
+    html: buildEmailHtml(schedule, report, forced, mode),
     headers: {
       "List-Unsubscribe": `<mailto:${credentials.gmailUser}?subject=${unsubscribeSubject}>`,
     },

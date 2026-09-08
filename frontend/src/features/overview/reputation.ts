@@ -1,5 +1,11 @@
 import type { useI18n } from "@/lib/i18n/use-i18n";
 import type { OverviewReputationStatus } from "@/lib/overview/analytics";
+import {
+  BOUNCE_RATE_ATTENTION_PERCENT,
+  BOUNCE_RATE_CRITICAL_PERCENT,
+  COMPLAINT_RATE_ATTENTION_PERCENT,
+  COMPLAINT_RATE_CRITICAL_PERCENT,
+} from "@/lib/overview/reputation-thresholds";
 
 export function reputationTone(status: OverviewReputationStatus): "success" | "warning" | "destructive" {
   if (status === "healthy") {
@@ -12,20 +18,20 @@ export function reputationTone(status: OverviewReputationStatus): "success" | "w
 }
 
 export function bounceRateTone(bounceRate: number): "success" | "warning" | "destructive" {
-  if (bounceRate > 5) {
+  if (bounceRate > BOUNCE_RATE_CRITICAL_PERCENT) {
     return "destructive";
   }
-  if (bounceRate >= 2) {
+  if (bounceRate >= BOUNCE_RATE_ATTENTION_PERCENT) {
     return "warning";
   }
   return "success";
 }
 
 export function complaintRateTone(complaintRate: number): "success" | "warning" | "destructive" {
-  if (complaintRate > 0.3) {
+  if (complaintRate > COMPLAINT_RATE_CRITICAL_PERCENT) {
     return "destructive";
   }
-  if (complaintRate > 0.1) {
+  if (complaintRate > COMPLAINT_RATE_ATTENTION_PERCENT) {
     return "warning";
   }
   return "success";

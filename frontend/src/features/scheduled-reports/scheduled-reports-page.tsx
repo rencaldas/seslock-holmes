@@ -345,6 +345,7 @@ export function ScheduledReportsPage() {
               <ScheduleHistory
                 scheduleId={historyId}
                 scheduleName={schedules.find((schedule) => schedule.id === historyId)?.name ?? ""}
+                reportMode={schedules.find((schedule) => schedule.id === historyId)?.filters.reportMode}
                 onClose={() => setHistoryId(null)}
               />
             ) : null}

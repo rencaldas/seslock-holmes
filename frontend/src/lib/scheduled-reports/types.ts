@@ -1,6 +1,6 @@
 import type { EmailEventType } from "@/lib/supabase/types";
 import type { RowLimit } from "@/lib/row-limits";
-import type { EmailReport, EmailReportSortBy } from "@/lib/email-report";
+import type { EmailReport, EmailReportSortBy, ReportMode } from "@/lib/email-report";
 
 export const REPORT_SCHEDULES_TABLE = "report_schedules";
 export const REPORT_SCHEDULE_RUNS_TABLE = "report_schedule_runs";
@@ -16,6 +16,10 @@ export interface ScheduleFilters {
   provider: string;
   rowLimit: RowLimit;
   sortBy: EmailReportSortBy;
+  // Opcional de propósito: agendamentos criados antes deste campo existir não
+  // o têm gravado em `filters` (jsonb sem CHECK constraint), e devem
+  // continuar enviando o relatório Completo de sempre.
+  reportMode?: ReportMode;
 }
 
 export type ScheduleFrequencyType = "daily" | "weekly" | "monthly";
