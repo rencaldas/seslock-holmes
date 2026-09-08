@@ -108,6 +108,10 @@ export type TranslationBundle = {
     exportSortComplaints: string;
     exportSortDomain: string;
     exportSortProblemRate: string;
+    exportModeLabel: string;
+    exportModeFull: string;
+    exportModeSimplified: string;
+    exportModeHint: string;
     exportPdf: string;
     exportCsv: string;
     exportJson: string;
@@ -510,6 +514,7 @@ export type TranslationBundle = {
       namePlaceholder: string;
       windowLabel: string;
       sortLabel: string;
+      reportModeLabel: string;
       frequencyTitle: string;
       frequencyTypeLabel: string;
       frequencyTypeOptions: {

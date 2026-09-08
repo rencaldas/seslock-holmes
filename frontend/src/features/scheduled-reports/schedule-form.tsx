@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Chip } from "@/components/ui/chip";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { ROW_LIMIT_OPTIONS, UNLIMITED_ROW_LIMIT, parseRowLimit, DEFAULT_ROW_LIMIT } from "@/lib/row-limits";
-import type { EmailReportSortBy } from "@/lib/email-report";
+import type { EmailReportSortBy, ReportMode } from "@/lib/email-report";
 import { DEFAULT_FREQUENCY } from "@/lib/scheduled-reports/frequency";
 import type { ReportSchedule, ScheduleFrequencyType, ScheduleInput } from "@/lib/scheduled-reports/types";
 
@@ -22,6 +22,10 @@ function buildInitialState(initial: ReportSchedule | undefined, eventsTable: str
     provider: initial?.filters.provider ?? "",
     rowLimit: initial?.filters.rowLimit ?? DEFAULT_ROW_LIMIT,
     sortBy: (initial?.filters.sortBy ?? "email") as EmailReportSortBy,
+    // Agendamentos criados antes deste campo existir não o têm em `filters`
+    // (jsonb sem CHECK constraint) — sem o campo, o default cai em "full",
+    // preservando o comportamento de sempre.
+    reportMode: (initial?.filters.reportMode ?? "full") as ReportMode,
     frequencyType: initial?.frequency.type ?? DEFAULT_FREQUENCY.type,
     time: initial?.frequency.time ?? DEFAULT_FREQUENCY.time,
     dayOfWeek: initial?.frequency.dayOfWeek ?? DEFAULT_FREQUENCY.dayOfWeek ?? 1,
@@ -97,6 +101,7 @@ export function ScheduleForm({
         provider: state.provider,
         rowLimit: state.rowLimit,
         sortBy: state.sortBy,
+        reportMode: state.reportMode,
       },
       frequency:
         state.frequencyType === "weekly"
@@ -206,7 +211,20 @@ export function ScheduleForm({
           />
         </div>
 
-        <div className="space-y-2 md:col-span-3">
+        <div className="space-y-2">
+          <Label htmlFor="schedule-report-mode">{form.reportModeLabel}</Label>
+          <Select
+            id="schedule-report-mode"
+            value={state.reportMode}
+            onChange={(event) => setState((prev) => ({ ...prev, reportMode: event.target.value as ReportMode }))}
+            options={[
+              { label: t.overview.exportModeFull, value: "full" },
+              { label: t.overview.exportModeSimplified, value: "simplified" },
+            ]}
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
           <Label htmlFor="schedule-sort">{form.sortLabel}</Label>
           <Select
             id="schedule-sort"

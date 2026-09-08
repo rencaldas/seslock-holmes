@@ -4,13 +4,33 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { downloadBlob } from "@/lib/download-blob";
-import { createEmailReportFilename, emailReportToCsv, emailReportToJson, emailReportToPdf } from "@/lib/email-report";
+import {
+  createEmailReportFilename,
+  emailReportToCsv,
+  emailReportToJson,
+  emailReportToPdf,
+  type ReportMode,
+} from "@/lib/email-report";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { useSupabase } from "@/lib/supabase/context";
 import { listRunsForSchedule } from "@/lib/scheduled-reports/queries";
 import { adminListRunsForSchedule } from "@/lib/scheduled-reports/admin-queries";
 
-export function ScheduleHistory({ scheduleId, scheduleName, onClose }: { scheduleId: string; scheduleName: string; onClose: () => void }) {
+export function ScheduleHistory({
+  scheduleId,
+  scheduleName,
+  reportMode = "full",
+  onClose,
+}: {
+  scheduleId: string;
+  scheduleName: string;
+  // Modo do agendamento em si, para os downloads do histórico baterem com o
+  // que os destinatários já receberam por email — sem isso, quem configurou
+  // "Simplificado" recebia o anexo simplificado por email e o completo por
+  // aqui, com o mesmo nome de arquivo base.
+  reportMode?: ReportMode;
+  onClose: () => void;
+}) {
   const t = useI18n();
   const history = t.scheduledReports.history;
   const supabase = useSupabase();
@@ -70,8 +90,8 @@ export function ScheduleHistory({ scheduleId, scheduleName, onClose }: { schedul
               <Button
                 variant="secondary"
                 onClick={() => {
-                  const filename = createEmailReportFilename("csv", run.report!.generatedAt);
-                  downloadBlob(new Blob([emailReportToCsv(run.report!)], { type: "text/csv;charset=utf-8" }), filename);
+                  const filename = createEmailReportFilename("csv", run.report!.generatedAt, reportMode);
+                  downloadBlob(new Blob([emailReportToCsv(run.report!, reportMode)], { type: "text/csv;charset=utf-8" }), filename);
                 }}
               >
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -80,8 +100,8 @@ export function ScheduleHistory({ scheduleId, scheduleName, onClose }: { schedul
               <Button
                 variant="secondary"
                 onClick={() => {
-                  const filename = createEmailReportFilename("pdf", run.report!.generatedAt);
-                  downloadBlob(emailReportToPdf(run.report!), filename);
+                  const filename = createEmailReportFilename("pdf", run.report!.generatedAt, reportMode);
+                  downloadBlob(emailReportToPdf(run.report!, reportMode), filename);
                 }}
               >
                 <FileText className="mr-2 h-4 w-4" />
