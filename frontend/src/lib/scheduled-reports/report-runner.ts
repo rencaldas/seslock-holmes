@@ -66,6 +66,21 @@ function reportModeOf(filters: ScheduleFilters): ReportMode {
   return filters.reportMode === "simplified" ? "simplified" : "full";
 }
 
+// Indicadores do período inteiro, iguais aos do painel: vêm da mesma RPC
+// overview_analytics e, como lá, ignoram os filtros do agendamento (só a
+// janela de tempo vale). Sem isso, um agendamento filtrado por "Bounce"
+// chegava no e-mail com o selo de saúde em "100% de bounce" / Crítico.
+export interface ReportPeriodMetrics {
+  totalEvents: number;
+  deliveryRate: number | null;
+  bounceRate: number;
+  complaintRate: number;
+}
+
+export interface ScheduleReport extends EmailReport {
+  periodMetrics?: ReportPeriodMetrics | null;
+}
+
 export interface ScheduleFrequency {
   type: "daily" | "weekly" | "monthly";
   time: string;
@@ -224,8 +239,40 @@ function renderRateCardHtml(value: string, label: string, tone: RateCardTone) {
             </td>`;
 }
 
-function renderHealthSectionHtml(report: EmailReport) {
+// Filtros que recortam o conjunto de eventos (a janela de tempo não conta).
+function scheduleHasContentFilters(filters: ScheduleFilters) {
+  return (
+    filters.status !== "all" ||
+    Boolean(filters.origin?.trim() || filters.subject?.trim() || filters.provider?.trim())
+  );
+}
+
+// Prefere as métricas do período (sem filtros). Se elas não vierem — RPC
+// indisponível —, só dá para cair no cálculo a partir do próprio relatório
+// quando o agendamento não tem filtros de conteúdo, porque aí os dois
+// conjuntos são o mesmo. Com filtro, esse cálculo reproduziria o "100% de
+// bounce", então a seção é omitida.
+function resolveHealthRates(schedule: ReportScheduleRow, report: ScheduleReport): ReportPeriodMetrics | null {
+  if (report.periodMetrics) return report.periodMetrics;
+  if (scheduleHasContentFilters(schedule.filters)) return null;
+
   const rates = summarizeEmailReportRates(report);
+  return {
+    totalEvents: rates.totalCount,
+    deliveryRate: rates.deliveryRate,
+    bounceRate: rates.bounceRate,
+    complaintRate: rates.complaintRate,
+  };
+}
+
+function healthSectionCaption(schedule: ReportScheduleRow, rates: ReportPeriodMetrics) {
+  return `${rates.totalEvents.toLocaleString("pt-BR")} evento(s) nos últimos ${schedule.filters.windowDays} dia(s) — não afetado pelos filtros do agendamento.`;
+}
+
+function renderHealthSectionHtml(schedule: ReportScheduleRow, report: ScheduleReport) {
+  const rates = resolveHealthRates(schedule, report);
+  if (!rates) return "";
+
   const status = getReputationStatus(rates.bounceRate, rates.complaintRate);
   const palette = RATE_CARD_PALETTE[status];
   const cards = [
@@ -236,7 +283,8 @@ function renderHealthSectionHtml(report: EmailReport) {
 
   return `<tr>
       <td style="padding:20px 32px 4px;">
-        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Saúde do envio</div>
+        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Saúde do envio no período</div>
+        <p style="margin:0 0 10px;color:#64748b;font-size:12px;">${escapeHtml(healthSectionCaption(schedule, rates))}</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${cards}</tr></table>
         <div style="margin-top:10px;">
           <span style="display:inline-block;background-color:${palette.bg};color:${palette.fg};font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;">${REPUTATION_BADGE_LABEL[status]}</span>
@@ -245,12 +293,15 @@ function renderHealthSectionHtml(report: EmailReport) {
     </tr>`;
 }
 
-function renderHealthSectionText(report: EmailReport) {
-  const rates = summarizeEmailReportRates(report);
+function renderHealthSectionText(schedule: ReportScheduleRow, report: ScheduleReport) {
+  const rates = resolveHealthRates(schedule, report);
+  if (!rates) return [];
+
   const status = getReputationStatus(rates.bounceRate, rates.complaintRate);
   return [
     "",
-    "SAÚDE DO ENVIO",
+    "SAÚDE DO ENVIO NO PERÍODO",
+    healthSectionCaption(schedule, rates),
     `Situação: ${REPUTATION_BADGE_LABEL[status]}`,
     `Taxa de entrega: ${formatRatePercent(rates.deliveryRate, 1)} · Devoluções (bounce): ${formatRatePercent(rates.bounceRate, 1)} · Reclamações: ${formatRatePercent(rates.complaintRate, 2)}`,
   ];
@@ -403,17 +454,53 @@ function reportSubtitle(schedule: ReportScheduleRow, report: EmailReport, forced
     : `${humanFrequency(schedule.frequency)} · gerado em ${generatedAtLabel}`;
 }
 
-export async function buildReportForSchedule(client: SupabaseClient, schedule: ReportScheduleRow) {
+// Não fatal: se a RPC falhar (ou não existir num projeto self-hosted que não
+// rodou as migrations do Overview), o e-mail sai mesmo assim — ver
+// resolveHealthRates para o que acontece com a seção de saúde nesse caso.
+async function fetchPeriodMetrics(client: SupabaseClient, startIso: string): Promise<ReportPeriodMetrics | null> {
+  const { data, error } = await client.rpc("overview_analytics", {
+    p_start: startIso,
+    p_end: null,
+    p_status: "all",
+    p_origin: "",
+    p_subject: "",
+    p_provider: "",
+  });
+
+  if (error || !data) {
+    console.error("buildReportForSchedule: failed to load period metrics", error);
+    return null;
+  }
+
+  const aggregate = data as {
+    totalEventCount?: number;
+    deliveryRate?: number | null;
+    bounceRate?: number;
+    complaintRate?: number;
+  };
+
+  return {
+    totalEvents: aggregate.totalEventCount ?? 0,
+    deliveryRate: aggregate.deliveryRate ?? null,
+    bounceRate: aggregate.bounceRate ?? 0,
+    complaintRate: aggregate.complaintRate ?? 0,
+  };
+}
+
+export async function buildReportForSchedule(client: SupabaseClient, schedule: ReportScheduleRow): Promise<ScheduleReport> {
   const filters = schedule.filters;
   const startIso = new Date(Date.now() - filters.windowDays * 24 * 60 * 60 * 1000).toISOString();
   const eventTypeFilterValues = getAwsSnsEventTypeFilterValues(filters.status);
   const maxRows = filters.rowLimit === "all" ? undefined : Number(filters.rowLimit);
 
-  const { rows, truncated } = await fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
-    maxRows,
-    columns: EMAIL_EVENT_LIST_COLUMNS,
-    inValues: eventTypeFilterValues.length ? [{ column: "eventType", values: eventTypeFilterValues }] : undefined,
-  });
+  const [{ rows, truncated }, periodMetrics] = await Promise.all([
+    fetchEventRowsWithTimeFallback(client, schedule.events_table, startIso, {
+      maxRows,
+      columns: EMAIL_EVENT_LIST_COLUMNS,
+      inValues: eventTypeFilterValues.length ? [{ column: "eventType", values: eventTypeFilterValues }] : undefined,
+    }),
+    fetchPeriodMetrics(client, startIso),
+  ]);
 
   const origin = (filters.origin ?? "").trim();
   const subject = (filters.subject ?? "").trim();
@@ -439,11 +526,13 @@ export async function buildReportForSchedule(client: SupabaseClient, schedule: R
     ...(truncated ? { aviso: "resultado incompleto — teto de segurança de linhas atingido" } : {}),
   };
 
-  return buildEmailReport(events, {
+  const report = buildEmailReport(events, {
     language: "pt-BR",
     query: queryLabels,
     sortBy: filters.sortBy ?? "email",
   });
+
+  return { ...report, periodMetrics };
 }
 
 function renderStatCardHtml(value: number, label: string) {
@@ -491,7 +580,7 @@ function renderCategoryRowsHtml(categories: EmailReport["categories"]) {
 // Exportadas (só para teste — nunca importadas fora deste módulo em
 // produção) para lib/scheduled-reports/report-runner.test.ts poder cobrir o
 // HTML/texto renderizado sem precisar mockar nodemailer inteiro.
-export function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport, forced: boolean, mode: ReportMode = "full") {
+export function buildEmailHtml(schedule: ReportScheduleRow, report: ScheduleReport, forced: boolean, mode: ReportMode = "full") {
   const subtitle = reportSubtitle(schedule, report, forced);
   const preheader = `${report.summary.totalEvents.toLocaleString("pt-BR")} eventos · ${report.summary.uniqueRecipients.toLocaleString("pt-BR")} destinatários · ${humanFrequency(schedule.frequency)}`;
   const statCards = [
@@ -520,15 +609,16 @@ export function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport,
         <p style="margin:0;color:#64748b;font-size:13px;">${escapeHtml(subtitle)}</p>
       </td>
     </tr>
+    ${renderHealthSectionHtml(schedule, report)}
+    ${renderActionGuidanceHtml(schedule, report)}
+    ${renderFiltersHtml(report.query)}
     <tr>
-      <td style="padding:20px 26px 8px;">
+      <td style="padding:12px 26px 8px;">
+        <div style="padding:0 6px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Resultado dos filtros</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${statCards}</tr></table>
       </td>
     </tr>
-    ${renderHealthSectionHtml(report)}
-    ${renderActionGuidanceHtml(schedule, report)}
     ${renderAttentionRecipientsHtml(report, schedule)}
-    ${renderFiltersHtml(report.query)}
     <tr>
       <td style="padding:20px 32px 4px;">
         <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Categorias de assunto</div>
@@ -561,19 +651,13 @@ export function buildEmailHtml(schedule: ReportScheduleRow, report: EmailReport,
 // multipart/alternative. An HTML-only body is one of the more common signals
 // spam filters (Gmail's own included) score against — this isn't optional
 // polish, it measurably affects whether these reports land in the inbox.
-export function buildEmailText(schedule: ReportScheduleRow, report: EmailReport, forced: boolean, mode: ReportMode = "full") {
+export function buildEmailText(schedule: ReportScheduleRow, report: ScheduleReport, forced: boolean, mode: ReportMode = "full") {
   const lines: string[] = [
     "SESLOCK HOLMES",
     `Relatório agendado: ${schedule.name}${forced ? " (forçado)" : ""}`,
     reportSubtitle(schedule, report, forced),
-    "",
-    "RESUMO",
-    `Eventos: ${report.summary.totalEvents.toLocaleString("pt-BR")}`,
-    `Mensagens únicas: ${report.summary.uniqueMessages.toLocaleString("pt-BR")}`,
-    `Destinatários: ${report.summary.uniqueRecipients.toLocaleString("pt-BR")}`,
-    ...renderHealthSectionText(report),
+    ...renderHealthSectionText(schedule, report),
     ...renderActionGuidanceText(schedule, report),
-    ...renderAttentionRecipientsText(report, schedule),
   ];
 
   const filterEntries = Object.entries(report.query);
@@ -583,6 +667,15 @@ export function buildEmailText(schedule: ReportScheduleRow, report: EmailReport,
       lines.push(`${capitalize(key)}: ${value}`);
     }
   }
+
+  lines.push(
+    "",
+    "RESULTADO DOS FILTROS",
+    `Eventos: ${report.summary.totalEvents.toLocaleString("pt-BR")}`,
+    `Mensagens únicas: ${report.summary.uniqueMessages.toLocaleString("pt-BR")}`,
+    `Destinatários: ${report.summary.uniqueRecipients.toLocaleString("pt-BR")}`,
+    ...renderAttentionRecipientsText(report, schedule),
+  );
 
   if (report.categories.length) {
     lines.push("", "CATEGORIAS DE ASSUNTO");
@@ -604,7 +697,7 @@ export function buildEmailText(schedule: ReportScheduleRow, report: EmailReport,
 
 export async function sendReportEmail(
   schedule: ReportScheduleRow,
-  report: EmailReport,
+  report: ScheduleReport,
   credentials: GmailCredentials,
   options: { forced?: boolean } = {},
 ) {
