@@ -49,10 +49,29 @@ export function OverviewPage() {
   // quem não pediu a comparação.
   const [compareEnabled, setCompareEnabled] = useState(false);
 
-  const overviewQuery = useQuery({
+  // Métricas do painel: dependem só do período. Os filtros de conteúdo
+  // (status, origem, assunto, provedor...) não entram nem na chave nem na
+  // consulta — ver fetchOverviewAggregate. Assim, filtrar por "Bounce" muda a
+  // lista de atividade, mas não transforma o painel em "100% de bounce".
+  const metricsQuery = useQuery({
     queryKey: [
-      "overview",
+      "overview-metrics",
       language,
+      appliedFilters.timeMode,
+      appliedFilters.windowDays,
+      appliedFilters.startAt,
+      appliedFilters.endAt,
+      supabase.eventsTable,
+    ],
+    enabled: Boolean(supabase.client && supabase.eventsTable),
+    queryFn: () => fetchOverviewAggregate(supabase.client!, appliedFilters, language),
+    placeholderData: keepPreviousData,
+  });
+
+  // Lista "Atividade recente": aqui sim os filtros valem, junto com a paginação.
+  const activityQuery = useQuery({
+    queryKey: [
+      "overview-activity",
       page,
       pageSize,
       appliedFilters.timeMode,
@@ -69,11 +88,8 @@ export function OverviewPage() {
       supabase.eventsTable,
     ],
     enabled: Boolean(supabase.client && supabase.eventsTable),
-    // As duas chamadas são independentes e vão juntas: o agregado varre o
-    // período inteiro, a página só traz as 50 linhas visíveis. Em paralelo, o
-    // tempo de tela é o da mais lenta, não a soma.
     queryFn: async () => {
-      const queryInput = {
+      const eventsPage = await fetchOverviewEventsPage(supabase.client!, {
         page,
         pageSize,
         timeMode: appliedFilters.timeMode,
@@ -87,21 +103,12 @@ export function OverviewPage() {
         subject: appliedFilters.subject,
         provider: appliedFilters.provider,
         rowLimit: appliedFilters.rowLimit,
-      };
-
-      const [aggregate, eventsPage] = await Promise.all([
-        fetchOverviewAggregate(supabase.client!, queryInput, language),
-        fetchOverviewEventsPage(supabase.client!, queryInput),
-      ]);
+      });
 
       const totalPages = Math.max(1, Math.ceil(eventsPage.totalCount / pageSize));
 
       return {
-        analytics: aggregate.analytics,
-        timeSeries: aggregate.timeSeries,
         recentEvents: eventsPage.items.map((row) => rowToEmailEvent(row)),
-        recentEventsCount: eventsPage.totalCount,
-        uniqueMessagesCount: aggregate.uniqueMessagesCount,
         page,
         totalPages,
         hasPreviousPage: page > 1,
@@ -119,36 +126,21 @@ export function OverviewPage() {
       appliedFilters.windowDays,
       appliedFilters.startAt,
       appliedFilters.endAt,
-      appliedFilters.status,
-      appliedFilters.bounceSubType,
-      appliedFilters.origin,
-      appliedFilters.subject,
-      appliedFilters.provider,
       supabase.eventsTable,
     ],
     enabled: compareEnabled && Boolean(supabase.client && supabase.eventsTable),
-    // Mesma RPC overview_analytics da consulta principal, só que com a janela
-    // anterior de mesma duração — ver resolvePriorTimeRange. Reaproveitar a
-    // função existente evita alargar a assinatura da RPC (risco documentado
-    // em fetchOverviewAggregate).
+    // Mesma RPC overview_analytics das métricas, só que com a janela anterior
+    // de mesma duração — ver resolvePriorTimeRange. Como as métricas, ignora
+    // os filtros de conteúdo.
     queryFn: async () => {
       const prior = resolvePriorTimeRange(appliedFilters);
       const aggregate = await fetchOverviewAggregate(
         supabase.client!,
         {
-          page: 1,
-          pageSize: 1,
           timeMode: "custom",
           windowDays: appliedFilters.windowDays,
           startAt: prior.startIso,
           endAt: prior.endIso,
-          recentActivitySort: appliedFilters.recentActivitySort,
-          status: appliedFilters.status,
-          bounceSubType: appliedFilters.bounceSubType,
-          origin: appliedFilters.origin,
-          subject: appliedFilters.subject,
-          provider: appliedFilters.provider,
-          rowLimit: appliedFilters.rowLimit,
         },
         language,
       );
@@ -157,7 +149,8 @@ export function OverviewPage() {
     placeholderData: keepPreviousData,
   });
 
-  const timeSeries = overviewQuery.data?.timeSeries ?? { points: [], granularity: "hour" as const };
+  const pageError = metricsQuery.error ?? activityQuery.error;
+  const timeSeries = metricsQuery.data?.timeSeries ?? { points: [], granularity: "hour" as const };
 
   // O relatório é o único consumidor que ainda precisa de todas as linhas da
   // consulta. Buscá-las só no clique evita pagar por elas em todo
@@ -207,25 +200,24 @@ export function OverviewPage() {
         </div>
       </section>
 
-      {overviewQuery.isLoading ? <OverviewSkeleton /> : null}
-      {overviewQuery.isError ? (
+      {metricsQuery.isLoading ? <OverviewSkeleton /> : null}
+      {pageError ? (
         <ErrorState
-          description={
-            overviewQuery.error instanceof Error
-              ? overviewQuery.error.message
-              : t.common.noAvailableData
-          }
-          onRetry={() => overviewQuery.refetch()}
+          description={pageError instanceof Error ? pageError.message : t.common.noAvailableData}
+          onRetry={() => {
+            if (metricsQuery.isError) void metricsQuery.refetch();
+            if (activityQuery.isError) void activityQuery.refetch();
+          }}
         />
       ) : null}
 
-      {overviewQuery.data ? (
+      {metricsQuery.data ? (
         <div
           className={`space-y-8 transition-opacity duration-150 ${
-            overviewQuery.isFetching && !overviewQuery.isLoading ? "opacity-60" : "opacity-100"
+            metricsQuery.isFetching && !metricsQuery.isLoading ? "opacity-60" : "opacity-100"
           }`}
         >
-          <DomainHealthHero analytics={overviewQuery.data.analytics} />
+          <DomainHealthHero analytics={metricsQuery.data.analytics} />
           <div className="flex justify-end">
             <Button
               type="button"
@@ -239,18 +231,27 @@ export function OverviewPage() {
             </Button>
           </div>
           <TopMetrics
-            analytics={overviewQuery.data.analytics}
+            analytics={metricsQuery.data.analytics}
             timeSeries={timeSeries.points}
             comparison={compareEnabled ? comparisonQuery.data : undefined}
           />
           <OverviewAnalyticsPanel
-            analytics={overviewQuery.data.analytics}
-            uniqueMessagesCount={overviewQuery.data.uniqueMessagesCount}
+            analytics={metricsQuery.data.analytics}
+            uniqueMessagesCount={metricsQuery.data.uniqueMessagesCount}
             timeSeries={timeSeries}
           />
-          {overviewQuery.data.recentEvents.length ? (
+        </div>
+      ) : null}
+
+      {metricsQuery.data && activityQuery.data ? (
+        <div
+          className={`transition-opacity duration-150 ${
+            activityQuery.isFetching && !activityQuery.isLoading ? "opacity-60" : "opacity-100"
+          }`}
+        >
+          {activityQuery.data.recentEvents.length ? (
             <RecentActivityList
-              events={overviewQuery.data.recentEvents}
+              events={activityQuery.data.recentEvents}
               loadReportEvents={loadReportEvents}
               reportQuery={{
                 timeMode: appliedFilters.timeMode,
@@ -265,22 +266,22 @@ export function OverviewPage() {
                 provider: appliedFilters.provider,
                 rows: String(appliedFilters.rowLimit),
               }}
-              page={overviewQuery.data.page}
-              totalPages={overviewQuery.data.totalPages}
+              page={activityQuery.data.page}
+              totalPages={activityQuery.data.totalPages}
               pageSize={pageSize}
-              hasPreviousPage={overviewQuery.data.hasPreviousPage}
-              hasNextPage={overviewQuery.data.hasNextPage}
+              hasPreviousPage={activityQuery.data.hasPreviousPage}
+              hasNextPage={activityQuery.data.hasNextPage}
               onPreviousPage={() =>
                 setSearchParams(
                   buildSearchParams(searchParams, {
-                    page: String(Math.max(1, overviewQuery.data.page - 1)),
+                    page: String(Math.max(1, activityQuery.data.page - 1)),
                   }),
                 )
               }
               onNextPage={() =>
                 setSearchParams(
                   buildSearchParams(searchParams, {
-                    page: String(overviewQuery.data.page + 1),
+                    page: String(activityQuery.data.page + 1),
                   }),
                 )
               }

@@ -9,7 +9,7 @@ import type { OverviewAggregate } from "@/lib/overview/analytics";
 import { buildOverviewAnalyticsFromAggregate } from "@/lib/overview/analytics";
 import type { EventTimeSeriesPoint, TimeSeriesGranularity } from "@/lib/overview/timeseries";
 import type { OverviewAnalytics } from "@/lib/overview/analytics";
-import { resolveTimeRange } from "@/lib/time-filters";
+import { resolveTimeRange, type TimeFilterState } from "@/lib/time-filters";
 import type { EmailEventRow, OverviewQueryInput } from "@/lib/supabase/types";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -124,9 +124,15 @@ export async function fetchOverviewEventsPage(
   return { items: page.items ?? [], totalCount: page.totalCount ?? 0 };
 }
 
+// As métricas do painel (taxas, reputação, distribuição, gráficos) descrevem
+// a saúde do envio no período inteiro e, por isso, recebem só o intervalo de
+// tempo: status, subtipo de bounce, origem, assunto e provedor ficam de fora
+// de propósito. Repassá-los fazia um filtro "Bounce" virar "100% de bounce"
+// no painel — o recorte filtrado é papel da lista de atividade e do
+// relatório, não dos indicadores.
 export async function fetchOverviewAggregate(
   client: SupabaseClient,
-  input: OverviewQueryInput,
+  input: TimeFilterState,
   language: AppLanguage,
 ): Promise<OverviewAggregateResult> {
   const { startIso, endIso } = resolveTimeRange(input);
@@ -136,13 +142,12 @@ export async function fetchOverviewAggregate(
     // A função trata null como "sem limite superior"; o intervalo padrão só
     // tem início.
     p_end: endIso || null,
-    p_status: input.status,
-    // Ver o mesmo comentário em fetchOverviewEventsPage: p_bounce_subtype só
-    // volta depois que 20260801190000_overview_bounce_subtype_filter.sql
-    // for aplicada no banco.
-    p_origin: input.origin.trim(),
-    p_subject: input.subject.trim(),
-    p_provider: input.provider.trim(),
+    // Valores neutros explícitos (em vez de omitir) para manter a mesma
+    // assinatura que o PostgREST já resolve hoje.
+    p_status: "all",
+    p_origin: "",
+    p_subject: "",
+    p_provider: "",
     // rowLimit é deliberadamente NÃO repassado — "sem teto" é o padrão da
     // função, e o painel sempre reflete a janela inteira escolhida. Ver
     // docs/ARCHITECTURE.md#o-seletor-de-linhas-legado-e-a-armadilha-que-ele-deixou.

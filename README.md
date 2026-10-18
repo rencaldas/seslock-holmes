@@ -42,8 +42,8 @@ Além da leitura, o projeto também escreve em duas áreas próprias, protegidas
 
 ## Principais Funcionalidades
 
-- Visão geral com atividade recente, eventos problemáticos e principais origens, com indicadores calculados no próprio banco (via RPC) para refletir o período inteiro filtrado, não apenas uma amostra. Um toggle opcional compara os indicadores com o período anterior de mesma duração, com seta de alta/baixa em cada cartão.
-- Painel de analytics com distribuição de eventos, reputação, taxa de bounce (com filtro por subtipo: suppressed, general, mailbox full, content rejected, undetermined), tempo médio de entrega, último evento recebido, principais provedores, principais motivos de bounce e aplicações/origens.
+- Visão geral com atividade recente, eventos problemáticos e principais origens, com indicadores calculados no próprio banco (via RPC) para refletir o período inteiro, não apenas uma amostra. Os indicadores dependem só do período: os filtros de status, subtipo de bounce, origem, assunto e provedor restringem a lista de atividade e os relatórios, mas não alteram as taxas do painel. Um toggle opcional compara os indicadores com o período anterior de mesma duração, com seta de alta/baixa em cada cartão.
+- Painel de analytics com distribuição de eventos, reputação, taxa de bounce (a lista de atividade pode ser filtrada por subtipo: suppressed, general, mailbox full, content rejected, undetermined), tempo médio de entrega, último evento recebido, principais provedores, principais motivos de bounce e aplicações/origens.
 - Investigação por destinatário, remetente, provedor (domínio do destinatário) ou diagnóstico de bounce.
 - Busca global no cabeçalho, disponível em qualquer página, com persistência de texto/modo/filtros entre navegações.
 - Detalhes completos do evento com assunto, remetente, destinatário, status e metadados de falha.
@@ -304,7 +304,7 @@ O aplicativo mapeia esses campos para uma visão unificada de evento de e-mail.
 
 - O app só faz consultas de leitura sobre a tabela de eventos do SES.
 - Consultas aos eventos e aos agendamentos exigem sessão autenticada no Supabase (RLS nega acesso anônimo); o login aparece automaticamente quando uma consulta é recusada por falta de permissão.
-- Indicadores do overview (distribuição, reputação, taxa de bounce, tempo médio de entrega, etc.) são calculados no banco via RPC, cobrindo o período filtrado inteiro em vez de uma amostra baixada no navegador.
+- Indicadores do overview (distribuição, reputação, taxa de bounce, tempo médio de entrega, etc.) são calculados no banco via RPC, cobrindo o período selecionado inteiro em vez de uma amostra baixada no navegador, sem serem afetados pelos demais filtros.
 - A lógica respeita filtros por janela de tempo, status, subtipo de bounce e origem.
 - O overview também pode ser refinado por provedor e ordenação da atividade recente.
 - A busca por destinatário e remetente usa normalização de texto para reduzir variações de caixa.
